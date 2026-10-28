@@ -140,9 +140,33 @@ async function listBots() {
   return out.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 }
 async function loadBot(name) {
-  if (typeof name !== "string" || !/^[A-Za-z0-9 _-]{1,48}$/.test(name)) return null;
-  const text = await Bun.file(`${BOTS_DIR}/${name}.md`).text().catch(() => "");
-  return text ? parseBot(name, text) : null;
+  if (!validBotName(name)) return null;
+  const n = name.trim();
+  const text = await Bun.file(`${BOTS_DIR}/${n}.md`).text().catch(() => "");
+  return text ? parseBot(n, text) : null;
+}
+// Desktop'ın is_alphanumeric'iyle aynı (Unicode harf/rakam) + boşluk/-/_. Yol
+// ayracı (/ . \) hariç olduğu için dosya adı olarak güvenli; traversal imkânsız.
+const validBotName = (n) => typeof n === "string" && /^[\p{L}\p{N} _-]{1,48}$/u.test(n.trim());
+function botToMd(b) {
+  let out = `---\nname: ${b.name.trim()}\n`;
+  if (b.description?.trim()) out += `description: ${b.description.trim()}\n`;
+  if (b.model?.trim()) out += `model: ${b.model.trim()}\n`;
+  if (b.tools?.trim()) out += `tools: ${b.tools.trim()}\n`;
+  return `${out}---\n\n${(b.persona || "").trim()}\n`;
+}
+async function saveBot(b) {
+  if (!validBotName(b?.name)) return json({ error: "ad geçersiz" }, 400);
+  if (typeof b.persona !== "string" || !b.persona.trim()) return json({ error: "persona (talimat) gerekli" }, 400);
+  if (b.persona.length > 20000) return json({ error: "persona çok uzun" }, 400);
+  await Bun.$`mkdir -p ${BOTS_DIR}`.quiet().catch(() => {});
+  await Bun.write(`${BOTS_DIR}/${b.name.trim()}.md`, botToMd(b));
+  return json({ ok: true });
+}
+async function deleteBot(name) {
+  if (!validBotName(name)) return json({ error: "ad geçersiz" }, 400);
+  await unlink(`${BOTS_DIR}/${name.trim()}.md`).catch(() => {});
+  return json({ ok: true });
 }
 
 // Desktop'ın command_args'ıyla aynı: chat modu kısıtlı araç seti, --resume aynı
@@ -359,6 +383,8 @@ async function handle(req) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/bots") return json(await listBots());
+  if (req.method === "POST" && url.pathname === "/api/bot") return saveBot(await req.json().catch(() => null));
+  if (req.method === "POST" && url.pathname === "/api/bot/delete") return deleteBot((await req.json().catch(() => ({})))?.name);
   if (req.method === "POST" && url.pathname === "/api/chat") return chat(await req.json().catch(() => null));
   if (req.method === "POST" && url.pathname === "/api/music") return identifyMusic(await req.json().catch(() => null));
 

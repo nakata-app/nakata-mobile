@@ -35,8 +35,9 @@ header .model svg{width:16px;height:16px;opacity:.6}
 .sheet-grip{width:38px;height:4px;border-radius:2px;background:#ffffff33;margin:8px auto 2px}
 .sheet-title{padding:6px 18px 8px;color:var(--muted);font-size:13px;font-weight:600}
 .sheet-list{overflow-y:auto;padding:0 8px 6px}
-.botopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 12px;border-radius:12px}
-.botopt:active{background:#ffffff14}
+.botopt{display:flex;align-items:center;gap:2px;border-radius:12px}
+.botmain{flex:1;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 12px;border-radius:12px;min-width:0}
+.botmain:active{background:#ffffff14}
 .botopt .av{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
 .botopt .av svg{width:18px;height:18px}
 .botopt .meta{min-width:0;flex:1}
@@ -44,6 +45,17 @@ header .model svg{width:16px;height:16px;opacity:.6}
 .botopt .ds{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .botopt .chk{color:var(--ink);opacity:0}
 .botopt.on .chk{opacity:1}
+.botopt .edit{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.botopt .edit:active{background:#ffffff1a}
+.botopt .edit svg{width:16px;height:16px}
+.botnew{display:flex;align-items:center;gap:10px;width:calc(100% - 16px);margin:4px 8px 6px;padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--ink)}
+.botnew svg{width:18px;height:18px}
+.form{max-width:640px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:6px}
+.form label{color:var(--muted);font-size:13px;margin-top:10px}
+.field{background:var(--bar);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;outline:none;width:100%;box-sizing:border-box}
+.field.area{resize:vertical;min-height:140px;line-height:1.45}
+.del{margin-top:22px;background:none;border:1px solid var(--err);color:var(--err);border-radius:12px;padding:12px;font:inherit}
+.del[hidden]{display:none}
 
 /* views */
 .view{flex:1;display:flex;flex-direction:column;min-height:0}
@@ -156,7 +168,26 @@ iframe.full{flex:1;border:0;width:100%}
   <div class="sheet-grip"></div>
   <div class="sheet-title">Bot seç</div>
   <div class="sheet-list" id="botList"></div>
+  <button class="botnew" id="botNew"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Yeni bot</button>
 </div>
+
+<!-- BOT FORM -->
+<section class="feature" id="f-botform">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="model" id="botFormTitle">Yeni bot</div>
+    <button class="icon" id="botSave" aria-label="Kaydet" style="color:var(--send);font-weight:600;font-size:15px;width:auto;padding:0 10px">Kaydet</button>
+  </header>
+  <div class="scroll"><div class="form">
+    <label>İsim</label>
+    <input id="bf-name" class="field" placeholder="örn. Scout" autocomplete="off" autocapitalize="words">
+    <label>Model <span class="muted">(opsiyonel)</span></label>
+    <input id="bf-model" class="field" placeholder="örn. evren/deepseek-v4-flash" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label>Persona / talimat</label>
+    <textarea id="bf-persona" class="field area" rows="8" placeholder="Bu bot kim? Nasıl cevap versin?"></textarea>
+    <button class="del" id="bf-del" hidden>Botu sil</button>
+  </div></div>
+</section>
 
 <!-- DRAWER -->
 <div class="scrim" id="scrim"></div>
@@ -232,19 +263,55 @@ function closeSheet() { $("#botSheet").classList.remove("on"); if (!$("#drawer")
 async function openBotSheet() {
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
   const list = $("#botList"); list.replaceChildren();
-  const mk = (name, desc, on, isBot) => {
-    const b = el("button", "botopt" + (on ? " on" : ""));
+  const mk = (name, desc, on, bot) => {
+    const row = el("div", "botopt" + (on ? " on" : ""));
+    const main = el("button", "botmain");
     const av = el("div", "av"); av.innerHTML = ASST_LOGO;
     const meta = el("div", "meta"); meta.append(el("div", "nm", name)); if (desc) meta.append(el("div", "ds", desc));
-    b.append(av, meta, el("div", "chk", "✓"));
-    b.addEventListener("click", () => { activeBot = isBot ? name : null; setModelLabel(); closeSheet(); });
-    return b;
+    main.append(av, meta, el("div", "chk", "✓"));
+    main.addEventListener("click", () => { activeBot = bot ? name : null; setModelLabel(); closeSheet(); });
+    row.append(main);
+    if (bot) {
+      const edit = el("button", "edit");
+      edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      edit.addEventListener("click", (e) => { e.stopPropagation(); openBotForm(bot); });
+      row.append(edit);
+    }
+    return row;
   };
-  list.append(mk("Nakata", "Varsayılan", !activeBot, false));
-  try { for (const bot of await api("/api/bots")) list.append(mk(bot.name, bot.description || (bot.model || ""), activeBot === bot.name, true)); }
+  list.append(mk("Nakata", "Varsayılan", !activeBot, null));
+  try { for (const bot of await api("/api/bots")) list.append(mk(bot.name, bot.description || bot.model || "", activeBot === bot.name, bot)); }
   catch (e) { list.append(el("div", "note", `Botlar yüklenemedi: ${e.message}`)); }
 }
 $("#modelBtn").addEventListener("click", openBotSheet);
+
+let editingBot = null;
+function openBotForm(bot) {
+  editingBot = bot ? bot.name : null;
+  $("#botFormTitle").textContent = bot ? "Botu düzenle" : "Yeni bot";
+  $("#bf-name").value = bot?.name || ""; $("#bf-name").readOnly = !!bot;
+  $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
+  $("#bf-del").hidden = !bot;
+  closeSheet();
+  $("#f-botform").classList.add("on");
+  if (!bot) $("#bf-name").focus();
+}
+$("#botNew").addEventListener("click", () => openBotForm(null));
+$("#botSave").addEventListener("click", async () => {
+  const bot = { name: $("#bf-name").value.trim(), model: $("#bf-model").value.trim() || undefined, persona: $("#bf-persona").value };
+  if (!bot.name) return $("#bf-name").focus();
+  if (!bot.persona.trim()) return $("#bf-persona").focus();
+  try { await api("/api/bot", { method: "POST", body: JSON.stringify(bot) }); $("#f-botform").classList.remove("on"); openBotSheet(); }
+  catch (e) { alert(e.message); }
+});
+$("#bf-del").addEventListener("click", async () => {
+  if (!editingBot) return;
+  try {
+    await api("/api/bot/delete", { method: "POST", body: JSON.stringify({ name: editingBot }) });
+    if (activeBot === editingBot) { activeBot = null; setModelLabel(); }
+    $("#f-botform").classList.remove("on"); openBotSheet();
+  } catch (e) { alert(e.message); }
+});
 
 // ---- sessions ----
 let allSessions = [];
