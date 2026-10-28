@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#212121">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Nakata</title>
+<style>
+:root{
+  --bg:#212121; --bar:#2f2f2f; --userbubble:#303030; --drawer:#171717;
+  --ink:#ececec; --muted:#9b9b9b; --line:#3a3a3a; --accent:#ececec;
+  --send:#ffffff; --sendink:#000; --err:#f4756b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg{display:block}
+
+/* top bar */
+header{display:flex;align-items:center;gap:4px;height:48px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;flex:none}
+header .icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+header .icon:active{background:#ffffff14}
+header .model{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:17px;font-weight:600;color:var(--ink)}
+header .model .sub{color:var(--muted);font-weight:600}
+header .model svg{width:16px;height:16px;opacity:.6}
+
+/* views */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view[hidden]{display:none}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+/* chat */
+#thread{max-width:780px;width:100%;margin:0 auto;padding:8px 14px 10px;display:flex;flex-direction:column;gap:18px}
+.row{display:flex;flex-direction:column}
+.row.user{align-items:flex-end}
+.bubble{max-width:85%;background:var(--userbubble);border-radius:22px;padding:10px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.asst{display:flex;gap:11px;align-items:flex-start}
+.asst .logo{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.asst .logo svg{width:16px;height:16px}
+.asst .text{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:2px}
+.tool{align-self:flex-start;max-width:100%;color:var(--muted);font:13px/1.45 ui-monospace,Menlo,monospace;border-left:2px solid var(--line);padding:1px 0 1px 10px;max-height:5.5em;overflow:hidden}
+.tool.err{border-color:var(--err);color:var(--err)}
+.note{align-self:center;color:var(--muted);font-size:13px;text-align:center}
+.ask{align-self:flex-start;max-width:92%;border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:#ffffff08}
+.ask .q{margin-bottom:8px;font-weight:500}
+.ask button{display:block;width:100%;text-align:left;margin-top:7px;background:var(--bar);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+.ask button small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.typing{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ink);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* empty chat hero (new conversation) */
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ink);padding:24px}
+.hero .mark{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.hero .mark svg{width:26px;height:26px}
+.hero h2{font-size:22px;font-weight:600;margin:0}
+
+/* composer */
+.composer-wrap{flex:none;padding:6px 12px calc(env(safe-area-inset-bottom) + 8px)}
+form.composer{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:6px;background:var(--bar);border-radius:26px;padding:6px 6px 6px 6px}
+form.composer .plus{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+form.composer .plus:active{background:#ffffff14}
+form.composer textarea{flex:1;resize:none;max-height:150px;background:none;border:0;color:var(--ink);padding:9px 4px;font:inherit;line-height:1.4;outline:none}
+form.composer textarea::placeholder{color:var(--muted)}
+form.composer .act{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--send);color:var(--sendink)}
+form.composer .act[disabled]{background:#ffffff26;color:#ffffff66}
+form.composer .act.stop{background:var(--send)}
+form.composer .mic{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:#0008;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:84%;max-width:340px;background:var(--drawer);z-index:50;transform:translateX(-100%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.drawer.on{transform:none}
+.drawer .dhead{padding:12px 14px 6px}
+.drawer .search{display:flex;align-items:center;gap:8px;background:#ffffff12;border-radius:12px;padding:9px 12px;color:var(--muted)}
+.drawer .search input{flex:1;background:none;border:0;outline:0;color:var(--ink);font:inherit}
+.drawer .newrow{display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:500}
+.drawer .newrow svg{width:20px;height:20px}
+.drawer .slist{flex:1;overflow-y:auto;padding:4px 8px}
+.drawer .sec{color:var(--muted);font-size:12px;font-weight:600;padding:12px 10px 4px}
+.drawer .sitem{display:block;width:100%;text-align:left;padding:10px 10px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drawer .sitem:active,.drawer .sitem.on{background:#ffffff14}
+.drawer .tools{border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom) + 8px)}
+.drawer .trow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;border-radius:10px}
+.drawer .trow:active{background:#ffffff14}
+.drawer .trow svg{width:20px;height:20px;opacity:.85}
+
+/* feature overlays */
+.feature{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
+.feature.on{transform:none}
+.feature header .model{justify-content:flex-start;font-weight:600;padding-left:4px}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center}
+.bigbtn{width:160px;height:160px;border-radius:50%;border:0;background:var(--userbubble);color:var(--ink);font:600 18px/1.2 inherit}
+.bigbtn.listening{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07);opacity:.75}}
+.song img{width:200px;height:200px;border-radius:16px;object-fit:cover;background:var(--userbubble)}
+.song .t{font-size:22px;font-weight:700;margin-top:12px}
+.song .a{color:var(--muted)}
+.song .links a{color:#7aa2ff;text-decoration:none;margin:0 10px;font-weight:500}
+.linkbtn{display:inline-block;background:var(--userbubble);color:var(--ink);border-radius:14px;padding:14px 22px;font-weight:600;text-decoration:none}
+iframe.full{flex:1;border:0;width:100%}
+.muted{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- CHAT -->
+<header>
+  <button class="icon" id="menuBtn" aria-label="Menü"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <div class="model">Nakata <span class="sub" id="modelName"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+  <button class="icon" id="newBtn" aria-label="Yeni sohbet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+</header>
+
+<div class="view" id="chatView">
+  <div class="scroll" id="chatScroll">
+    <div class="hero" id="hero">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg></div>
+      <h2>Ne lazım?</h2>
+    </div>
+    <div id="thread" hidden></div>
+  </div>
+  <div class="composer-wrap">
+    <form class="composer" id="composer">
+      <button type="button" class="plus" id="plusBtn" aria-label="Ekle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <textarea id="prompt" rows="1" placeholder="Mesaj yaz" enterkeyhint="send"></textarea>
+      <button type="button" class="mic" id="voiceBtn" aria-label="Müzik tanı"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></button>
+      <button type="submit" class="act" id="sendBtn" aria-label="Gönder" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </form>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <div class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Ara" autocomplete="off"></div>
+  </div>
+  <button class="newrow" id="newBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Yeni sohbet</button>
+  <div class="slist" id="slist"></div>
+  <div class="tools">
+    <button class="trow" data-feature="image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg> Görsel üret</button>
+    <button class="trow" data-feature="music"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg> Müzik tanı</button>
+    <button class="trow" data-feature="konsol"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg> Konsol</button>
+  </div>
+</aside>
+
+<!-- FEATURE: music -->
+<section class="feature" id="f-music">
+  <header><button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button><div class="model">Müzik</div><span style="width:40px"></span></header>
+  <div class="scroll"><div class="center">
+    <button class="bigbtn" id="listen">Dinle</button>
+    <div class="muted" id="musicStatus">Çalan müziği tanımak için dokun.</div>
+    <div class="song" id="song" hidden>
+      <img id="songArt" alt=""><div class="t" id="songTitle"></div><div class="a" id="songArtist"></div><div class="a" id="songSub"></div>
+      <div class="links"><a id="songShazam" target="_blank" rel="noopener">Shazam</a><a id="songApple" target="_blank" rel="noopener">Apple Music</a></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- FEATURE: image -->
+<section class="feature" id="f-image">
+  <header><button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button><div class="model">Görsel</div><span style="width:40px"></span></header>
+  <div class="center"><p class="muted">Görsel stüdyosu nakata.app'te açılır.</p><a class="linkbtn" href="https://nakata.app/" target="_blank" rel="noopener">Görsel stüdyosunu aç</a></div>
+</section>
+
+<!-- FEATURE: konsol -->
+<section class="feature" id="f-konsol">
+  <header><button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button><div class="model">Konsol</div><span style="width:40px"></span></header>
+  <iframe class="full" id="konsolFrame" title="Konsol"></iframe>
+</section>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+const ASST_LOGO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>';
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { cache: "no-store", ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ---- drawer ----
+function openDrawer() { $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
+function closeDrawer() { $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); }
+$("#menuBtn").addEventListener("click", () => { openDrawer(); loadSessions(); });
+$("#scrim").addEventListener("click", closeDrawer);
+
+// ---- features ----
+function openFeature(name) {
+  closeDrawer();
+  if (name === "konsol" && !$("#konsolFrame").src) $("#konsolFrame").src = "/konsol";
+  $(`#f-${name}`).classList.add("on");
+}
+for (const b of document.querySelectorAll(".drawer .trow")) b.addEventListener("click", () => openFeature(b.dataset.feature));
+for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".feature").classList.remove("on"));
+
+// ---- sessions ----
+let allSessions = [];
+function renderSessions(filter = "") {
+  const list = $("#slist");
+  list.replaceChildren();
+  const f = filter.trim().toLowerCase();
+  const items = f ? allSessions.filter((s) => (s.title || "").toLowerCase().includes(f)) : allSessions;
+  if (!items.length) { list.append(el("div", "note", f ? "Eşleşme yok" : "Henüz sohbet yok")); return; }
+  list.append(el("div", "sec", "Sohbetler"));
+  for (const s of items) {
+    const b = el("button", "sitem" + (session && session.id === s.id ? " on" : ""), s.title || "(başlıksız)");
+    b.addEventListener("click", () => { closeDrawer(); openConvo(s); });
+    list.append(b);
+  }
+}
+async function loadSessions() {
+  if (!allSessions.length) $("#slist").replaceChildren(el("div", "note", "Yükleniyor…"));
+  try { allSessions = (await api("/api/sessions")).sessions; renderSessions($("#search").value); }
+  catch (e) { $("#slist").replaceChildren(el("div", "note", `PC'ye ulaşılamadı: ${e.message}`)); }
+}
+$("#search").addEventListener("input", (e) => renderSessions(e.target.value));
+
+// ---- chat ----
+let session = null;     // {id, path, title} or null = new
+let runId = null, controller = null, bubble = null;
+
+function showHero(on) { $("#hero").hidden = !on; $("#thread").hidden = on; }
+function scrollDown() { const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
+
+function addUser(text) { const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
+function addAsst() {
+  const r = el("div", "row"); const w = el("div", "asst");
+  const logo = el("div", "logo"); logo.innerHTML = ASST_LOGO;
+  const text = el("div", "text"); w.append(logo, text); r.append(w); $("#thread").append(r); scrollDown();
+  return text;
+}
+function addTool(text, err) { const n = el("div", "tool" + (err ? " err" : ""), text); $("#thread").append(n); scrollDown(); }
+function addNote(text) { const n = el("div", "note", text); $("#thread").append(n); scrollDown(); }
+
+function newChat() {
+  session = null; showHero(true); $("#thread").replaceChildren(); closeDrawer();
+  renderSessions($("#search").value); $("#prompt").focus();
+}
+$("#newBtn").addEventListener("click", newChat);
+$("#newBtn2").addEventListener("click", newChat);
+
+async function openConvo(s) {
+  session = s; showHero(false); $("#thread").replaceChildren(addNoteNode("Yükleniyor…"));
+  try {
+    const msgs = await api(`/api/session?path=${encodeURIComponent(s.path)}`);
+    $("#thread").replaceChildren();
+    for (const m of msgs.slice(-150)) {
+      if (m.role === "user") addUser(m.text);
+      else if (m.role === "assistant") { if (m.text.trim()) addAsst().textContent = m.text; }
+      else if (m.role === "tool") addTool(`${m.tool}: ${m.text}`, m.isError);
+    }
+    if (!$("#thread").children.length) showHero(false);
+  } catch (e) { $("#thread").replaceChildren(addNoteNode(`Yüklenemedi: ${e.message}`)); }
+}
+function addNoteNode(t) { return el("div", "note", t); }
+
+function setBusy(on) {
+  const b = $("#sendBtn");
+  b.classList.toggle("stop", on); b.disabled = !on && !$("#prompt").value.trim();
+  b.querySelector("svg").innerHTML = on ? '<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>' : '<path d="M12 19V5M5 12l7-7 7 7"/>';
+}
+
+function askCard(ev) {
+  bubble = null;
+  const card = el("div", "ask"); card.append(el("div", "q", ev.question || ev.header || "Soru"));
+  const answer = async (payload) => {
+    for (const b of card.querySelectorAll("button")) b.disabled = true;
+    try { await api("/api/answer", { method: "POST", body: JSON.stringify({ runId, id: ev.id, ...payload }) }); }
+    catch (e) { addNote(`Cevap gönderilemedi: ${e.message}`); }
+  };
+  for (const o of ev.options || []) {
+    const b = el("button"); b.append(document.createTextNode(o.label));
+    if (o.description) b.append(el("small", null, o.description));
+    b.addEventListener("click", () => answer({ answers: [o.label] })); card.append(b);
+  }
+  const skip = el("button", null, "Geç"); skip.addEventListener("click", () => answer({ dismissed: true })); card.append(skip);
+  $("#thread").append(card); scrollDown();
+}
+
+async function send(text) {
+  showHero(false); addUser(text); bubble = null; setBusy(true);
+  controller = new AbortController();
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: text, mode: "chat", sessionId: session?.id || null }), signal: controller.signal,
+    });
+    if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const line = buf.slice(0, i).split("\n").find((l) => l.startsWith("data: ")); buf = buf.slice(i + 2);
+        if (!line) continue;
+        let ev; try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+        if (ev.type === "run") runId = ev.runId;
+        else if (ev.type === "text") { if (!bubble) bubble = addAsst(); bubble.textContent += ev.content || ""; scrollDown(); }
+        else if (ev.type === "tool_call") { bubble = null; addTool(`▸ ${ev.name || "araç"}`); }
+        else if (ev.type === "tool_result" && ev.is_error) addTool(String(ev.content || "").slice(0, 400), true);
+        else if (ev.type === "ask_user") askCard(ev);
+        else if (ev.type === "error") addNote(`Hata: ${ev.error || "bilinmiyor"}`);
+        else if (ev.type === "result") {
+          if (ev.session_id) session = { id: ev.session_id, path: session?.path, title: session?.title || text.split("\n")[0].slice(0, 60) };
+          if (ev.is_error && !bubble) addNote(String(ev.result || "Hata"));
+        }
+      }
+    }
+  } catch (e) { if (e.name !== "AbortError") addNote(`Bağlantı: ${e.message}`); }
+  finally { runId = null; controller = null; setBusy(false); }
+}
+
+$("#composer").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (controller) { if (runId) api("/api/stop", { method: "POST", body: JSON.stringify({ runId }) }).catch(() => {}); controller.abort(); return; }
+  const text = $("#prompt").value.trim(); if (!text) return;
+  $("#prompt").value = ""; grow(); setBusy(false); send(text);
+});
+function grow() { const t = $("#prompt"); t.style.height = "auto"; t.style.height = `${Math.min(t.scrollHeight, 150)}px`; }
+$("#prompt").addEventListener("input", () => { grow(); if (!controller) $("#sendBtn").disabled = !$("#prompt").value.trim(); });
+$("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); } });
+$("#plusBtn").addEventListener("click", () => openFeature("image"));
+$("#voiceBtn").addEventListener("click", () => openFeature("music"));
+
+// ---- music ----
+let listening = false;
+const pickMime = () => { for (const m of ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/aac"]) if (window.MediaRecorder?.isTypeSupported?.(m)) return m; return ""; };
+const blobToB64 = (blob) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => no(r.error); r.readAsDataURL(blob); });
+function showSong(r) {
+  $("#song").hidden = false;
+  if (r.art) $("#songArt").src = r.art; else $("#songArt").removeAttribute("src");
+  $("#songTitle").textContent = r.title || ""; $("#songArtist").textContent = r.artist || "";
+  $("#songSub").textContent = [r.album, r.released].filter(Boolean).join(" · ");
+  for (const [id, url] of [["#songShazam", r.url], ["#songApple", r.applemusic]]) { const a = $(id); a.hidden = !url; if (url) a.href = url; }
+}
+$("#listen").addEventListener("click", async () => {
+  if (listening) return;
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { $("#musicStatus").textContent = `Mikrofon izni yok: ${e.message || e}`; return; }
+  listening = true; $("#song").hidden = true; $("#listen").classList.add("listening"); $("#listen").textContent = "Dinliyor…"; $("#musicStatus").textContent = "Müziği telefona yaklaştır.";
+  const mime = pickMime(); const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); const chunks = [];
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  rec.onstop = async () => {
+    for (const t of stream.getTracks()) t.stop();
+    $("#listen").classList.remove("listening"); $("#listen").textContent = "Tanınıyor…";
+    try {
+      const audioB64 = await blobToB64(new Blob(chunks, { type: mime || "audio/mp4" }));
+      const r = await api("/api/music", { method: "POST", body: JSON.stringify({ audioB64, ext: mime.includes("webm") ? "webm" : "mp4" }) });
+      if (r.ok) { showSong(r); $("#musicStatus").textContent = ""; } else $("#musicStatus").textContent = "Eşleşme yok, daha yakından tekrar dene.";
+    } catch (e) { $("#musicStatus").textContent = `Tanınamadı: ${e.message}`; }
+    finally { listening = false; $("#listen").textContent = "Dinle"; }
+  };
+  rec.start(); setTimeout(() => rec.state !== "inactive" && rec.stop(), 9000);
+});
+
+loadSessions();
+grow();
+</script>
+</body>
+</html>

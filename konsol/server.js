@@ -9,7 +9,8 @@ const KEYS = new Set(["Enter", "Escape", "C-c", "Up", "Down", "Tab", "BSpace"]);
 const DIR = import.meta.dir;
 
 // ---- Sohbet: PC'deki nakata'nın kendisi (desktop ile aynı session'lar) ----
-import { readdir, realpath, stat } from "node:fs/promises";
+import { readdir, realpath, stat, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 const HOME = process.env.HOME || "";
 const NAKATA = Bun.which("nakata") || `${HOME}/.local/bin/nakata`;
 // Ağdan yalnız session transcript'leri okunabilir: kökler realpath ile sabitlenir.
@@ -178,6 +179,31 @@ async function chat(body) {
   });
 }
 
+// Müzik tanıma: telefonun kaydettiği klip, desktop'ın kullandığı Shazam yardımcısıyla
+// (shazamio, API anahtarı yok) PC'de tanınır. ffmpeg'i bulsun diye shell ortamıyla koşar.
+const MUSIC_PY = `${HOME}/.nakata/music-venv/bin/python`;
+const MUSIC_SCRIPT = `${HOME}/.nakata/music/identify.py`;
+async function identifyMusic(body) {
+  const b64 = typeof body?.audioB64 === "string" ? body.audioB64 : "";
+  if (!b64 || b64.length > 8 * 1024 * 1024) return json({ error: "ses verisi geçersiz" }, 400);
+  if (!(await Bun.file(MUSIC_PY).exists()) || !(await Bun.file(MUSIC_SCRIPT).exists())) {
+    return json({ error: "müzik tanıma bu PC'de kurulu değil" }, 503);
+  }
+  const ext = body.ext === "webm" ? "webm" : "mp4";
+  const tmp = `${tmpdir()}/konsol-music-${crypto.randomUUID()}.${ext}`;
+  await Bun.write(tmp, Buffer.from(b64, "base64"));
+  try {
+    const p = Bun.spawn([MUSIC_PY, MUSIC_SCRIPT, tmp], { env: await shellEnv(), stdout: "pipe", stderr: "ignore" });
+    const timer = setTimeout(() => p.kill(), 60000);
+    const out = await new Response(p.stdout).text();
+    clearTimeout(timer);
+    const line = out.trim().split("\n").filter((l) => l.trim().startsWith("{")).pop();
+    return json(line ? JSON.parse(line) : { ok: false, error: "sonuç yok" });
+  } finally {
+    await unlink(tmp).catch(() => {});
+  }
+}
+
 // Canlı turn'e yazılan tek satır: soru cevabı, araya mesaj (steer) ya da durdurma.
 function runControl(path, body) {
   const proc = runs.get(body?.runId);
@@ -241,7 +267,10 @@ async function handle(req) {
   if (req.headers.get("tailscale-user-login") !== OWNER) return new Response("forbidden", { status: 403 });
   const url = new URL(req.url);
 
-  if (req.method === "GET" && url.pathname === "/") return new Response(Bun.file(`${DIR}/panel.html`));
+  // HTML sayfaları önbelleğe alınmasın: UI güncellemesi telefonda anında görünsün.
+  const page = (file) => new Response(Bun.file(`${DIR}/${file}`), { headers: { "Cache-Control": "no-store" } });
+  if (req.method === "GET" && url.pathname === "/") return page("app.html");
+  if (req.method === "GET" && url.pathname === "/konsol") return page("panel.html");
   if (req.method === "GET" && url.pathname === "/manifest.json") return new Response(Bun.file(`${DIR}/manifest.json`));
   if (req.method === "GET" && /^\/icon-(192|512)\.png$/.test(url.pathname)) return new Response(Bun.file(`${DIR}${url.pathname}`));
 
@@ -281,6 +310,7 @@ async function handle(req) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/chat") return chat(await req.json().catch(() => null));
+  if (req.method === "POST" && url.pathname === "/api/music") return identifyMusic(await req.json().catch(() => null));
 
   if (req.method === "POST" && ["/api/answer", "/api/steer", "/api/stop"].includes(url.pathname)) {
     return runControl(url.pathname, await req.json().catch(() => null));
