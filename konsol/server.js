@@ -8,6 +8,203 @@ const TARGET_RE = /^[A-Za-z0-9_.-]+:\d+$/;
 const KEYS = new Set(["Enter", "Escape", "C-c", "Up", "Down", "Tab", "BSpace"]);
 const DIR = import.meta.dir;
 
+// ---- Sohbet: PC'deki nakata'nın kendisi (desktop ile aynı session'lar) ----
+import { readdir, realpath, stat } from "node:fs/promises";
+const HOME = process.env.HOME || "";
+const NAKATA = Bun.which("nakata") || `${HOME}/.local/bin/nakata`;
+// Ağdan yalnız session transcript'leri okunabilir: kökler realpath ile sabitlenir.
+const SESSION_ROOTS = await Promise.all(
+  [`${HOME}/.nakata/projects`, `${HOME}/.svelka/projects`].map((r) => realpath(r).catch(() => r)),
+);
+const MODES = new Set(["chat", "default", "acceptEdits", "plan", "bypassPermissions"]);
+const MAX_SESSION_BYTES = 8 * 1024 * 1024;
+const runs = new Map(); // runId -> canlı turn'ün nakata süreci
+
+// Sohbet HOME altındaki bir klasörde koşar (session listesi klasör başınadır).
+async function workspace(cwd) {
+  const dir = await realpath(cwd || HOME).catch(() => null);
+  if (!dir || (dir !== HOME && !dir.startsWith(`${HOME}/`))) return null;
+  const s = await stat(dir).catch(() => null);
+  return s?.isDirectory() ? dir : null;
+}
+
+// Listeyi CLI'ı çalıştırmadan, aynı dosyalardan okur: `nakata -p /sessions` HOME
+// projesinin sıra kilidini alıyordu ve launchd altında kilidi tutarak askıda kalıp
+// PC'deki diğer nakata oturumlarını da kilitledi. Klasör adı CLI'ın encodeCwd'si
+// (base64url); arşiv durumu yanındaki <id>.meta.json'da.
+async function firstUserLine(path) {
+  const head = await Bun.file(path).slice(0, 16384).text().catch(() => "");
+  for (const line of head.split("\n")) {
+    try {
+      const d = JSON.parse(line);
+      if (d.type === "user") return String(d.content ?? "").split("\n")[0].slice(0, 120);
+    } catch {}
+  }
+  return "";
+}
+
+async function listSessions(dir) {
+  const enc = Buffer.from(dir, "utf8").toString("base64url");
+  const byId = new Map();
+  for (const root of SESSION_ROOTS) {
+    const pdir = `${root}/${enc}`;
+    const names = await readdir(pdir).catch(() => []);
+    for (const name of names) {
+      if (!name.endsWith(".jsonl")) continue;
+      const path = `${pdir}/${name}`;
+      const st = await stat(path).catch(() => null);
+      if (!st) continue;
+      const id = name.slice(0, -".jsonl".length);
+      const prev = byId.get(id);
+      if (!prev || st.mtimeMs > prev.mtimeMs) byId.set(id, { id, path, mtimeMs: st.mtimeMs, meta: `${pdir}/${id}.meta.json` });
+    }
+  }
+  const out = [];
+  for (const s of [...byId.values()].sort((a, b) => b.mtimeMs - a.mtimeMs)) {
+    if (out.length >= 100) break;
+    const meta = await Bun.file(s.meta).json().catch(() => null);
+    if (meta?.archivedAt) continue;
+    out.push({ id: s.id, path: s.path, title: await firstUserLine(s.path), mtimeMs: s.mtimeMs });
+  }
+  return out;
+}
+
+// Desktop'ın capture_shell_env'i gibi: launchd'nin çıplak ortamı yerine kullanıcının
+// login shell ortamı (PATH, MCP sunucularının ihtiyaçları). Bir kez yakalanır.
+let shellEnvCache = null;
+async function shellEnv() {
+  if (shellEnvCache) return shellEnvCache;
+  const env = {};
+  try {
+    const p = Bun.spawn(["/bin/zsh", "-lic", "env"], { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+    const timer = setTimeout(() => p.kill(), 10000);
+    const out = await new Response(p.stdout).text();
+    clearTimeout(timer);
+    for (const line of out.split("\n")) {
+      const i = line.indexOf("=");
+      if (i > 0 && /^[A-Za-z_][A-Za-z0-9_]*$/.test(line.slice(0, i))) env[line.slice(0, i)] = line.slice(i + 1);
+    }
+  } catch {}
+  shellEnvCache = env.PATH ? env : { ...process.env };
+  return shellEnvCache;
+}
+
+async function readSession(path) {
+  const real = await realpath(String(path || "")).catch(() => null);
+  if (!real || !real.endsWith(".jsonl") || !SESSION_ROOTS.some((r) => real.startsWith(`${r}/`))) return null;
+  if ((await stat(real)).size > MAX_SESSION_BYTES) throw new Error("session çok büyük");
+  const out = [];
+  for (const line of (await Bun.file(real).text()).split("\n")) {
+    if (!line.trim()) continue;
+    let d;
+    try { d = JSON.parse(line); } catch { continue; }
+    if (d.type === "user" || d.type === "assistant") out.push({ role: d.type, text: String(d.content ?? "") });
+    else if (d.type === "tool_result") {
+      out.push({ role: "tool", tool: d.toolName || "", isError: !!d.isError, text: String(d.content ?? "").slice(0, 2000) });
+    }
+  }
+  return out;
+}
+
+// Desktop'ın command_args'ıyla aynı: chat modu kısıtlı araç seti, --resume aynı sohbeti sürdürür.
+function chatArgs(mode, sessionId, model) {
+  const chat = mode === "chat";
+  const args = [
+    "--output-format", "stream-json", "--input-format", "stream-json", "--ask-stdin",
+    "--permission-mode", chat ? "default" : mode,
+  ];
+  if (chat) args.push("--only-tools", "WebSearch,WebFetch,AskUserQuestion,ScheduleTask", "--allowedTools", "ScheduleTask");
+  if (sessionId) args.push("--resume", sessionId);
+  if (model) args.push("--model", model);
+  return args;
+}
+
+async function chat(body) {
+  const prompt = typeof body?.prompt === "string" ? body.prompt : "";
+  if (!prompt.trim() || prompt.length > 20000) return json({ error: "mesaj geçersiz" }, 400);
+  const mode = MODES.has(body.mode) ? body.mode : "chat";
+  const sessionId = typeof body.sessionId === "string" && /^[A-Za-z0-9-]{8,64}$/.test(body.sessionId) ? body.sessionId : null;
+  const model = typeof body.model === "string" && /^[A-Za-z0-9._:/-]{1,80}$/.test(body.model) ? body.model : null;
+  const dir = await workspace(body.cwd);
+  if (!dir) return json({ error: "klasör geçersiz" }, 400);
+
+  const runId = crypto.randomUUID();
+  const proc = Bun.spawn([NAKATA, ...chatArgs(mode, sessionId, model)], {
+    cwd: dir, env: await shellEnv(), stdin: "pipe", stdout: "pipe", stderr: "ignore",
+  });
+  runs.set(runId, proc);
+  proc.stdin.write(`${JSON.stringify({ type: "user", content: prompt })}\n`);
+  proc.stdin.flush();
+
+  const enc = new TextEncoder();
+  let ping;
+  const stream = new ReadableStream({
+    async start(controller) {
+      const push = (s) => { try { controller.enqueue(enc.encode(s)); } catch {} };
+      const send = (ev) => push(`data: ${JSON.stringify(ev)}\n\n`);
+      // Uzun model beklemesinde proxy/istemci bağlantıyı düşürmesin.
+      ping = setInterval(() => push(": ping\n\n"), 15000);
+      send({ type: "run", runId });
+      const dec = new TextDecoder();
+      let buf = "";
+      for await (const chunk of proc.stdout) {
+        buf += dec.decode(chunk, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i).trim();
+          buf = buf.slice(i + 1);
+          if (!line) continue;
+          let ev;
+          try { ev = JSON.parse(line); } catch { continue; }
+          send(ev);
+          // Sonuçta stdin'i kapat: CLI bu turn'den sonra çıkar.
+          if (ev.type === "result") { try { proc.stdin.end(); } catch {} }
+        }
+      }
+      await proc.exited;
+      clearInterval(ping);
+      runs.delete(runId);
+      send({ type: "end" });
+      try { controller.close(); } catch {}
+    },
+    cancel() {
+      clearInterval(ping);
+      proc.kill();
+      runs.delete(runId);
+    },
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
+  });
+}
+
+// Canlı turn'e yazılan tek satır: soru cevabı, araya mesaj (steer) ya da durdurma.
+function runControl(path, body) {
+  const proc = runs.get(body?.runId);
+  if (!proc) return json({ error: "aktif çalışma yok" }, 404);
+  if (path === "/api/stop") {
+    proc.kill();
+    return json({ ok: true });
+  }
+  let line;
+  if (path === "/api/answer") {
+    if (typeof body.id !== "string" || body.id.length > 200) return json({ error: "soru kimliği geçersiz" }, 400);
+    line = body.dismissed
+      ? { type: "ask_answer", id: body.id, dismissed: true }
+      : { type: "ask_answer", id: body.id, answers: (Array.isArray(body.answers) ? body.answers : []).map(String).slice(0, 20) };
+  } else {
+    if (typeof body.text !== "string" || !body.text.trim() || body.text.length > 20000) return json({ error: "metin geçersiz" }, 400);
+    line = { type: "user", content: body.text };
+  }
+  try {
+    proc.stdin.write(`${JSON.stringify(line)}\n`);
+    proc.stdin.flush();
+  } catch {
+    return json({ error: "çalışma girdisi kapalı" }, 409);
+  }
+  return json({ ok: true });
+}
+
 async function tmux(...args) {
   const p = Bun.spawn([TMUX, ...args], { stdout: "pipe", stderr: "pipe" });
   const [out, err, code] = await Promise.all([
@@ -71,12 +268,33 @@ async function handle(req) {
     return json({ ok: true });
   }
 
+  if (req.method === "GET" && url.pathname === "/api/sessions") {
+    const dir = await workspace(url.searchParams.get("cwd"));
+    if (!dir) return json({ error: "klasör geçersiz" }, 400);
+    return json({ cwd: dir, sessions: await listSessions(dir) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/session") {
+    const messages = await readSession(url.searchParams.get("path"));
+    if (!messages) return json({ error: "session yok" }, 404);
+    return json(messages);
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/chat") return chat(await req.json().catch(() => null));
+
+  if (req.method === "POST" && ["/api/answer", "/api/steer", "/api/stop"].includes(url.pathname)) {
+    return runControl(url.pathname, await req.json().catch(() => null));
+  }
+
   return new Response("not found", { status: 404 });
 }
 
 Bun.serve({
   hostname: "127.0.0.1",
   port: PORT,
+  // Varsayılan 10 sn: model yanıtı beklerken SSE akışını keserdi. 255 = Bun üst sınırı;
+  // aradaki 15 sn'lik ping zaten bağlantıyı canlı tutar.
+  idleTimeout: 255,
   async fetch(req) {
     try {
       return await handle(req);
