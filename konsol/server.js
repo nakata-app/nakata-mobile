@@ -107,14 +107,54 @@ async function readSession(path) {
   return out;
 }
 
-// Desktop'ın command_args'ıyla aynı: chat modu kısıtlı araç seti, --resume aynı sohbeti sürdürür.
-function chatArgs(mode, sessionId, model) {
+// ---- Botlar: desktop ile AYNI ~/.nakata/bots/<ad>.md dosyaları (model/tools
+// frontmatter + persona gövdesi). Telefonda botu seçince model+persona uygulanır;
+// araçlar, telefonda onay arayüzü olmadığı için chat'in güvenli setinde kalır. ----
+const BOTS_DIR = `${HOME}/.nakata/bots`;
+function parseBot(name, text) {
+  let description = "", model = null, persona = text.trimStart();
+  const t = text.trimStart();
+  if (t.startsWith("---")) {
+    const end = t.indexOf("\n---", 3);
+    if (end >= 0) {
+      persona = t.slice(end + 4).replace(/^[\r\n]+/, "");
+      for (const line of t.slice(3, end).split("\n")) {
+        const i = line.indexOf(":");
+        if (i < 0) continue;
+        const k = line.slice(0, i).trim(), v = line.slice(i + 1).trim().replace(/^"|"$/g, "");
+        if (k === "description") description = v;
+        else if (k === "model" && v) model = v;
+      }
+    }
+  }
+  return { name, description, model, persona: persona.trim() };
+}
+async function listBots() {
+  const names = await readdir(BOTS_DIR).catch(() => []);
+  const out = [];
+  for (const f of names) {
+    if (!f.endsWith(".md")) continue;
+    const text = await Bun.file(`${BOTS_DIR}/${f}`).text().catch(() => "");
+    if (text) out.push(parseBot(f.slice(0, -3), text));
+  }
+  return out.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+}
+async function loadBot(name) {
+  if (typeof name !== "string" || !/^[A-Za-z0-9 _-]{1,48}$/.test(name)) return null;
+  const text = await Bun.file(`${BOTS_DIR}/${name}.md`).text().catch(() => "");
+  return text ? parseBot(name, text) : null;
+}
+
+// Desktop'ın command_args'ıyla aynı: chat modu kısıtlı araç seti, --resume aynı
+// sohbeti sürdürür, bot persona'sı ekstra sistem promptu olarak biner.
+function chatArgs(mode, sessionId, model, persona) {
   const chat = mode === "chat";
   const args = [
     "--output-format", "stream-json", "--input-format", "stream-json", "--ask-stdin",
     "--permission-mode", chat ? "default" : mode,
   ];
   if (chat) args.push("--only-tools", "WebSearch,WebFetch,AskUserQuestion,ScheduleTask", "--allowedTools", "ScheduleTask");
+  if (persona && persona.trim()) args.push("--append-system-prompt", persona.trim());
   if (sessionId) args.push("--resume", sessionId);
   if (model) args.push("--model", model);
   return args;
@@ -125,12 +165,21 @@ async function chat(body) {
   if (!prompt.trim() || prompt.length > 20000) return json({ error: "mesaj geçersiz" }, 400);
   const mode = MODES.has(body.mode) ? body.mode : "chat";
   const sessionId = typeof body.sessionId === "string" && /^[A-Za-z0-9-]{8,64}$/.test(body.sessionId) ? body.sessionId : null;
-  const model = typeof body.model === "string" && /^[A-Za-z0-9._:/-]{1,80}$/.test(body.model) ? body.model : null;
+  let model = typeof body.model === "string" && /^[A-Za-z0-9._:/-]{1,80}$/.test(body.model) ? body.model : null;
   const dir = await workspace(body.cwd);
   if (!dir) return json({ error: "klasör geçersiz" }, 400);
 
+  // Bot seçiliyse model + persona'sını uygula (desktop ile aynı bot tanımı).
+  let persona = null;
+  if (body.bot) {
+    const bot = await loadBot(body.bot);
+    if (!bot) return json({ error: "bot yok" }, 404);
+    persona = bot.persona;
+    if (bot.model && !model) model = bot.model;
+  }
+
   const runId = crypto.randomUUID();
-  const proc = Bun.spawn([NAKATA, ...chatArgs(mode, sessionId, model)], {
+  const proc = Bun.spawn([NAKATA, ...chatArgs(mode, sessionId, model, persona)], {
     cwd: dir, env: await shellEnv(), stdin: "pipe", stdout: "pipe", stderr: "ignore",
   });
   runs.set(runId, proc);
@@ -309,6 +358,7 @@ async function handle(req) {
     return json(messages);
   }
 
+  if (req.method === "GET" && url.pathname === "/api/bots") return json(await listBots());
   if (req.method === "POST" && url.pathname === "/api/chat") return chat(await req.json().catch(() => null));
   if (req.method === "POST" && url.pathname === "/api/music") return identifyMusic(await req.json().catch(() => null));
 
