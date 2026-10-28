@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f0e">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Nakata Konsol</title>
+<style>
+  :root { --bg: #0f0f0e; --panel: #1a1a18; --line: #2a2a27; --text: #e8e8e3; --dim: #8a8a82; --accent: #a8d060; --err: #e06c5a; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 -apple-system, system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); min-height: 52px; }
+  header h1 { font-size: 17px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header button { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 4px 0; }
+  #status { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+  #status.off { background: var(--err); }
+  main { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+  .win { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .win:active { background: var(--panel); }
+  .win b { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .win span { color: var(--dim); font: 13px ui-monospace, Menlo, monospace; }
+  pre { padding: 10px 12px; font: 11px/1.35 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+  #keys { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; border-top: 1px solid var(--line); }
+  #keys button { flex: none; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: 13px ui-monospace, Menlo, monospace; }
+  #keys button:active { border-color: var(--accent); }
+  form { display: flex; gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  form input { flex: 1; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 16px; }
+  form input:focus { outline: none; border-color: var(--accent); }
+  form button { background: var(--accent); color: var(--bg); border: 0; border-radius: 10px; padding: 0 16px; font-weight: 600; font-size: 15px; }
+  .empty { padding: 32px 16px; color: var(--dim); text-align: center; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <button id="back" hidden>‹</button>
+  <h1 id="title">Konsol</h1>
+  <i id="status"></i>
+</header>
+<main id="list"></main>
+<main id="paneWrap" hidden><pre id="pane"></pre></main>
+<div id="keys" hidden>
+  <button data-k="Enter">⏎</button>
+  <button data-k="Escape">Esc</button>
+  <button data-k="C-c">^C</button>
+  <button data-k="Up">↑</button>
+  <button data-k="Down">↓</button>
+  <button data-k="Tab">Tab</button>
+  <button data-t="y">y</button>
+  <button data-t="n">n</button>
+</div>
+<form id="send" hidden>
+  <input id="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send">
+  <button>Gönder</button>
+</form>
+<script>
+const $ = (id) => document.getElementById(id);
+let target = null, timer = null;
+
+async function api(path, body) {
+  const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.status);
+  $("status").classList.remove("off");
+  return data;
+}
+const fail = () => $("status").classList.add("off");
+
+async function showList() {
+  target = null; clearInterval(timer);
+  $("back").hidden = $("paneWrap").hidden = $("keys").hidden = $("send").hidden = true;
+  $("list").hidden = false; $("title").textContent = "Konsol";
+  try {
+    const wins = await api("/api/windows");
+    $("list").innerHTML = "";
+    if (!wins.length) { $("list").innerHTML = '<p class="empty">tmux penceresi yok</p>'; return; }
+    for (const w of wins.sort((a, b) => b.activity - a.activity)) {
+      const row = document.createElement("div");
+      row.className = "win";
+      row.innerHTML = "<b></b><span></span>";
+      row.querySelector("b").textContent = w.name;
+      row.querySelector("span").textContent = `${w.target} · ${w.cmd}`;
+      row.onclick = () => showPane(w);
+      $("list").appendChild(row);
+    }
+  } catch { fail(); }
+}
+
+function showPane(w) {
+  target = w.target;
+  $("list").hidden = true;
+  $("back").hidden = $("paneWrap").hidden = $("keys").hidden = $("send").hidden = false;
+  $("title").textContent = w.name; $("pane").textContent = "";
+  refresh(true);
+  timer = setInterval(() => { if (!document.hidden) refresh(false); }, 1500);
+}
+
+async function refresh(force) {
+  if (!target) return;
+  const wrap = $("paneWrap");
+  const atBottom = force || wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 40;
+  try {
+    const { text } = await api(`/api/pane?t=${encodeURIComponent(target)}`);
+    if ($("pane").textContent !== text) $("pane").textContent = text;
+    if (atBottom) wrap.scrollTop = wrap.scrollHeight;
+  } catch { fail(); }
+}
+
+$("back").onclick = showList;
+$("keys").onclick = async (e) => {
+  const b = e.target.closest("button"); if (!b || !target) return;
+  try {
+    if (b.dataset.k) await api("/api/key", { t: target, key: b.dataset.k });
+    else await api("/api/send", { t: target, text: b.dataset.t, enter: false });
+    setTimeout(() => refresh(true), 250);
+  } catch { fail(); }
+};
+$("send").onsubmit = async (e) => {
+  e.preventDefault();
+  const text = $("input").value; if (!target) return;
+  try {
+    await api("/api/send", { t: target, text, enter: true });
+    $("input").value = "";
+    setTimeout(() => refresh(true), 300);
+  } catch { fail(); }
+};
+showList();
+</script>
+</body>
+</html>
