@@ -157,7 +157,6 @@ iframe.full{flex:1;border:0;width:100%}
     <form class="composer" id="composer">
       <button type="button" class="plus" id="plusBtn" aria-label="Ekle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <textarea id="prompt" rows="1" placeholder="Mesaj yaz" enterkeyhint="send"></textarea>
-      <button type="button" class="mic" id="voiceBtn" aria-label="Müzik tanı"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></button>
       <button type="submit" class="act" id="sendBtn" aria-label="Gönder" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
   </div>
@@ -440,7 +439,6 @@ function grow() { const t = $("#prompt"); t.style.height = "auto"; t.style.heigh
 $("#prompt").addEventListener("input", () => { grow(); if (!controller) $("#sendBtn").disabled = !$("#prompt").value.trim(); });
 $("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); } });
 $("#plusBtn").addEventListener("click", () => openFeature("image"));
-$("#voiceBtn").addEventListener("click", () => openFeature("music"));
 
 // ---- music ----
 let listening = false;
