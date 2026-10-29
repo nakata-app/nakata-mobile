@@ -1,3 +1,11 @@
 node_modules/
+# Capacitor / CocoaPods, CI regenerates these via `cap sync`
+ios/App/Pods/
+ios/App/App/public/
+ios/App/output/
+ios/DerivedData/
+build/
 *.log
 .DS_Store
+# local konsol runtime
+konsol/konsol.log

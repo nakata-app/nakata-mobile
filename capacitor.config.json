@@ -1,0 +1,11 @@
+{
+  "appId": "app.nakata.mobile",
+  "appName": "Nakata",
+  "webDir": "public",
+  "ios": {
+    "contentInset": "always"
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}

@@ -1,0 +1,51 @@
+# Nakata iOS (BYOK) — cloud build on Codemagic (no local Xcode needed)
+# One-time setup in the Codemagic UI (uses your Apple account, not mine):
+#   1. Connect this git repo.
+#   2. Team Settings → Integrations → App Store Connect: add an API key
+#      (Apple Developer → Users and Access → Integrations → App Store Connect API).
+#      Name it exactly "nakata-asc" (or change the name below).
+#   3. Create the app record in App Store Connect with bundle id app.nakata.mobile,
+#      then put its numeric Apple ID in APP_STORE_APPLE_ID below.
+workflows:
+  ios-byok:
+    name: Nakata iOS (BYOK)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: nakata-asc
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.nakata.mobile
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "app.nakata.mobile"
+        APP_STORE_APPLE_ID: 0000000000 # TODO: numeric Apple ID of the app record
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Capacitor sync iOS (pod install + copy web assets)
+        script: npx cap sync ios
+      - name: Set up code signing (provisioning profiles)
+        script: xcode-project use-profiles
+      - name: Set build number from App Store Connect
+        script: |
+          cd ios/App
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          agvtool new-version -all $(($LATEST + 1))
+      - name: Build .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
