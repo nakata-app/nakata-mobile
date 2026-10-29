@@ -1,0 +1,89 @@
+name: iOS build (.ipa)
+
+# Builds the Capacitor BYOK app into a signed .ipa on GitHub's macOS runner
+# (Xcode preinstalled — no local Xcode / no disk needed).
+#
+# One-time setup (your Apple Developer account — Users and Access →
+# Integrations → App Store Connect API → generate a key with "App Manager"
+# access, download the .p8). Add three repo secrets
+# (Settings → Secrets and variables → Actions → New repository secret):
+#   ASC_KEY_ID      — the key's Key ID
+#   ASC_ISSUER_ID   — the Issuer ID shown on that page
+#   ASC_KEY_P8      — the full contents of the downloaded AuthKey_XXXX.p8
+# Then run this workflow (Actions tab → iOS build → Run workflow), or push to master.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "public/**"
+      - "ios/**"
+      - "package.json"
+      - "capacitor.config.json"
+      - ".github/workflows/ios.yml"
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      TEAM_ID: HC5K8Z76UG
+      SCHEME: App
+      WORKSPACE: ios/App/App.xcworkspace
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Capacitor sync iOS (pod install + copy web assets)
+        run: npx cap sync ios
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Archive (automatic signing via API key)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
+            -configuration Release -sdk iphoneos \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            archive
+
+      - name: Export .ipa
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ios/App/exportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nakata-ios-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: error
