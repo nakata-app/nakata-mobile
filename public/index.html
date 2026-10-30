@@ -177,6 +177,35 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .danger{margin-top:24px;border:1px solid var(--err);color:var(--err);border-radius:14px;padding:13px}
 .danger[hidden]{display:none}
 .muted{color:var(--muted)}
+
+/* account (drawer footer like the desktop sidebar) */
+.acct{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border-radius:10px;text-align:left}
+.acct:active{background:#ffffff0f}
+.avatar-n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none}
+.acct .who{min-width:0;flex:1}
+.acct .who b{display:block;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct .who span{color:var(--muted);font-size:13px}
+.acc-card{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--raised);margin-top:8px}
+.acc-card .avatar-n{width:44px;height:44px;font-size:18px}
+.acc-card b{display:block;font-size:17px}
+.ghost{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink)}
+.err-text{color:var(--err);font-size:13px}
+.err-text[hidden],#acc-in[hidden],#acc-out[hidden],#acc-del-box[hidden],#img-signin[hidden],#img-form[hidden]{display:none}
+
+/* image studio */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 13px;border:1px solid var(--line);border-radius:999px;font-size:14px;color:var(--side-ink)}
+.chip.on{border-color:var(--accent);color:var(--ink);background:#d977571f}
+.refs{display:flex;gap:8px;flex-wrap:wrap}
+.ref{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.ref img{width:100%;height:100%;object-fit:cover}
+.ref button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:#000a;color:#fff;font-size:13px;line-height:22px}
+.ref.add{display:flex;align-items:center;justify-content:center;color:var(--muted);border-style:dashed}
+.ref.add svg{width:22px;height:22px}
+.gens{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+.gen{border-radius:12px;overflow:hidden;background:var(--raised);aspect-ratio:1;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+/* generated images can be long-pressed to save, unlike the rest of the chrome */
+.gen img{width:100%;height:100%;object-fit:cover;pointer-events:auto;-webkit-touch-callout:default;-webkit-user-drag:auto}
 #st-byok{display:flex;flex-direction:column;gap:6px}
 #st-byok[hidden]{display:none}
 </style>
@@ -212,9 +241,11 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <button id="newBtn2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Yeni sohbet</button>
     <button id="botsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5M9 13h.01M15 13h.01"/></svg>Botlar</button>
   </nav>
+  <nav class="nav"><button id="imagesRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20 16l-4.5-4.5L7 19.5"/></svg>Görsel</button></nav>
   <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Sohbetlerde ara" autocomplete="off"></label>
   <div class="slist" id="slist"></div>
   <nav class="nav dfoot">
+    <button class="acct" id="accountRow"><span class="avatar-n" id="acctAv">N</span><span class="who"><b id="acctName">Giriş yap</b><span id="acctSub">nakata.app hesabı</span></span></button>
     <button id="settingsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Ayarlar</button>
   </nav>
 </aside>
@@ -241,6 +272,62 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <textarea id="bf-persona" class="field" rows="8" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
     <button class="danger" id="bf-del" hidden>Botu sil</button>
   </div></div>
+</section>
+
+<section class="page" id="f-account">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Hesap</div>
+    <span style="width:44px"></span>
+  </header>
+  <div class="scroll">
+    <div class="form" id="acc-out">
+      <label for="acc-email">E-posta ya da kullanıcı adı</label>
+      <input id="acc-email" class="field" autocomplete="username" autocapitalize="off" spellcheck="false" inputmode="email">
+      <label for="acc-pass">Şifre</label>
+      <input id="acc-pass" class="field" type="password" autocomplete="current-password">
+      <div class="err-text" id="acc-err" hidden></div>
+      <button class="primary" id="acc-login">Giriş yap</button>
+      <div class="hint">Hesabın yok mu? <a href="https://nakata.app/signup">nakata.app'te oluştur</a></div>
+    </div>
+    <div class="form" id="acc-in" hidden>
+      <div class="acc-card"><span class="avatar-n" id="acc-av">N</span><div><b id="acc-name"></b><span class="muted" id="acc-credits"></span></div></div>
+      <button class="ghost" id="acc-logout">Çıkış yap</button>
+      <button class="danger" id="acc-delete">Hesabı sil</button>
+      <div class="form" id="acc-del-box" hidden style="padding:8px 0 0">
+        <div class="hint">Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 30 gün içinde silinir. Bu geri alınamaz.</div>
+        <label for="acc-del-pass">Onay için şifren</label>
+        <input id="acc-del-pass" class="field" type="password" autocomplete="current-password">
+        <div class="err-text" id="acc-del-err" hidden></div>
+        <button class="danger" id="acc-del-go">Hesabımı kalıcı olarak sil</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="f-image">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Görsel</div>
+    <span class="muted" id="img-credits" style="padding:0 12px;font-size:14px"></span>
+  </header>
+  <div class="scroll">
+    <div class="form" id="img-signin">
+      <div class="hint" style="font-size:15px">Görsel üretmek için nakata.app hesabınla giriş yap; kredilerin buradan harcanır.</div>
+      <button class="primary" id="img-login">Giriş yap</button>
+    </div>
+    <div class="form" id="img-form" hidden>
+      <textarea id="img-prompt" class="field" rows="4" placeholder="Ne görmek istiyorsun?"></textarea>
+      <label>Referans (isteğe bağlı)</label>
+      <div class="refs" id="img-refs"></div>
+      <input id="img-file" type="file" accept="image/*" multiple hidden>
+      <label>Oran</label>
+      <div class="chips" id="img-aspect"></div>
+      <button class="primary" id="img-go">Üret</button>
+      <div class="hint" id="img-status"></div>
+      <div class="gens" id="img-results"></div>
+    </div>
+  </div>
 </section>
 
 <section class="page" id="f-settings">
@@ -382,6 +469,11 @@ function closeSheet(){ $("#botSheet").classList.remove("on"); if (!$("#drawer").
 $("#menuBtn").addEventListener("click", openDrawer);
 $("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); $("#botSheet").classList.remove("on"); $("#scrim").classList.remove("on"); });
 for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".page").classList.remove("on"));
+// Pages stack: the one opened last is drawn on top (they share one z-index otherwise
+// and DOM order decided, so Account opened from Images hid underneath it).
+let pageZ = 70;
+function showPage(sel){ const pg = $(sel); pg.style.zIndex = String(++pageZ); pg.classList.add("on"); }
+function topPage(){ let top = null; for (const pg of document.querySelectorAll(".page.on")) if (!top || Number(pg.style.zIndex || 70) >= Number(top.style.zIndex || 70)) top = pg; return top; }
 
 /* ---- swipes: left edge opens the menu, a drag closes it, left edge closes a page,
         the bot sheet drags down to close ---- */
@@ -389,7 +481,7 @@ const EDGE = 28;
 let drag = null, swallowClick = false;
 document.addEventListener("pointerdown", (e) => {
   if (e.button > 0) return;
-  const drawer = $("#drawer"), page = document.querySelector(".page.on");
+  const drawer = $("#drawer"), page = topPage();
   let kind = null;
   const sheet = $("#botSheet");
   if (page) { if (e.clientX <= EDGE) kind = "page"; }
@@ -444,7 +536,7 @@ function openSettings(){
   $("#st-provider").value = c.provider; fillProviderUI(c.provider);
   $("#st-base").value = c.base || (PROVIDERS[c.provider]||{}).base || "";
   $("#st-key").value = c.key || ""; $("#st-model").value = c.model || "";
-  closeDrawer(); $("#f-settings").classList.add("on");
+  closeDrawer(); showPage("#f-settings");
 }
 $("#settingsRow").addEventListener("click", openSettings);
 $("#st-provider").addEventListener("change", (e) => {
@@ -513,7 +605,7 @@ function openBotForm(name){
   $("#bf-name").value = name || ""; $("#bf-name").readOnly = !!bot;
   $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
   $("#bf-del").hidden = !bot;
-  closeSheet(); $("#f-botform").classList.add("on");
+  closeSheet(); showPage("#f-botform");
   if (!bot) $("#bf-name").focus();
 }
 $("#botNew").addEventListener("click", () => openBotForm(null));
@@ -782,6 +874,149 @@ function grow(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height
 $("#prompt").addEventListener("input", () => { grow(); if (!controller) $("#sendBtn").disabled = !$("#prompt").value.trim(); });
 $("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); } });
 
+/* ---- nakata.app account (routes/mobile.js on the server) ---- */
+const API = LS.get("nakata_api_base", "https://nakata.app/api/mobile");
+const ICON_PLUS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+let account = LS.get("nakata_account", null);   // { name, credits }
+let imageCosts = {};
+const token = () => LS.get("nakata_token", "");
+function signOutLocal(){ LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; paintAccount(); }
+async function api(path, { method = "GET", body, form } = {}) {
+  const headers = {}, t = token();
+  if (t) headers.Authorization = "Bearer " + t;
+  let payload = form;
+  if (!form && body !== undefined) { headers["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
+  let res;
+  try { res = await fetch(API + path, { method, headers, body: payload }); }
+  catch { return { ok: false, status: 0, j: { error: "Bağlantı yok" } }; }
+  let j = {}; try { j = await res.json(); } catch {}
+  if (res.status === 401 && t && path !== "/login") signOutLocal();
+  return { ok: res.ok, status: res.status, j };
+}
+function paintAccount(){
+  const on = !!(token() && account);
+  const initial = on ? account.name.trim().charAt(0).toLocaleUpperCase("tr") : "N";
+  const credits = on && typeof account.credits === "number" ? `${account.credits} kredi` : "";
+  $("#acctAv").textContent = initial; $("#acc-av").textContent = initial;
+  $("#acctName").textContent = on ? account.name : "Giriş yap";
+  $("#acctSub").textContent = on ? credits : "nakata.app hesabı";
+  $("#acc-out").hidden = on; $("#acc-in").hidden = !on;
+  $("#acc-name").textContent = on ? account.name : ""; $("#acc-credits").textContent = credits;
+  $("#img-signin").hidden = on; $("#img-form").hidden = !on;
+  $("#img-credits").textContent = credits;
+  paintCost();
+}
+async function refreshAccount(){
+  if (!token()) return paintAccount();
+  const r = await api("/credits");
+  if (r.ok) { account = { ...(account || { name: "" }), credits: r.j.credits }; imageCosts = r.j.image_credit_costs || {}; LS.set("nakata_account", account); }
+  paintAccount();
+}
+function openAccount(){ closeDrawer(); $("#acc-del-box").hidden = true; showPage("#f-account"); refreshAccount(); }
+$("#accountRow").addEventListener("click", openAccount);
+$("#img-login").addEventListener("click", openAccount);
+function showErr(id, msg){ const n = $(id); n.textContent = msg || ""; n.hidden = !msg; }
+$("#acc-login").addEventListener("click", async () => {
+  const email = $("#acc-email").value.trim(), password = $("#acc-pass").value;
+  if (!email) return $("#acc-email").focus();
+  if (!password) return $("#acc-pass").focus();
+  showErr("#acc-err", ""); $("#acc-login").disabled = true;
+  const r = await api("/login", { method: "POST", body: { email, password } });
+  $("#acc-login").disabled = false;
+  if (!r.ok || !r.j.token) { hapticError(); return showErr("#acc-err", r.j.error || "Giriş yapılamadı"); }
+  LS.set("nakata_token", r.j.token);
+  account = { name: r.j.username || r.j.user || email, credits: typeof r.j.credits === "number" ? r.j.credits : undefined };
+  LS.set("nakata_account", account); $("#acc-pass").value = ""; haptic();
+  await refreshAccount();
+  if ($("#f-image").classList.contains("on")) { $("#f-account").classList.remove("on"); loadGallery(); }
+});
+$("#acc-logout").addEventListener("click", async () => { await api("/logout", { method: "POST", body: {} }); signOutLocal(); haptic(); });
+$("#acc-delete").addEventListener("click", () => { $("#acc-del-box").hidden = false; showErr("#acc-del-err", ""); $("#acc-del-pass").focus(); });
+$("#acc-del-go").addEventListener("click", async () => {
+  const password = $("#acc-del-pass").value;
+  if (!password) return $("#acc-del-pass").focus();
+  const r = await api("/account/delete", { method: "POST", body: { password } });
+  if (!r.ok) { hapticError(); return showErr("#acc-del-err", r.status === 403 ? "Şifre yanlış" : (r.j.error?.message || r.j.error || "Silinemedi")); }
+  $("#acc-del-pass").value = ""; signOutLocal(); $("#f-account").classList.remove("on");
+  addNote("Hesabın kapatıldı; verilerin en geç 30 gün içinde silinecek.");
+});
+
+/* ---- image studio: text-to-image, or up to 4 references (server picks the model) ---- */
+const ASPECTS = ["1:1", "3:4", "4:3", "9:16", "16:9"];
+let aspect = "1:1", refFiles = [], genBusy = false;
+for (const a of ASPECTS) {
+  const c = el("button", "chip" + (a === aspect ? " on" : ""), a);
+  c.addEventListener("click", () => { aspect = a; for (const x of document.querySelectorAll("#img-aspect .chip")) x.classList.toggle("on", x === c); haptic(); });
+  $("#img-aspect").append(c);
+}
+function modelCost(){
+  const key = refFiles.length ? "nano-banana-2-1" : Object.keys(imageCosts).find((k) => k.includes("flare")) || "";
+  return imageCosts[key]?.["2K"];
+}
+function paintCost(){ const c = modelCost(); $("#img-go").textContent = genBusy ? "Üretiliyor…" : (c ? `Üret · ${c} kredi` : "Üret"); }
+function paintRefs(){
+  const box = $("#img-refs"); box.replaceChildren();
+  refFiles.forEach((f, i) => {
+    const r = el("div", "ref"), im = el("img"); im.src = URL.createObjectURL(f); im.alt = "";
+    const x = el("button", "", "×"); x.setAttribute("aria-label", "Kaldır");
+    x.addEventListener("click", () => { refFiles.splice(i, 1); paintRefs(); });
+    r.append(im, x); box.append(r);
+  });
+  if (refFiles.length < 4) { const add = el("button", "ref add"); add.setAttribute("aria-label", "Referans ekle"); add.innerHTML = ICON_PLUS; add.addEventListener("click", () => $("#img-file").click()); box.append(add); }
+  paintCost();
+}
+$("#img-file").addEventListener("change", (e) => { refFiles = [...refFiles, ...e.target.files].slice(0, 4); e.target.value = ""; paintRefs(); });
+function addGen(url, front = true){
+  const tile = el("div", "gen"), im = el("img"); im.src = url; im.alt = ""; im.loading = "lazy"; tile.append(im);
+  if (front) $("#img-results").prepend(tile); else $("#img-results").append(tile);
+}
+async function loadGallery(){
+  const r = await api("/gallery?limit=30");
+  const items = (r.j.items || r.j.data?.items || r.j.gallery || []).filter((it) => it && typeof it.url === "string" && !/\.mp4(\?|$)/i.test(it.url));
+  $("#img-results").replaceChildren(); for (const it of items) addGen(it.url, false);
+}
+function openImages(){ closeDrawer(); showPage("#f-image"); paintRefs(); refreshAccount().then(() => token() && loadGallery()); }
+$("#imagesRow").addEventListener("click", openImages);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+$("#img-go").addEventListener("click", async () => {
+  if (genBusy) return;
+  const prompt = $("#img-prompt").value.trim();
+  if (!prompt) return $("#img-prompt").focus();
+  const say = (t) => { $("#img-status").textContent = t; };
+  genBusy = true; paintCost(); haptic();
+  try {
+    const urls = [];
+    for (const f of refFiles) {
+      say("Referanslar yükleniyor…");
+      const fd = new FormData(); fd.append("file", f, f.name || "ref.jpg");
+      const up = await api("/upload", { method: "POST", form: fd });
+      const u = up.j.data?.url || up.j.url;
+      if (!up.ok || !u) throw new Error(up.j.error || "Referans yüklenemedi");
+      urls.push(u);
+    }
+    say("Üretiliyor…");
+    const g = await api("/generate", { method: "POST", body: { operation_id: "ios_" + crypto.randomUUID().replace(/-/g, ""), prompt, imageUrls: urls, aspect } });
+    if (g.status === 402 || /insufficient|kredi/i.test(String(g.j.error || ""))) throw new Error("Kredin yetmiyor.");
+    if (!g.ok) throw new Error(g.j.error || "Üretim başlamadı");
+    let url = g.j.imageUrl || g.j.data?.imageUrl;
+    const taskId = g.j.data?.taskId || g.j.taskId;
+    for (let i = 0; !url && taskId && i < 90; i++) {
+      await wait(i < 5 ? 2000 : 3000);
+      const t = await api("/task", { method: "POST", body: { taskId } });
+      if (t.j.status === "failed") throw new Error(t.j.failMsg || "Üretim başarısız");
+      url = t.j.imageUrl || t.j.resultImageUrl || t.j.data?.imageUrl;
+    }
+    if (!url) throw new Error("Sonuç gelmedi, biraz sonra galeriye bak.");
+    addGen(url); say(""); haptic("MEDIUM");
+    api("/gallery", { method: "POST", body: { item: { url, prompt, ts: Date.now() } } });
+    $("#img-prompt").value = ""; refFiles = []; paintRefs();
+  } catch (e) {
+    hapticError(); say(e.message);
+  } finally {
+    genBusy = false; paintCost(); refreshAccount();
+  }
+});
+
 /* ---- boot ---- */
 try {
   NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
@@ -790,6 +1025,8 @@ try {
 setModelLabel();
 renderSessions();
 grow();
+paintAccount();
+if (token()) refreshAccount();
 // No first-run settings: the free model works without a key.
 </script>
 </body>
