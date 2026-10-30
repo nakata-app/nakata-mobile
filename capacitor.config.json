@@ -3,9 +3,11 @@
   "appName": "Nakata",
   "webDir": "public",
   "ios": {
-    "contentInset": "always"
+    "contentInset": "never",
+    "backgroundColor": "#151515"
   },
   "server": {
     "iosScheme": "capacitor"
-  }
+  },
+  "backgroundColor": "#151515"
 }

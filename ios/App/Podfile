@@ -21,4 +21,12 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+  # Capacitor's podspecs declare iOS 14.0 and the helper above only raises lower
+  # targets to 14; App Store Connect flags anything below 15 (ITMS-90068), so the
+  # embedded frameworks build for 15.0 like the app.
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+    end
+  end
 end

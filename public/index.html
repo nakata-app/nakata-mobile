@@ -5,267 +5,331 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#212121">
+<meta name="theme-color" content="#151515">
 <title>Nakata</title>
 <style>
+/* Palette and type follow the Nakata desktop app (apps/desktop/frontend/minimal.css). */
 :root{
-  --bg:#212121; --bar:#2f2f2f; --userbubble:#303030; --drawer:#171717;
-  --ink:#ececec; --muted:#9b9b9b; --line:#3a3a3a; --accent:#ececec;
-  --send:#ffffff; --sendink:#000; --err:#f4756b;
+  --bg:#151515; --side:#111111; --raised:#1f1e1c; --line:#2a2927;
+  --ink:#faf9f5; --side-ink:#c3c2b8; --muted:#9c9a92;
+  --accent:#d97757; --on-accent:#141413; --err:#e5736b; --link:#e8a183;
+  --font:-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-svg{display:block}
+html,body{margin:0;height:100%;background:var(--bg)}
+body{color:var(--ink);font:16px/1.5 var(--font);display:flex;flex-direction:column;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+/* WebKit draws an inline SVG without a size as 0x0 inside a flex box, so every
+   icon carries width/height attributes and a size rule. */
+svg{display:block;flex:none}
+img{display:block}
 
 /* top bar */
-header{display:flex;align-items:center;gap:4px;height:48px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;flex:none}
-header .icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-header .icon:active{background:#ffffff14}
-header .model{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:17px;font-weight:600;color:var(--ink);background:none;border:0;min-width:0}
-header .model span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header .model:active{opacity:.6}
-header .model svg{width:16px;height:16px;opacity:.6;flex:none}
-
-/* bot picker sheet */
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--drawer);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .22s ease;max-height:70dvh;display:flex;flex-direction:column;padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
-.sheet.on{transform:none}
-.sheet-grip{width:38px;height:4px;border-radius:2px;background:#ffffff33;margin:8px auto 2px}
-.sheet-title{padding:6px 18px 8px;color:var(--muted);font-size:13px;font-weight:600}
-.sheet-list{overflow-y:auto;padding:0 8px 6px}
-.botopt{display:flex;align-items:center;gap:2px;border-radius:12px}
-.botmain{flex:1;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 12px;border-radius:12px;min-width:0}
-.botmain:active{background:#ffffff14}
-.botopt .av{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
-.botopt .av svg{width:18px;height:18px}
-.botopt .meta{min-width:0;flex:1}
-.botopt .nm{font-weight:600}
-.botopt .ds{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.botopt .chk{color:var(--ink);opacity:0}
-.botopt.on .chk{opacity:1}
-.botopt .edit{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
-.botopt .edit:active{background:#ffffff1a}
-.botopt .edit svg{width:16px;height:16px}
-.botnew{display:flex;align-items:center;gap:10px;width:calc(100% - 16px);margin:4px 8px 6px;padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--ink)}
-.botnew svg{width:18px;height:18px}
-.form{max-width:640px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:6px;width:100%}
-.form label{color:var(--muted);font-size:13px;margin-top:10px}
-.form .hint{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.4}
-.form .hint a{color:#7aa2ff;text-decoration:none}
-.field{background:var(--bar);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;outline:none;width:100%;box-sizing:border-box}
-select.field{appearance:none;-webkit-appearance:none}
-.field.area{resize:vertical;min-height:140px;line-height:1.45}
-.keyrow{display:flex;gap:6px}
-.keyrow .field{flex:1}
-.keyrow button{flex:none;width:46px;border:1px solid var(--line);border-radius:12px;color:var(--muted)}
-.del{margin-top:22px;background:none;border:1px solid var(--err);color:var(--err);border-radius:12px;padding:12px;font:inherit}
-.del[hidden]{display:none}
-.primary{margin-top:18px;background:var(--send);color:var(--sendink);border-radius:14px;padding:14px;font:600 16px/1 inherit}
-.primary[disabled]{background:#ffffff26;color:#ffffff66}
+header{display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top) + 4px) 6px 4px;flex:none;min-height:52px}
+.icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;color:var(--ink);flex:none}
+.icon svg{width:22px;height:22px}
+.icon:active{background:#ffffff12}
+.title{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;font-size:16px;font-weight:600;color:var(--ink)}
+.title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title svg{width:16px;height:16px;color:var(--muted)}
+button.title:active{opacity:.6}
 
 /* views */
 .view{flex:1;display:flex;flex-direction:column;min-height:0}
-.view[hidden]{display:none}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 
-/* chat */
-#thread{max-width:780px;width:100%;margin:0 auto;padding:8px 14px 10px;display:flex;flex-direction:column;gap:18px}
+/* empty chat */
+.hero{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:24px 20px 40px;max-width:640px;margin:0 auto}
+.hero[hidden]{display:none}
+.hero .brand{display:flex;flex-direction:column;align-items:center;gap:20px}
+.hero .brand img{width:104px;height:auto;opacity:.95}
+.hero h1{margin:0;font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;text-align:center}
+.starters{display:flex;flex-direction:column;gap:10px}
+.starter{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:15px 16px;border:1px solid var(--line);border-radius:14px;color:var(--side-ink);font-size:15px}
+.starter svg{width:16px;height:16px;color:var(--accent)}
+.starter:active{background:var(--raised)}
+
+/* thread */
+#thread{max-width:780px;width:100%;margin:0 auto;padding:10px 16px 16px;display:flex;flex-direction:column;gap:20px}
+#thread[hidden]{display:none}
 .row{display:flex;flex-direction:column}
 .row.user{align-items:flex-end}
-.bubble{max-width:85%;background:var(--userbubble);border-radius:22px;padding:10px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
-.asst{display:flex;gap:11px;align-items:flex-start}
-.asst .logo{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;margin-top:1px}
-.asst .logo svg{width:16px;height:16px}
-.asst .text{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:2px}
-.reason{align-self:flex-start;max-width:100%;color:var(--muted);font:13px/1.45 -apple-system,system-ui,sans-serif;border-left:2px solid var(--line);padding:1px 0 1px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble{max-width:86%;background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:10px 15px;white-space:pre-wrap;overflow-wrap:anywhere}
+.asst{display:flex;gap:12px;align-items:flex-start}
+.avatar{width:26px;height:26px;border-radius:7px;overflow:hidden;flex:none;margin-top:1px}
+.avatar img{width:100%;height:100%}
+.md{min-width:0;flex:1;overflow-wrap:anywhere}
+.md>:first-child{margin-top:0}
+.md>:last-child{margin-bottom:0}
+.md p{margin:0 0 .7em}
+.md h3,.md h4{margin:1.1em 0 .4em;font-size:17px;line-height:1.3}
+.md h4{font-size:16px}
+.md ul,.md ol{margin:0 0 .7em;padding-left:1.3em}
+.md li{margin:.2em 0}
+.md code{font:14px/1.4 var(--mono);background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+.md pre{margin:0 0 .8em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto}
+.md pre code{background:none;border:0;padding:0;font-size:13px;white-space:pre}
+.md a{color:var(--link);text-decoration:none}
+.md strong{font-weight:650}
+.reason{align-self:flex-start;max-width:100%;color:var(--muted);font-size:13px;line-height:1.45;border-left:2px solid var(--line);padding:1px 0 1px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
 .note{align-self:center;color:var(--muted);font-size:13px;text-align:center}
 .note.err{color:var(--err)}
 
-/* empty chat hero */
-.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--ink);padding:24px}
-.hero[hidden]{display:none}
-.hero .mark{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
-.hero .mark svg{width:26px;height:26px}
-.hero h2{font-size:22px;font-weight:600;margin:0}
-
 /* composer */
-.composer-wrap{flex:none;padding:6px 12px calc(env(safe-area-inset-bottom) + 8px)}
-form.composer{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:6px;background:var(--bar);border-radius:26px;padding:6px}
-form.composer .plus{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
-form.composer .plus:active{background:#ffffff14}
-form.composer textarea{flex:1;resize:none;max-height:150px;background:none;border:0;color:var(--ink);padding:9px 4px;font:inherit;line-height:1.4;outline:none}
+.composer-wrap{flex:none;padding:6px 12px calc(env(safe-area-inset-bottom) + 10px)}
+form.composer{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--raised);border:1px solid var(--line);border-radius:22px;padding:6px 6px 6px 16px}
+form.composer textarea{flex:1;resize:none;max-height:160px;background:none;border:0;color:var(--ink);padding:8px 0;font:inherit;line-height:1.4;outline:none}
 form.composer textarea::placeholder{color:var(--muted)}
-form.composer .act{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--send);color:var(--sendink)}
-form.composer .act[disabled]{background:#ffffff26;color:#ffffff66}
+.send{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--accent);color:var(--on-accent)}
+.send svg{width:18px;height:18px}
+.send[disabled]{background:#ffffff1a;color:#ffffff59}
 
 /* drawer */
-.scrim{position:fixed;inset:0;background:#0008;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.scrim{position:fixed;inset:0;background:#0009;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
 .scrim.on{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:84%;max-width:340px;background:var(--drawer);z-index:50;transform:translateX(-100%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:84%;max-width:330px;background:var(--side);border-right:1px solid var(--line);z-index:50;transform:translateX(-100%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);color:var(--side-ink)}
 .drawer.on{transform:none}
-.drawer .dhead{padding:12px 14px 6px}
-.drawer .search{display:flex;align-items:center;gap:8px;background:#ffffff12;border-radius:12px;padding:9px 12px;color:var(--muted)}
-.drawer .search input{flex:1;background:none;border:0;outline:0;color:var(--ink);font:inherit}
-.drawer .newrow{display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:500}
-.drawer .newrow svg{width:20px;height:20px}
-.drawer .slist{flex:1;overflow-y:auto;padding:4px 8px}
-.drawer .sec{color:var(--muted);font-size:12px;font-weight:600;padding:12px 10px 4px}
-.drawer .sitem{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:10px 10px;border-radius:10px}
-.drawer .sitem .st{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.drawer .sitem:active,.drawer .sitem.on{background:#ffffff14}
-.drawer .sitem .x{flex:none;width:26px;height:26px;border-radius:50%;color:var(--muted);opacity:0}
-.drawer .sitem.on .x{opacity:1}
-.drawer .sitem .x svg{width:15px;height:15px;margin:auto}
-.drawer .tools{border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom) + 8px)}
-.drawer .trow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;border-radius:10px}
-.drawer .trow:active{background:#ffffff14}
-.drawer .trow svg{width:20px;height:20px;opacity:.85}
+.dbrand{display:flex;align-items:center;gap:10px;padding:16px 18px 12px;color:var(--ink);font-size:18px;font-weight:700}
+.dbrand img{width:30px;height:auto}
+.nav{padding:0 8px}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 10px;border-radius:10px;text-align:left}
+.nav button svg{width:20px;height:20px;color:var(--muted)}
+.nav button:active{background:#ffffff0f}
+.search{display:flex;align-items:center;gap:8px;margin:8px 14px 4px;border-bottom:1px solid var(--line);padding:6px 4px 10px;color:var(--muted)}
+.search svg{width:16px;height:16px}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:inherit;font-size:15px}
+.slist{flex:1;overflow-y:auto;padding:4px 8px}
+.sitem{display:flex;align-items:center;gap:4px;border-radius:10px}
+.sitem .st{flex:1;min-width:0;text-align:left;padding:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.sitem.on,.sitem:active{background:#ffffff0f}
+.sitem.on .st{color:var(--ink)}
+.sitem .x{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--muted);opacity:0}
+.sitem .x svg{width:15px;height:15px}
+.sitem.on .x{opacity:1}
+.slist .note{padding:18px 10px}
+.dfoot{border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom) + 8px)}
 
-/* feature overlays */
-.feature{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
-.feature.on{transform:none}
-.feature header .model{justify-content:flex-start;font-weight:600;padding-left:4px}
-.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px;text-align:center}
-.linkbtn{display:inline-block;background:var(--userbubble);color:var(--ink);border-radius:14px;padding:14px 22px;font-weight:600;text-decoration:none}
+/* bot sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--side);border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .22s ease;max-height:72dvh;display:flex;flex-direction:column;padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
+.sheet.on{transform:none}
+.grip{width:36px;height:4px;border-radius:2px;background:#ffffff2e;margin:8px auto 4px}
+.sheet h2{margin:0;padding:8px 18px 8px;color:var(--muted);font-size:13px;font-weight:600}
+.sheet-list{overflow-y:auto;padding:0 8px 4px}
+.botopt{display:flex;align-items:center;border-radius:12px}
+.botmain{flex:1;display:flex;align-items:center;gap:12px;text-align:left;padding:11px 10px;border-radius:12px;min-width:0}
+.botmain:active{background:#ffffff0f}
+.botopt .avatar{width:32px;height:32px;border-radius:8px;margin:0}
+.botopt .meta{min-width:0;flex:1}
+.botopt .nm{font-weight:600;color:var(--ink)}
+.botopt .ds{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.botopt .chk{width:18px;height:18px;color:var(--accent);opacity:0}
+.botopt.on .chk{opacity:1}
+.botopt .edit{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--muted)}
+.botopt .edit svg{width:17px;height:17px}
+.botnew{display:flex;align-items:center;gap:10px;margin:6px 8px 4px;padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--side-ink)}
+.botnew svg{width:18px;height:18px}
+
+/* full-screen pages (settings, bot form) */
+.page{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease}
+.page.on{transform:none}
+.page .title{justify-content:flex-start}
+.pagebtn{height:44px;padding:0 12px;border-radius:12px;color:var(--accent);font-weight:600;flex:none}
+.form{max-width:640px;margin:0 auto;padding:8px 18px 40px;display:flex;flex-direction:column;gap:6px;width:100%}
+.form label{color:var(--muted);font-size:13px;margin-top:12px}
+.form .hint{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.45}
+.form .hint a{color:var(--link);text-decoration:none}
+.field{background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;outline:none;width:100%}
+.field:focus{border-color:#4a4843}
+select.field{appearance:none;-webkit-appearance:none}
+textarea.field{resize:vertical;min-height:150px;line-height:1.45}
+.keyrow{display:flex;gap:8px}
+.keyrow .field{flex:1;min-width:0}
+.keyrow button{width:48px;border:1px solid var(--line);border-radius:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex:none}
+.keyrow button svg{width:18px;height:18px}
+.primary{margin-top:20px;background:var(--accent);color:var(--on-accent);border-radius:14px;padding:15px;font-weight:600}
+.danger{margin-top:24px;border:1px solid var(--err);color:var(--err);border-radius:14px;padding:13px}
+.danger[hidden]{display:none}
 .muted{color:var(--muted)}
 </style>
 </head>
 <body>
 
-<!-- CHAT -->
 <header>
-  <button class="icon" id="menuBtn" aria-label="Menü"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-  <button class="model" id="modelBtn"><span id="modelName">Nakata</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
-  <button class="icon" id="newBtn" aria-label="Yeni sohbet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+  <button class="icon" id="menuBtn" aria-label="Menü"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h16"/></svg></button>
+  <button class="title" id="modelBtn"><span id="modelName">Nakata</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button class="icon" id="newBtn" aria-label="Yeni sohbet"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 </header>
 
-<div class="view" id="chatView">
+<main class="view" id="chatView">
   <div class="scroll" id="chatScroll">
-    <div class="hero" id="hero">
-      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg></div>
-      <h2>Ne lazım?</h2>
-    </div>
+    <section class="hero" id="hero">
+      <div class="brand"><img src="mark.svg" alt="Nakata" width="104" height="56"><h1>Ne lazım?</h1></div>
+      <div class="starters" id="starters"></div>
+    </section>
     <div id="thread" hidden></div>
   </div>
   <div class="composer-wrap">
     <form class="composer" id="composer">
-      <textarea id="prompt" rows="1" placeholder="Mesaj yaz" enterkeyhint="send"></textarea>
-      <button type="submit" class="act" id="sendBtn" aria-label="Gönder" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      <textarea id="prompt" rows="1" placeholder="Nakata'ya yaz" enterkeyhint="send"></textarea>
+      <button type="submit" class="send" id="sendBtn" aria-label="Gönder" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
   </div>
-</div>
+</main>
 
-<!-- BOT PICKER -->
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer">
+  <div class="dbrand"><img src="mark.svg" alt="" width="30" height="16">Nakata</div>
+  <nav class="nav">
+    <button id="newBtn2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Yeni sohbet</button>
+    <button id="botsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5M9 13h.01M15 13h.01"/></svg>Botlar</button>
+  </nav>
+  <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Sohbetlerde ara" autocomplete="off"></label>
+  <div class="slist" id="slist"></div>
+  <nav class="nav dfoot">
+    <button id="settingsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Ayarlar</button>
+  </nav>
+</aside>
+
 <div class="sheet" id="botSheet">
-  <div class="sheet-grip"></div>
-  <div class="sheet-title">Bot seç</div>
+  <div class="grip"></div>
+  <h2>Bot seç</h2>
   <div class="sheet-list" id="botList"></div>
-  <button class="botnew" id="botNew"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Yeni bot</button>
+  <button class="botnew" id="botNew"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Yeni bot</button>
 </div>
 
-<!-- BOT FORM -->
-<section class="feature" id="f-botform">
+<section class="page" id="f-botform">
   <header>
-    <button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <div class="model" id="botFormTitle">Yeni bot</div>
-    <button class="icon" id="botSave" aria-label="Kaydet" style="color:var(--send);font-weight:600;font-size:15px;width:auto;padding:0 10px">Kaydet</button>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title" id="botFormTitle">Yeni bot</div>
+    <button class="pagebtn" id="botSave">Kaydet</button>
   </header>
   <div class="scroll"><div class="form">
-    <label>İsim</label>
+    <label for="bf-name">İsim</label>
     <input id="bf-name" class="field" placeholder="örn. Scout" autocomplete="off" autocapitalize="words">
-    <label>Model <span class="muted">(opsiyonel — boşsa varsayılan model)</span></label>
+    <label for="bf-model">Model <span class="muted">(boşsa varsayılan)</span></label>
     <input id="bf-model" class="field" placeholder="örn. anthropic/claude-sonnet-4" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <label>Persona / talimat</label>
-    <textarea id="bf-persona" class="field area" rows="8" placeholder="Bu bot kim? Nasıl cevap versin?"></textarea>
-    <button class="del" id="bf-del" hidden>Botu sil</button>
+    <label for="bf-persona">Talimat</label>
+    <textarea id="bf-persona" class="field" rows="8" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
+    <button class="danger" id="bf-del" hidden>Botu sil</button>
   </div></div>
 </section>
 
-<!-- SETTINGS (BYOK) -->
-<section class="feature" id="f-settings">
+<section class="page" id="f-settings">
   <header>
-    <button class="icon fclose" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <div class="model">Ayarlar</div>
-    <span style="width:40px"></span>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Ayarlar</div>
+    <span style="width:44px"></span>
   </header>
   <div class="scroll"><div class="form">
-    <label>Sağlayıcı</label>
+    <label for="st-provider">Sağlayıcı</label>
     <select id="st-provider" class="field">
-      <option value="openrouter">OpenRouter — tek anahtar, tüm modeller (önerilen)</option>
+      <option value="openrouter">OpenRouter (tek anahtar, tüm modeller)</option>
       <option value="openai">OpenAI</option>
       <option value="groq">Groq</option>
       <option value="deepseek">DeepSeek</option>
       <option value="gemini">Google Gemini</option>
-      <option value="custom">Özel (base URL gir)</option>
+      <option value="custom">Özel adres</option>
     </select>
-    <label>API adresi</label>
+    <label for="st-base">API adresi</label>
     <input id="st-base" class="field" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
-    <label>API anahtarı</label>
+    <label for="st-key">API anahtarı</label>
     <div class="keyrow">
       <input id="st-key" class="field" type="password" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
-      <button type="button" id="st-eye" aria-label="Göster"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button type="button" id="st-eye" aria-label="Göster"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
-    <div class="hint">Anahtar yalnızca bu cihazda saklanır, hiçbir sunucuya gönderilmez. <span id="st-getkey"></span></div>
-    <label>Model</label>
-    <input id="st-model" class="field" placeholder="örn. openai/gpt-4o-mini" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="hint">Anahtar yalnız bu cihazda saklanır. <span id="st-getkey"></span></div>
+    <label for="st-model">Model</label>
+    <input id="st-model" class="field" autocomplete="off" autocapitalize="off" spellcheck="false">
     <div class="hint" id="st-modelhint"></div>
     <button class="primary" id="st-save">Kaydet</button>
   </div></div>
 </section>
 
-<!-- DRAWER -->
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer">
-  <div class="dhead">
-    <div class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Ara" autocomplete="off"></div>
-  </div>
-  <button class="newrow" id="newBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Yeni sohbet</button>
-  <div class="slist" id="slist"></div>
-  <div class="tools">
-    <button class="trow" id="settingsRow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Ayarlar</button>
-  </div>
-</aside>
-
-
 <script>
 const $ = (s) => document.querySelector(s);
 const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
-const ASST_LOGO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>';
+const avatar = (cls = "avatar") => { const a = el("div", cls); const i = el("img"); i.src = "mark-tile.svg"; i.alt = ""; a.append(i); return a; };
+const ICON_CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const ICON_EDIT = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const ICON_X = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+const ICON_ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const SEND_UP = '<path d="M12 19V5M5 12l7-7 7 7"/>';
+const SEND_STOP = '<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>';
 
-/* ---- storage (device-only; native build swaps key to Keychain) ---- */
+/* ---- storage (device-only) ---- */
 const LS = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch{ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
 };
 
+/* ---- markdown (escaped first; only http(s) links) ---- */
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+function inline(s){
+  return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
+    ? "<code>" + esc(part.slice(1, -1)) + "</code>"
+    : esc(part)
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|[\s(])[*_](?!\s)(.+?)[*_](?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+  ).join("");
+}
+function md(src){
+  const out = [], lines = src.replace(/\r/g, "").split("\n");
+  let para = [], list = null;
+  const endPara = () => { if (para.length) { out.push("<p>" + para.map(inline).join("<br>") + "</p>"); para = []; } };
+  const endList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i];
+    if (/^\s*```/.test(ln)) {
+      endPara(); endList();
+      const code = [];
+      while (++i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i]);
+      out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>");
+      continue;
+    }
+    const h = ln.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { endPara(); endList(); const n = h[1].length <= 2 ? 3 : 4; out.push(`<h${n}>${inline(h[2])}</h${n}>`); continue; }
+    const li = ln.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/);
+    if (li) {
+      endPara();
+      const type = /\d/.test(li[1]) ? "ol" : "ul";
+      if (list !== type) { endList(); out.push(`<${type}>`); list = type; }
+      out.push("<li>" + inline(li[2]) + "</li>");
+      continue;
+    }
+    if (!ln.trim()) { endPara(); endList(); continue; }
+    endList(); para.push(ln);
+  }
+  endPara(); endList();
+  return out.join("");
+}
+
 /* ---- provider presets ---- */
 const PROVIDERS = {
   openrouter:{ base:"https://openrouter.ai/api/v1", model:"openai/gpt-4o-mini",
-               keyUrl:"https://openrouter.ai/keys", hint:"Model: openai/gpt-4o-mini, anthropic/claude-sonnet-4, google/gemini-2.5-flash … (tam liste openrouter.ai/models)" },
+               keyUrl:"https://openrouter.ai/keys", hint:"Örnek: openai/gpt-4o-mini, anthropic/claude-sonnet-4, google/gemini-2.5-flash" },
   openai:{ base:"https://api.openai.com/v1", model:"gpt-4o-mini",
-           keyUrl:"https://platform.openai.com/api-keys", hint:"Model: gpt-4o-mini, gpt-4o, o4-mini …" },
+           keyUrl:"https://platform.openai.com/api-keys", hint:"Örnek: gpt-4o-mini, gpt-4o, o4-mini" },
   groq:{ base:"https://api.groq.com/openai/v1", model:"llama-3.3-70b-versatile",
-         keyUrl:"https://console.groq.com/keys", hint:"Model: llama-3.3-70b-versatile, moonshotai/kimi-k2-instruct …" },
+         keyUrl:"https://console.groq.com/keys", hint:"Örnek: llama-3.3-70b-versatile, moonshotai/kimi-k2-instruct" },
   deepseek:{ base:"https://api.deepseek.com/v1", model:"deepseek-chat",
-             keyUrl:"https://platform.deepseek.com/api_keys", hint:"Model: deepseek-chat, deepseek-reasoner" },
+             keyUrl:"https://platform.deepseek.com/api_keys", hint:"Örnek: deepseek-chat, deepseek-reasoner" },
   gemini:{ base:"https://generativelanguage.googleapis.com/v1beta/openai", model:"gemini-flash-lite-latest",
-           keyUrl:"https://aistudio.google.com/apikey", hint:"Model: gemini-flash-lite-latest (hızlı), gemini-3.5-flash (daha güçlü), gemini-pro-latest" },
-  custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI-uyumlu herhangi bir sağlayıcı (base URL …/v1)" },
+           keyUrl:"https://aistudio.google.com/apikey", hint:"Örnek: gemini-flash-lite-latest, gemini-3.5-flash, gemini-pro-latest" },
+  custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI uyumlu herhangi bir adres (…/v1)" },
 };
 function getCfg(){ return LS.get("nakata_byok_cfg", { provider:"openrouter", base:PROVIDERS.openrouter.base, model:PROVIDERS.openrouter.model, key:"" }); }
 function saveCfg(c){ LS.set("nakata_byok_cfg", c); }
 
-/* ---- drawer ---- */
-function openDrawer(){ $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
-function closeDrawer(){ $("#drawer").classList.remove("on"); $("#scrim").classList.remove("on"); }
-$("#menuBtn").addEventListener("click", () => { openDrawer(); renderSessions($("#search").value); });
-$("#scrim").addEventListener("click", () => { closeDrawer(); $("#botSheet").classList.remove("on"); });
-
-/* ---- features ---- */
-function openFeature(name){ closeDrawer(); $(`#f-${name}`).classList.add("on"); }
-for (const b of document.querySelectorAll(".drawer .trow[data-feature]")) b.addEventListener("click", () => openFeature(b.dataset.feature));
-for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".feature").classList.remove("on"));
+/* ---- drawer, sheet, pages ---- */
+function openDrawer(){ renderSessions($("#search").value); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
+function closeDrawer(){ $("#drawer").classList.remove("on"); if (!$("#botSheet").classList.contains("on")) $("#scrim").classList.remove("on"); }
+function closeSheet(){ $("#botSheet").classList.remove("on"); if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
+$("#menuBtn").addEventListener("click", openDrawer);
+$("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); $("#botSheet").classList.remove("on"); $("#scrim").classList.remove("on"); });
+for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".page").classList.remove("on"));
 
 /* ---- settings ---- */
 function fillProviderUI(p){
@@ -273,7 +337,7 @@ function fillProviderUI(p){
   $("#st-base").value = pr.base; $("#st-base").readOnly = (p !== "custom");
   $("#st-model").placeholder = pr.model || "model-adı";
   $("#st-modelhint").textContent = pr.hint || "";
-  $("#st-getkey").innerHTML = pr.keyUrl ? `Anahtarı al: <a href="${pr.keyUrl}" target="_blank" rel="noopener">${pr.keyUrl.replace(/^https?:\/\//,"")}</a>` : "";
+  $("#st-getkey").innerHTML = pr.keyUrl ? `Almak için: <a href="${pr.keyUrl}" target="_blank" rel="noopener">${pr.keyUrl.replace(/^https?:\/\//,"")}</a>` : "";
 }
 function openSettings(){
   const c = getCfg();
@@ -309,35 +373,34 @@ function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
 function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; }
-function closeSheet(){ $("#botSheet").classList.remove("on"); if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
 function openBotSheet(){
+  $("#drawer").classList.remove("on");
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
   const list = $("#botList"); list.replaceChildren();
-  const bots = allBots();
   const mk = (name, desc, on, isBot) => {
     const row = el("div", "botopt" + (on ? " on" : ""));
     const main = el("button", "botmain");
-    const av = el("div", "av"); av.innerHTML = ASST_LOGO;
     const meta = el("div", "meta"); meta.append(el("div", "nm", name)); if (desc) meta.append(el("div", "ds", desc));
-    main.append(av, meta, el("div", "chk", "✓"));
+    const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
+    main.append(avatar(), meta, chk.firstChild);
     main.addEventListener("click", () => { activeBot = isBot ? name : null; setModelLabel(); closeSheet(); });
     row.append(main);
     if (isBot) {
-      const edit = el("button", "edit");
-      edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      const edit = el("button", "edit"); edit.setAttribute("aria-label", "Düzenle"); edit.innerHTML = ICON_EDIT;
       edit.addEventListener("click", (e) => { e.stopPropagation(); openBotForm(name); });
       row.append(edit);
     }
     return row;
   };
   list.append(mk("Nakata", "Varsayılan", !activeBot, false));
-  for (const [name, bot] of Object.entries(bots)) list.append(mk(name, bot.description || bot.model || "", activeBot === name, true));
+  for (const [name, bot] of Object.entries(allBots())) list.append(mk(name, bot.description || bot.model || "", activeBot === name, true));
 }
 $("#modelBtn").addEventListener("click", openBotSheet);
+$("#botsRow").addEventListener("click", openBotSheet);
 
 let editingBot = null;
 function openBotForm(name){
-  const bots = allBots(); const bot = name ? bots[name] : null;
+  const bot = name ? allBots()[name] : null;
   editingBot = name || null;
   $("#botFormTitle").textContent = bot ? "Botu düzenle" : "Yeni bot";
   $("#bf-name").value = name || ""; $("#bf-name").readOnly = !!bot;
@@ -373,12 +436,11 @@ function renderSessions(filter = ""){
   let items = Object.values(allSessions()).sort((a, b) => b.ts - a.ts);
   if (f) items = items.filter((s) => (s.title || "").toLowerCase().includes(f));
   if (!items.length) { list.append(el("div", "note", f ? "Eşleşme yok" : "Henüz sohbet yok")); return; }
-  list.append(el("div", "sec", "Sohbetler"));
   for (const s of items) {
     const row = el("div", "sitem" + (curId === s.id ? " on" : ""));
     const t = el("button", "st", s.title || "(başlıksız)");
     t.addEventListener("click", () => { closeDrawer(); openConvo(s.id); });
-    const x = el("button", "x"); x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+    const x = el("button", "x"); x.setAttribute("aria-label", "Sil"); x.innerHTML = ICON_X;
     x.addEventListener("click", (e) => { e.stopPropagation(); const all = allSessions(); delete all[s.id]; saveSessions(all); if (curId === s.id) newChat(); else renderSessions($("#search").value); });
     row.append(t, x); list.append(row);
   }
@@ -390,20 +452,31 @@ let convo = [];          // [{role, content}]
 let curId = null;
 let controller = null, bubble = null, reasonNode = null;
 
+const STARTERS = [
+  { label: "Bir konuyu sade anlat", text: "Şunu sade bir dille anlat: " },
+  { label: "Bir metni özetle", text: "Şu metni kısaca özetle:\n\n" },
+];
+for (const s of STARTERS) {
+  const b = el("button", "starter"); b.append(el("span", "", s.label));
+  b.insertAdjacentHTML("beforeend", ICON_ARROW);
+  b.addEventListener("click", () => { const p = $("#prompt"); p.value = s.text; grow(); $("#sendBtn").disabled = false; p.focus(); p.setSelectionRange(p.value.length, p.value.length); });
+  $("#starters").append(b);
+}
+
 function showHero(on){ $("#hero").hidden = !on; $("#thread").hidden = on; }
 function scrollDown(){ const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
 function addUser(text){ const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
 function addAsst(){
   const r = el("div", "row"); const w = el("div", "asst");
-  const logo = el("div", "logo"); logo.innerHTML = ASST_LOGO;
-  const text = el("div", "text"); w.append(logo, text); r.append(w); $("#thread").append(r); scrollDown();
+  const text = el("div", "md"); w.append(avatar(), text); r.append(w); $("#thread").append(r); scrollDown();
   return text;
 }
 function addNote(text, err){ const n = el("div", "note" + (err ? " err" : ""), text); $("#thread").append(n); scrollDown(); }
 
 function newChat(){
+  if (controller) controller.abort();
   convo = []; curId = null; showHero(true); $("#thread").replaceChildren(); closeDrawer();
-  renderSessions($("#search").value); $("#prompt").focus();
+  renderSessions($("#search").value);
 }
 $("#newBtn").addEventListener("click", newChat);
 $("#newBtn2").addEventListener("click", newChat);
@@ -412,11 +485,12 @@ function renderConvo(){
   $("#thread").replaceChildren();
   for (const m of convo) {
     if (m.role === "user") addUser(m.content);
-    else if (m.role === "assistant" && m.content.trim()) addAsst().textContent = m.content;
+    else if (m.role === "assistant" && m.content.trim()) addAsst().innerHTML = md(m.content);
   }
 }
 function openConvo(id){
   const s = allSessions()[id]; if (!s) return;
+  if (controller) controller.abort();
   curId = id; convo = s.msgs.slice(); activeBot = s.bot || null; setModelLabel();
   showHero(convo.length === 0); renderConvo();
 }
@@ -432,8 +506,9 @@ function persist(){
 
 function setBusy(on){
   const b = $("#sendBtn");
-  b.classList.toggle("stop", on); b.disabled = !on && !$("#prompt").value.trim();
-  b.querySelector("svg").innerHTML = on ? '<rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/>' : '<path d="M12 19V5M5 12l7-7 7 7"/>';
+  b.disabled = !on && !$("#prompt").value.trim();
+  b.setAttribute("aria-label", on ? "Durdur" : "Gönder");
+  b.querySelector("svg").innerHTML = on ? SEND_STOP : SEND_UP;
 }
 
 async function send(text){
@@ -442,15 +517,15 @@ async function send(text){
   showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true);
   convo.push({ role: "user", content: text });
 
-  const bots = allBots();
-  const bot = activeBot ? bots[activeBot] : null;
+  const bot = activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
   const messages = [];
   if (bot && bot.persona) messages.push({ role: "system", content: bot.persona });
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
 
   controller = new AbortController();
-  let acc = "";
+  let acc = "", frame = 0;
+  const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc); scrollDown(); } };
   try {
     const res = await fetch(cfg.base.replace(/\/+$/,"") + "/chat/completions", {
       method: "POST", signal: controller.signal,
@@ -480,15 +555,17 @@ async function send(text){
         if (ev.error) { addNote("Hata: " + (ev.error.message || ev.error), true); continue; }
         const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
         if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); $("#thread").append(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
-        if (d.content) { if (!bubble) bubble = addAsst(); bubble.textContent += d.content; acc += d.content; scrollDown(); }
+        if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paint); }
       }
     }
-    if (!acc && !reasonNode) addNote("Boş yanıt — modeli/anahtarı kontrol et.", true);
+    if (frame) { cancelAnimationFrame(frame); paint(); }
+    if (!acc && !reasonNode) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true);
   } catch (e) {
+    if (frame) { cancelAnimationFrame(frame); paint(); }
     if (e.name !== "AbortError") addNote("Bağlantı: " + e.message, true);
   } finally {
     if (acc) convo.push({ role: "assistant", content: acc });
-    else convo.pop(); // başarısız turda kullanıcı mesajını geçmişe yazma
+    else convo.pop(); // a failed turn does not keep the user message
     persist();
     controller = null; setBusy(false);
   }
@@ -500,7 +577,7 @@ $("#composer").addEventListener("submit", (e) => {
   const text = $("#prompt").value.trim(); if (!text) return;
   $("#prompt").value = ""; grow(); setBusy(false); send(text);
 });
-function grow(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = `${Math.min(t.scrollHeight, 150)}px`; }
+function grow(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = `${Math.min(t.scrollHeight, 160)}px`; }
 $("#prompt").addEventListener("input", () => { grow(); if (!controller) $("#sendBtn").disabled = !$("#prompt").value.trim(); });
 $("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); } });
 
@@ -508,7 +585,7 @@ $("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.sh
 setModelLabel();
 renderSessions();
 grow();
-if (!getCfg().key) openSettings();   // ilk açılış: anahtar iste
+if (!getCfg().key) openSettings();   // first launch: ask for a key
 </script>
 </body>
 </html>
