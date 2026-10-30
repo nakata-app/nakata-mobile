@@ -72,21 +72,19 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             clean build
 
-      - name: Archive (automatic signing via API key)
+      # Archived unsigned: signing the archive made Xcode create a new "Apple
+      # Development" certificate on every fresh runner, and run 16 hit the
+      # account's certificate limit. The export steps below sign for the App
+      # Store with the cloud-managed distribution certificate instead.
+      - name: Archive (unsigned)
         if: ${{ env.HAS_ASC != '' }}
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" \
             -configuration Release -sdk iphoneos \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             archive
 
