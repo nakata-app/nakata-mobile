@@ -318,6 +318,8 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     </div>
     <div class="form" id="img-form" hidden>
       <textarea id="img-prompt" class="field" rows="4" placeholder="Ne görmek istiyorsun?"></textarea>
+      <label>Model</label>
+      <div class="chips" id="img-model"></div>
       <label>Referans (isteğe bağlı)</label>
       <div class="refs" id="img-refs"></div>
       <input id="img-file" type="file" accept="image/*" multiple hidden>
@@ -941,18 +943,29 @@ $("#acc-del-go").addEventListener("click", async () => {
   addNote("Hesabın kapatıldı; verilerin en geç 30 gün içinde silinecek.");
 });
 
-/* ---- image studio: text-to-image, or up to 8 references (server picks the model) ---- */
+/* ---- image studio: the site's models and their reference limits, always 4K ---- */
 const ASPECTS = ["1:1", "3:4", "4:3", "9:16", "16:9"];
-let aspect = "3:4", refFiles = [], genBusy = false;
+const IMG_MODELS = [
+  { id: "nano", label: "Nano Banana 2.1", refs: 10, key: () => "nano-banana-2-1" },
+  { id: "pro", label: "Nano Banana Pro", refs: 8, key: () => "nano-banana-pro" },
+  { id: "gpt", label: "GPT", refs: 16, key: () => (refFiles.length ? "gpt-image-2-5-flare-image-to-image" : "gpt-image-2-5-flare-text-to-image") },
+];
+let aspect = "3:4", refFiles = [], genBusy = false, imgModel = IMG_MODELS[0];
+for (const m of IMG_MODELS) {
+  const c = el("button", "chip" + (m === imgModel ? " on" : ""), m.label);
+  c.addEventListener("click", () => {
+    imgModel = m; refFiles = refFiles.slice(0, m.refs);
+    for (const x of document.querySelectorAll("#img-model .chip")) x.classList.toggle("on", x === c);
+    paintRefs(); haptic();
+  });
+  $("#img-model").append(c);
+}
 for (const a of ASPECTS) {
   const c = el("button", "chip" + (a === aspect ? " on" : ""), a);
   c.addEventListener("click", () => { aspect = a; for (const x of document.querySelectorAll("#img-aspect .chip")) x.classList.toggle("on", x === c); haptic(); });
   $("#img-aspect").append(c);
 }
-function modelCost(){
-  const key = refFiles.length ? "nano-banana-2-1" : Object.keys(imageCosts).find((k) => k.includes("flare")) || "";
-  return imageCosts[key]?.["4K"];
-}
+function modelCost(){ return imageCosts[imgModel.key()]?.["4K"]; }
 function paintCost(){ const c = modelCost(); $("#img-go").textContent = genBusy ? "Üretiliyor…" : (c ? `Üret · ${c} kredi` : "Üret"); }
 function paintRefs(){
   const box = $("#img-refs"); box.replaceChildren();
@@ -962,10 +975,10 @@ function paintRefs(){
     x.addEventListener("click", () => { refFiles.splice(i, 1); paintRefs(); });
     r.append(im, x); box.append(r);
   });
-  if (refFiles.length < 8) { const add = el("button", "ref add"); add.setAttribute("aria-label", "Referans ekle"); add.innerHTML = ICON_PLUS; add.addEventListener("click", () => $("#img-file").click()); box.append(add); }
+  if (refFiles.length < imgModel.refs) { const add = el("button", "ref add"); add.setAttribute("aria-label", "Referans ekle"); add.innerHTML = ICON_PLUS; add.addEventListener("click", () => $("#img-file").click()); box.append(add); }
   paintCost();
 }
-$("#img-file").addEventListener("change", (e) => { refFiles = [...refFiles, ...e.target.files].slice(0, 8); e.target.value = ""; paintRefs(); });
+$("#img-file").addEventListener("change", (e) => { refFiles = [...refFiles, ...e.target.files].slice(0, imgModel.refs); e.target.value = ""; paintRefs(); });
 function addGen(url, front = true){
   const tile = el("div", "gen"), im = el("img"); im.src = url; im.alt = ""; im.loading = "lazy"; tile.append(im);
   if (front) $("#img-results").prepend(tile); else $("#img-results").append(tile);
@@ -995,7 +1008,7 @@ $("#img-go").addEventListener("click", async () => {
       urls.push(u);
     }
     say("Üretiliyor…");
-    const g = await api("/generate", { method: "POST", body: { operation_id: "ios_" + crypto.randomUUID().replace(/-/g, ""), prompt, imageUrls: urls, aspect } });
+    const g = await api("/generate", { method: "POST", body: { operation_id: "ios_" + crypto.randomUUID().replace(/-/g, ""), prompt, imageUrls: urls, aspect, model: imgModel.id } });
     if (g.status === 402 || /insufficient|kredi/i.test(String(g.j.error || ""))) throw new Error("Kredin yetmiyor.");
     if (!g.ok) throw new Error(g.j.error || "Üretim başlamadı");
     let url = g.j.imageUrl || g.j.data?.imageUrl;
