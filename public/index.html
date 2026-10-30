@@ -157,6 +157,8 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .danger{margin-top:24px;border:1px solid var(--err);color:var(--err);border-radius:14px;padding:13px}
 .danger[hidden]{display:none}
 .muted{color:var(--muted)}
+#st-byok{display:flex;flex-direction:column;gap:6px}
+#st-byok[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -231,6 +233,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
   <div class="scroll"><div class="form">
     <label for="st-provider">Sağlayıcı</label>
     <select id="st-provider" class="field">
+      <option value="nakata">Nakata (ücretsiz, anahtar gerekmez)</option>
       <option value="openrouter">OpenRouter (tek anahtar, tüm modeller)</option>
       <option value="openai">OpenAI</option>
       <option value="groq">Groq</option>
@@ -238,6 +241,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
       <option value="gemini">Google Gemini</option>
       <option value="custom">Özel adres</option>
     </select>
+    <div id="st-byok">
     <label for="st-base">API adresi</label>
     <input id="st-base" class="field" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
     <label for="st-key">API anahtarı</label>
@@ -249,6 +253,8 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <label for="st-model">Model</label>
     <input id="st-model" class="field" autocomplete="off" autocapitalize="off" spellcheck="false">
     <div class="hint" id="st-modelhint"></div>
+    </div>
+    <div class="hint" id="st-freehint" hidden>Günde 30 mesaja kadar ücretsiz. Daha fazlası için kendi anahtarınla bir sağlayıcı seç.</div>
     <button class="primary" id="st-save">Kaydet</button>
   </div></div>
 </section>
@@ -324,6 +330,8 @@ function md(src){
 
 /* ---- provider presets ---- */
 const PROVIDERS = {
+  // Keyless, served by nakata.app on our key behind daily limits (routes/mobile.js).
+  nakata:{ base:"https://nakata.app/api/mobile", model:"deepseek-v4.1-flash", free:true, keyUrl:"", hint:"" },
   openrouter:{ base:"https://openrouter.ai/api/v1", model:"openai/gpt-4o-mini",
                keyUrl:"https://openrouter.ai/keys", hint:"Örnek: openai/gpt-4o-mini, anthropic/claude-sonnet-4, google/gemini-2.5-flash" },
   openai:{ base:"https://api.openai.com/v1", model:"gpt-4o-mini",
@@ -336,7 +344,10 @@ const PROVIDERS = {
            keyUrl:"https://aistudio.google.com/apikey", hint:"Örnek: gemini-flash-lite-latest, gemini-3.5-flash, gemini-pro-latest" },
   custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI uyumlu herhangi bir adres (…/v1)" },
 };
-function getCfg(){ return LS.get("nakata_byok_cfg", { provider:"openrouter", base:PROVIDERS.openrouter.base, model:PROVIDERS.openrouter.model, key:"" }); }
+const FREE_CFG = { provider:"nakata", base:PROVIDERS.nakata.base, model:PROVIDERS.nakata.model, key:"" };
+// A saved BYOK setup without a key falls back to the free model.
+function getCfg(){ const c = LS.get("nakata_byok_cfg", null); return c && (c.provider === "nakata" || c.key) ? c : { ...FREE_CFG }; }
+function deviceId(){ let d = LS.get("nakata_device", ""); if (!d) { d = crypto.randomUUID(); LS.set("nakata_device", d); } return d; }
 function saveCfg(c){ LS.set("nakata_byok_cfg", c); }
 
 /* ---- drawer, sheet, pages ---- */
@@ -391,6 +402,7 @@ document.addEventListener("click", (e) => { if (swallowClick) { swallowClick = f
 /* ---- settings ---- */
 function fillProviderUI(p){
   const pr = PROVIDERS[p] || PROVIDERS.custom;
+  $("#st-byok").hidden = !!pr.free; $("#st-freehint").hidden = !pr.free;
   $("#st-base").value = pr.base; $("#st-base").readOnly = (p !== "custom");
   $("#st-model").placeholder = pr.model || "model-adı";
   $("#st-modelhint").textContent = pr.hint || "";
@@ -410,10 +422,12 @@ $("#st-provider").addEventListener("change", (e) => {
   // A model name belongs to its provider: switching providers must not keep the
   // previous one (e.g. "openai/gpt-4o-mini" sent to Gemini fails every request).
   if (p !== "custom") { $("#st-base").value = pr.base; $("#st-model").value = pr.model; }
+  if (pr.free) $("#st-key").value = "";
 });
 $("#st-eye").addEventListener("click", () => { const f = $("#st-key"); f.type = f.type === "password" ? "text" : "password"; });
 $("#st-save").addEventListener("click", () => {
   const provider = $("#st-provider").value;
+  if (PROVIDERS[provider]?.free) { saveCfg({ ...FREE_CFG }); setModelLabel(); $("#f-settings").classList.remove("on"); return; }
   const base = $("#st-base").value.trim().replace(/\/+$/,"");
   const key = $("#st-key").value.trim();
   const model = $("#st-model").value.trim() || (PROVIDERS[provider]||{}).model || "";
@@ -568,9 +582,17 @@ function setBusy(on){
   b.querySelector("svg").innerHTML = on ? SEND_STOP : SEND_UP;
 }
 
+const FREE_ERRORS = {
+  free_limit: "Bugünkü ücretsiz mesajların bitti. Yarın yenilenir; beklemek istemezsen Ayarlar'dan kendi anahtarını ekleyebilirsin.",
+  slow_down: "Biraz hızlı gidiyoruz. Birkaç saniye bekleyip tekrar gönder.",
+  free_busy: "Ücretsiz sohbet şu an çok yoğun. Biraz sonra tekrar dene.",
+  free_closed: "Ücretsiz sohbet şu an kapalı. Ayarlar'dan kendi anahtarınla devam edebilirsin.",
+  upstream: "Model cevap vermedi. Tekrar dene.",
+};
 async function send(text){
   const cfg = getCfg();
-  if (!cfg.key) { openSettings(); return; }
+  const free = cfg.provider === "nakata";
+  if (!free && !cfg.key) { openSettings(); return; }
   haptic(); showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true);
   convo.push({ role: "user", content: text });
 
@@ -584,11 +606,11 @@ async function send(text){
   let acc = "", frame = 0;
   const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc); scrollDown(); } };
   try {
-    const res = await fetch(cfg.base.replace(/\/+$/,"") + "/chat/completions", {
+    const res = await fetch(cfg.base.replace(/\/+$/,"") + (free ? "/chat" : "/chat/completions"), {
       method: "POST", signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + cfg.key,
+        ...(free ? { "X-Nakata-Device": deviceId() } : { "Authorization": "Bearer " + cfg.key }),
         // OpenRouter's attribution headers only: Gemini rejects the CORS
         // preflight (403) when they are present, which fails every request.
         ...(/openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
@@ -597,6 +619,8 @@ async function send(text){
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
+      const code = j.error && j.error.code;
+      if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true); return; }
       throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
     }
     const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
@@ -646,7 +670,7 @@ try {
 setModelLabel();
 renderSessions();
 grow();
-if (!getCfg().key) openSettings();   // first launch: ask for a key
+// No first-run settings: the free model works without a key.
 </script>
 </body>
 </html>
