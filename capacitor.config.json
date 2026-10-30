@@ -4,10 +4,17 @@
   "webDir": "public",
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#151515"
+    "backgroundColor": "#151515",
+    "scrollEnabled": false
   },
   "server": {
     "iosScheme": "capacitor"
   },
-  "backgroundColor": "#151515"
+  "backgroundColor": "#151515",
+  "plugins": {
+    "Keyboard": {
+      "resize": "native",
+      "style": "DARK"
+    }
+  }
 }
