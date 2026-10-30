@@ -396,7 +396,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   </header>
   <div class="disc-top">
     <label class="disc-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="disc-q" placeholder="Bot ara" autocomplete="off"></label>
-    <div class="disc-tabs"><button class="disc-tab on" data-sort="top">Popüler</button><button class="disc-tab" data-sort="new">Yeni</button></div>
+    <div class="disc-tabs"><button class="disc-tab on" data-sort="top">Popüler</button><button class="disc-tab" data-sort="new">Yeni</button><button class="disc-tab" data-sort="deck">Deste</button></div>
     <div class="disc-cats" id="disc-cats"></div>
   </div>
   <div class="scroll"><div class="cards" id="disc-cards"></div></div>
@@ -586,7 +586,7 @@ const LS = {
    The interface text is written in Turkish; with English selected a dictionary
    rewrites it on the page (text nodes, placeholders, labels) as it appears. ---- */
 const EN = {
-  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
+  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","Deste":"Deck","Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.":"No cards in your deck yet. A bot is added when you open it or like it.","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
   "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
   "Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.":"You can start typing right away, or begin with a ready-made bot.",
   "Başla":"Start","Bot seç":"Choose a bot","Yeni bot":"New bot","Kaydet":"Save","İsim":"Name","Tek satır açıklama":"One-line description",
@@ -1569,8 +1569,23 @@ function botCard(c){
 
 function destroyOrbs(root){ for (const o of root.querySelectorAll(".bot-orb")) o._orb?.destroy(); }
 
+// Deck: the cards of bots you opened a chat with or liked, kept on this device.
+const deckGet = () => LS.get("nakata_deck", []);
+function deckAdd(b){
+  const card = { id: b.id, name: b.name, category: b.category, tagline: b.tagline, mascot: b.mascot, rarity: b.rarity, chats: b.chats, likes: b.likes, ts: Date.now() };
+  LS.set("nakata_deck", [card, ...deckGet().filter((x) => x.id !== b.id)].slice(0, 200));
+}
+function deckRefresh(b){ if (deckGet().some((x) => x.id === b.id)) deckAdd(b); }
 async function loadDiscover(){
   const cards = $("#disc-cards");
+  if (discSort === "deck") {
+    destroyOrbs(cards); cards.replaceChildren();
+    const q = discQ.toLowerCase();
+    const mine = deckGet().filter((c) => (!discCat || c.category === discCat) && (!q || (c.name + " " + (c.tagline || "")).toLowerCase().includes(q)));
+    if (!mine.length) { cards.append(el("div", "note", discQ || discCat ? "Eşleşme yok" : "Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.")); return; }
+    for (const c of mine) cards.append(botCard(c));
+    return;
+  }
   const params = new URLSearchParams({ sort: discSort, limit: "40" });
   if (discCat) params.set("category", discCat);
   if (discQ) params.set("q", discQ);
@@ -1607,11 +1622,13 @@ async function openBotDetail(id){
   $("#bd-rarity").textContent = RARITY_TR[b.rarity] || "";
   $("#bd-by").textContent = b.ownerName ? `@${b.ownerName}` : "";
   $("#bd-like").classList.toggle("on", !!r.j.liked);
+  deckRefresh(b);
   showPage("#f-botdetail");
 }
 function closeGalleryPages(){ for (const id of ["#f-botdetail", "#f-discover", "#f-mybots"]) $(id).classList.remove("on"); }
 $("#bd-open").addEventListener("click", () => {
   if (!detailBot) return;
+  deckAdd(detailBot);
   galleryBot = { id: detailBot.id, name: detailBot.name, persona: detailBot.persona, mascot: detailBot.mascot };
   activeBot = null;
   closeGalleryPages(); closeDrawer();
@@ -1624,7 +1641,7 @@ $("#bd-open").addEventListener("click", () => {
 $("#bd-like").addEventListener("click", async () => {
   if (!detailBot || !token()) { if (!token()) openAccount(); return; }
   const r = await api(`/bots/${detailBot.id}/like`, { method: "POST", body: {} });
-  if (r.ok) { $("#bd-like").classList.toggle("on", r.j.liked); $("#bd-likes").textContent = r.j.likes; haptic(); }
+  if (r.ok) { $("#bd-like").classList.toggle("on", r.j.liked); $("#bd-likes").textContent = r.j.likes; if (r.j.liked) deckAdd({ ...detailBot, likes: r.j.likes }); haptic(); }
 });
 $("#bd-report").addEventListener("click", async () => {
   if (!detailBot || !token()) { if (!token()) openAccount(); return; }
