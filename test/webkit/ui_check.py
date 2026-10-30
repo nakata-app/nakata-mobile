@@ -26,11 +26,16 @@ class H(SimpleHTTPRequestHandler):
     paylimit = False  # free quota used up: only a request that agreed to pay gets a reply
     last = path = None
     headers_seen = {}
+    gets = []
 
     def log_message(self, *a):
         pass
 
     def do_GET(self):
+        H.gets.append((self.path, dict(self.headers)))
+        if self.path.startswith("/api/mobile/ollama/models"):
+            b = json.dumps({"object": "list", "data": [{"id": "gemma4:31b"}, {"id": "glm-5.3"}, {"id": "kimi-k3"}]}).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
         if self.path.startswith("/api/mobile/models"):
             b = json.dumps({"models": [{"id": "gemma4", "label": "Gemma 4"}, {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"}], "default": "gemma4", "perDay": 30}).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
@@ -112,6 +117,35 @@ with sync_playwright() as p:
     pg.wait_for_function("() => document.querySelectorAll('.md').length >= 3 && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
     check("later messages pay without asking again", len(asked) == 1 and H.last.get("pay") == "credits")
     H.paylimit = False; ctx.close()
+
+    # Ollama Cloud with the user's own key: the app keeps the key out of localStorage
+    # and talks through the nakata.app relay, which carries both the list and the chat.
+    ctx = b.new_context(**dev)
+    ctx.add_init_script("localStorage.setItem('nakata_lang', JSON.stringify('tr')); localStorage.setItem('nakata_welcomed','true');")
+    pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
+    pg.goto(BASE + "/index.html"); pg.wait_for_timeout(600)
+    pg.evaluate("openSettings()"); pg.wait_for_timeout(200)
+    pg.select_option("#st-provider", "ollama"); pg.wait_for_timeout(200)
+    ui = pg.evaluate("({ base: document.getElementById('st-base').value, ro: document.getElementById('st-base').readOnly, byok: document.getElementById('st-byok').hidden, hint: document.getElementById('st-modelhint').textContent })")
+    check("ollama: relay base is locked and the key field appears", ui["base"] == "https://nakata.app/api/mobile/ollama" and ui["ro"] and not ui["byok"] and "gemma4:31b" in ui["hint"], str(ui))
+    pg.fill("#st-key", "sk-own-key"); pg.fill("#st-model", "gemma4:31b"); pg.click("#st-save"); pg.wait_for_timeout(400)
+    raw = pg.evaluate("localStorage.getItem('nakata_byok_cfg') || ''")
+    check("ollama: without a Keychain the browser keeps the key in its own store", "ollama" in raw and "gemma4:31b" in raw, raw[:90])
+    check("ollama: the key never shows up in the page text", "sk-own-key" not in pg.inner_text("#f-settings") and pg.evaluate("document.getElementById('st-key').type") == "password")
+
+    pg.evaluate(f"(() => {{ const c = JSON.parse(localStorage.getItem('nakata_byok_cfg')); c.base = '{BASE}/api/mobile/ollama'; localStorage.setItem('nakata_byok_cfg', JSON.stringify(c)); }})()")
+    H.gets.clear(); pg.reload(); pg.wait_for_timeout(700)
+    pg.evaluate("openModelSheet()")
+    pg.wait_for_function("() => document.querySelectorAll('#modelList .botmain').length >= 3", timeout=6000)
+    ids = pg.evaluate("[...document.querySelectorAll('#modelList .nm')].map(n => n.textContent)")
+    get = [g for g in H.gets if g[0].startswith("/api/mobile/ollama/models")]
+    check("ollama: the model list comes from the relay with the key", bool(get) and "Bearer sk-own-key" in get[0][1].get("Authorization", "") and ids == ["gemma4:31b", "glm-5.3", "kimi-k3"], f"{ids} {get[:1]}")
+    pg.evaluate("document.getElementById('modelSheet').classList.remove('on'); document.getElementById('scrim').classList.remove('on'); document.getElementById('f-settings').classList.remove('on')")
+    pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("() => document.querySelector('.md') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=10000)
+    hs = {k.lower(): v for k, v in H.headers_seen.items()}
+    check("ollama: the chat goes to the relay with the user's key", H.path == "/api/mobile/ollama/chat/completions" and hs.get("authorization") == "Bearer sk-own-key" and H.last.get("model") == "gemma4:31b" and H.last.get("stream") is True, f"{H.path} {hs.get('authorization')} {H.last.get('model')}")
+    ctx.close()
 
     # BYOK setup with sessions and a bot
     ctx = b.new_context(**dev)

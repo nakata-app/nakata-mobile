@@ -35,10 +35,16 @@ def check(name, ok, detail=""):
 
 
 FAKE = """window.__calls = [];
+window.__kv = {};
 window.Capacitor = { Plugins: {
   Haptics: { impact: (o) => __calls.push('impact:' + o.style), notification: (o) => __calls.push('notify:' + o.type) },
   Browser: { open: (o) => __calls.push('browser:' + o.url) },
   Keyboard: { setAccessoryBarVisible: (o) => __calls.push('accessory:' + o.isVisible), addListener: (n) => __calls.push('listen:' + n) },
+  SecureStorage: {
+    get: (o) => Promise.resolve({ value: Object.prototype.hasOwnProperty.call(__kv, o.key) ? __kv[o.key] : null }),
+    set: (o) => { __kv[o.key] = o.value; return Promise.resolve(); },
+    remove: (o) => { delete __kv[o.key]; return Promise.resolve(); },
+  },
 } };"""
 
 
@@ -72,6 +78,16 @@ with sync_playwright() as p:
     check("no field below 16px (iOS focus zoom)", not small, str(small))
     sel = pg.evaluate("[getComputedStyle(document.querySelector('header')).webkitUserSelect, getComputedStyle(document.querySelector('#prompt')).webkitUserSelect]")
     check("chrome not selectable, composer is", sel == ["none", "text"], str(sel))
+
+    # the key lives in the Keychain; a plaintext config left by an older build is migrated once
+    migrated = pg.evaluate("({ kv: Object.keys(window.__kv), ls: localStorage.getItem('nakata_byok_cfg') })")
+    check("a plaintext config moves into the Keychain", "nakata_byok_cfg" in migrated["kv"] and migrated["ls"] is None, str(migrated))
+    pg.evaluate("openSettings(); const p = document.getElementById('st-provider'); p.value = 'ollama'; p.dispatchEvent(new Event('change'));")
+    pg.fill("#st-key", "sk-own-key"); pg.fill("#st-model", "gemma4:31b"); pg.click("#st-save"); pg.wait_for_timeout(300)
+    saved = pg.evaluate("({ kv: window.__kv['nakata_byok_cfg'] || '', ls: localStorage.getItem('nakata_byok_cfg') })")
+    check("the Ollama key is saved to the Keychain, not to localStorage", "sk-own-key" in saved["kv"] and saved["ls"] is None, saved["kv"][:60])
+    pg.evaluate("document.getElementById('f-settings').classList.remove('on')")
+    pg.evaluate(f"saveCfg({{provider:'custom', base:'{BASE}/v1', model:'m', key:'k'}})"); pg.wait_for_timeout(200)
 
     swipe(pg, 4, 260)
     check("left-edge swipe opens the menu", pg.evaluate("document.getElementById('drawer').classList.contains('on')"))
