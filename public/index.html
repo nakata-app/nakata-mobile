@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
@@ -15,6 +15,19 @@
   --accent:#d97757; --on-accent:#141413; --err:#e5736b; --link:#e8a183;
   --font:-apple-system,"SF Pro Text",system-ui,sans-serif;
   --mono:"SF Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+/* Themes, same palettes as the desktop app's Settings → Theme (minimal.css, theme-grey.css). */
+:root[data-theme="light"]{
+  --bg:#faf9f5; --side:#f0eee6; --raised:#f5f4ed; --line:#d3cdbd;
+  --ink:#141413; --side-ink:#141413; --muted:#73726c;
+  --accent:#c6613f; --on-accent:#ffffff; --err:#c3324a; --link:#c6613f;
+  color-scheme:light;
+}
+:root[data-theme="grey"]{
+  --bg:#262624; --side:#1f1e1c; --raised:#30302e; --line:#3a3a37;
+  --ink:#f5f4ee; --side-ink:#c3c2b8; --muted:#9a978d;
+  --accent:#d97757; --on-accent:#262624;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);overscroll-behavior:none;-webkit-text-size-adjust:100%}
@@ -224,6 +237,53 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .gen img{width:100%;height:100%;object-fit:cover;pointer-events:auto;-webkit-touch-callout:default;-webkit-user-drag:auto}
 #st-byok{display:flex;flex-direction:column;gap:6px}
 #st-byok[hidden]{display:none}
+
+/* bot gallery (Keşfet) */
+.disc-top{padding:8px 14px 4px;display:flex;flex-direction:column;gap:10px}
+.disc-search{display:flex;align-items:center;gap:8px;background:var(--raised);border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.disc-search svg{width:16px;height:16px;color:var(--muted);flex:none}
+.disc-search input{flex:1;background:none;border:none;outline:none;color:var(--ink);font:inherit;padding:11px 0}
+.disc-tabs{display:flex;gap:16px;padding:0 2px}
+.disc-tab{color:var(--muted);font-weight:600;font-size:15px;padding:4px 0;border-bottom:2px solid transparent}
+.disc-tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+.disc-cats{display:flex;gap:8px;overflow-x:auto;padding:2px;scrollbar-width:none}
+.disc-cats::-webkit-scrollbar{display:none}
+.disc-cats .chip{flex:none}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:12px 14px calc(env(safe-area-inset-bottom) + 24px)}
+.card{position:relative;border-radius:16px;padding:14px 12px 12px;background:var(--raised);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;overflow:hidden}
+.card .face{margin-top:2px}
+.card .cname{font-weight:700;color:var(--ink);font-size:15px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ccat{font-size:11px;color:var(--side-ink);background:#ffffff0f;border-radius:999px;padding:2px 9px}
+.card .ctag{font-size:12px;color:var(--muted);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:31px}
+.card .cstats{display:flex;gap:12px;color:var(--muted);font-size:11.5px;margin-top:1px}
+.card .cstats b{color:var(--side-ink);font-weight:600}
+.card .crarity{position:absolute;top:8px;right:9px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px}
+.card.rare{border-color:#3b82f6aa;box-shadow:0 0 0 1px #3b82f633,0 8px 22px #3b82f622}
+.card.rare .crarity{color:#93c5fd;background:#3b82f622}
+.card.epic{border-color:#a855f7aa;box-shadow:0 0 0 1px #a855f73a,0 8px 24px #a855f72a}
+.card.epic .crarity{color:#d8b4fe;background:#a855f726}
+.card.legendary{border-color:#f5b84688;box-shadow:0 0 0 1px #f5b84644,0 10px 28px #f5b84633}
+.card.legendary .crarity{color:#151515;background:linear-gradient(100deg,#fcd34d,#f59e0b)}
+.card.legendary::before{content:"";position:absolute;inset:0;background:linear-gradient(130deg,#f5b84618,transparent 55%);pointer-events:none}
+.card.common .crarity{display:none}
+/* bot detail */
+.bd-head{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 18px 6px;text-align:center}
+.bd-head h1{margin:6px 0 0;font-size:22px}
+.bd-head .ccat{font-size:12px;color:var(--side-ink);background:#ffffff0f;border-radius:999px;padding:3px 11px}
+.bd-head .ctag{color:var(--muted);font-size:14px;max-width:460px}
+.bd-stats{display:flex;gap:22px;color:var(--muted);font-size:13px;justify-content:center;padding:2px 0 6px}
+.bd-stats b{color:var(--ink)}
+.bd-actions{display:flex;gap:10px;max-width:640px;margin:0 auto;padding:0 18px;width:100%}
+.bd-actions .pillbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--side-ink);font-weight:600;font-size:14px}
+.bd-actions .pillbtn svg{width:17px;height:17px}
+.bd-actions .pillbtn.on{color:var(--accent);border-color:var(--accent)}
+.bd-by{color:var(--muted);font-size:12.5px;text-align:center;padding:8px 0 2px}
+.earn-row{display:flex;justify-content:space-between;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--side-ink);font-size:14px}
+.earn-row b{color:var(--ink)}
+.statusdot{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+.statusdot.live{color:#6ee7b7;background:#10b98122}
+.statusdot.pending{color:#fcd34d;background:#f59e0b22}
+.statusdot.flagged,.statusdot.rejected{color:var(--err);background:#e5736b22}
 </style>
 </head>
 <body>
@@ -258,7 +318,10 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <button id="newBtn2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Yeni sohbet</button>
     <button id="botsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5M9 13h.01M15 13h.01"/></svg>Botlar</button>
   </nav>
-  <nav class="nav"><button id="imagesRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20 16l-4.5-4.5L7 19.5"/></svg>Görsel</button></nav>
+  <nav class="nav">
+    <button id="discoverRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Keşfet</button>
+    <button id="imagesRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20 16l-4.5-4.5L7 19.5"/></svg>Görsel</button>
+  </nav>
   <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Sohbetlerde ara" autocomplete="off"></label>
   <div class="slist" id="slist"></div>
   <nav class="nav dfoot">
@@ -300,11 +363,81 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
   <div class="scroll"><div class="form">
     <label for="bf-name">İsim</label>
     <input id="bf-name" class="field" placeholder="örn. Scout" autocomplete="off" autocapitalize="words">
+    <label for="bf-tagline">Tek satır açıklama <span class="muted">(galeri için)</span></label>
+    <input id="bf-tagline" class="field" placeholder="örn. Kod yazar, hata ayıklar" autocomplete="off" maxlength="80">
+    <label for="bf-category">Kategori</label>
+    <select id="bf-category" class="field"></select>
     <label for="bf-model">Model <span class="muted">(boşsa varsayılan)</span></label>
     <input id="bf-model" class="field" placeholder="örn. anthropic/claude-sonnet-4" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="bf-persona">Talimat</label>
     <textarea id="bf-persona" class="field" rows="8" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
+    <div id="bf-publish" style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <b style="font-size:15px">Galeride yayınla</b>
+        <span id="bf-status" class="statusdot" hidden></span>
+      </div>
+      <div class="hint" style="margin-top:4px">Botunu herkes keşfedebilir ve kart olarak toplayabilir. Yayın öncesi incelenir.</div>
+      <button class="primary" id="bf-pub" style="margin-top:12px">Galeride yayınla</button>
+      <button class="ghost" id="bf-unpub" hidden>Galeriden kaldır</button>
+      <div class="hint err-text" id="bf-puberr" hidden></div>
+    </div>
     <button class="danger" id="bf-del" hidden>Botu sil</button>
+  </div></div>
+</section>
+
+<section class="page" id="f-discover">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Keşfet</div>
+    <button class="icon" id="disc-mine" aria-label="Botlarım"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></button>
+  </header>
+  <div class="disc-top">
+    <label class="disc-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="disc-q" placeholder="Bot ara" autocomplete="off"></label>
+    <div class="disc-tabs"><button class="disc-tab on" data-sort="top">Popüler</button><button class="disc-tab" data-sort="new">Yeni</button></div>
+    <div class="disc-cats" id="disc-cats"></div>
+  </div>
+  <div class="scroll"><div class="cards" id="disc-cards"></div></div>
+</section>
+
+<section class="page" id="f-botdetail">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Bot</div>
+    <button class="icon" id="bd-share" aria-label="Paylaş"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3M8 7l4-4 4 4"/></svg></button>
+  </header>
+  <div class="scroll">
+    <div class="bd-head">
+      <div class="nk-mascot" id="bd-orb"></div>
+      <span class="ccat" id="bd-cat"></span>
+      <h1 id="bd-name"></h1>
+      <div class="ctag" id="bd-tag"></div>
+    </div>
+    <div class="bd-stats"><span><b id="bd-chats">0</b> sohbet</span><span><b id="bd-likes">0</b> beğeni</span><span id="bd-rarity"></span></div>
+    <div class="bd-actions">
+      <button class="pillbtn" id="bd-like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span>Beğen</span></button>
+      <button class="pillbtn" id="bd-report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4h13l-2 4 2 4H4"/></svg><span>Bildir</span></button>
+      <button class="pillbtn" id="bd-block"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span>Engelle</span></button>
+    </div>
+    <div class="bd-by" id="bd-by"></div>
+    <div style="max-width:640px;margin:0 auto;padding:4px 18px;width:100%"><button class="primary" id="bd-open">Sohbete başla</button></div>
+  </div>
+</section>
+
+<section class="page" id="f-mybots">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Botlarım</div>
+    <span style="width:44px"></span>
+  </header>
+  <div class="scroll"><div class="form" style="gap:0">
+    <div class="earn-row" style="margin-bottom:8px"><span>Kazanılan pay</span><b id="mb-earn">0 kredi</b></div>
+    <div id="mb-list"></div>
+    <div class="note" id="mb-empty" hidden>Henüz bot yayınlamadın.</div>
+    <div id="mb-adminwrap" hidden>
+      <h3 class="sect" style="margin-top:22px;color:var(--muted);font-size:13px">İnceleme kuyruğu</h3>
+      <div id="mb-queue"></div>
+      <div class="note" id="mb-queue-empty" hidden>Kuyruk boş.</div>
+    </div>
   </div></div>
 </section>
 
@@ -373,6 +506,10 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <span style="width:44px"></span>
   </header>
   <div class="scroll"><div class="form">
+    <label for="st-lang">Language / Dil</label>
+    <select id="st-lang" class="field"><option value="en">English</option><option value="tr">Türkçe</option></select>
+    <label for="st-theme">Theme / Tema</label>
+    <select id="st-theme" class="field"><option value="dark">Dark</option><option value="light">Light</option><option value="grey">Grey</option></select>
     <label for="st-provider">Sağlayıcı</label>
     <select id="st-provider" class="field">
       <option value="nakata">Nakata (ücretsiz, anahtar gerekmez)</option>
@@ -416,7 +553,7 @@ const el = (t, c, x) => { const n = document.createElement(t); if (c) n.classNam
 const NAKATA_ORB_COLOR = "#5b8cff";
 const BOT_COLORS = ["#d97757", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#fbbf24"];
 const botColor = (name) => BOT_COLORS[[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % BOT_COLORS.length];
-const orbColor = () => (activeBot ? botColor(activeBot) : NAKATA_ORB_COLOR);
+const orbColor = () => (galleryBot ? (galleryBot.mascot?.color || NAKATA_ORB_COLOR) : activeBot ? botColor(activeBot) : NAKATA_ORB_COLOR);
 const orb = (opts) => { const o = createOrb(opts); o.el._orb = o; return o; };
 const ICON_COPY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
 const ICON_CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -441,6 +578,111 @@ const LS = {
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
   del(k){ try{ localStorage.removeItem(k); }catch{} },
 };
+
+/* ---- language and theme (Settings): English is the default, Turkish is a choice.
+   The interface text is written in Turkish; with English selected a dictionary
+   rewrites it on the page (text nodes, placeholders, labels) as it appears. ---- */
+const EN = {
+  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
+  "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
+  "Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.":"You can start typing right away, or begin with a ready-made bot.",
+  "Başla":"Start","Bot seç":"Choose a bot","Yeni bot":"New bot","Kaydet":"Save","İsim":"Name","Tek satır açıklama":"One-line description",
+  "(galeri için)":"(for the gallery)","(boşsa varsayılan)":"(default if empty)","Galeride yayınla":"Publish to Discover",
+  "Botunu herkes keşfedebilir ve kart olarak toplayabilir. Yayın öncesi incelenir.":"Anyone can discover your bot and collect it as a card. It is reviewed before it goes live.",
+  "Galeriden kaldır":"Remove from Discover","Popüler":"Popular","Yeni":"New","Bot":"Bot","beğeni":"likes","Beğen":"Like","Bildir":"Report",
+  "Engelle":"Block","Sohbete başla":"Start chat","Botlarım":"My bots","Kazanılan pay":"Earned share","0 kredi":"0 credits",
+  "Henüz bot yayınlamadın.":"You haven't published a bot yet.","İnceleme kuyruğu":"Review queue","Kuyruk boş.":"The queue is empty.",
+  "E-posta ya da kullanıcı adı":"Email or username","Şifre":"Password","Hesabın yok mu?":"No account?","nakata.app'te oluştur":"Create one at nakata.app",
+  "Çıkış yap":"Sign out","Hesabı sil":"Delete account","Onay için şifren":"Your password to confirm","Hesabımı kalıcı olarak sil":"Delete my account permanently",
+  "Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 8 gün içinde silinir. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz, hesabını geri açarız.":"Your account is closed immediately and all your data, including remaining credits, is deleted within 8 days. If you change your mind, write to support@nakata.app within 7 days and we will reopen it.",
+  "Görsel üretmek için nakata.app hesabınla giriş yap; kredilerin buradan harcanır.":"Sign in with your nakata.app account to create images; your credits are spent here.",
+  "Referans (isteğe bağlı)":"Reference (optional)","Üret":"Generate","Sağlayıcı":"Provider","Nakata (ücretsiz, anahtar gerekmez)":"Nakata (free, no key needed)",
+  "OpenRouter (tek anahtar, tüm modeller)":"OpenRouter (one key, all models)","Özel adres":"Custom address","API anahtarı":"API key",
+  "Anahtar yalnız bu cihazda saklanır.":"The key is stored on this device only.",
+  "Günde 30 mesaja kadar ücretsiz. Daha fazlası için kendi anahtarınla bir sağlayıcı seç.":"Free up to 30 messages a day. For more, choose a provider with your own key.",
+  "Kişiselleştirme":"Personalization","Sana nasıl hitap edeyim?":"What should I call you?","Hakkında":"About you","Nasıl cevap versin?":"How should it answer?",
+  "Kopyala":"Copy","Kopyalandı":"Copied","Menü":"Menu","Model seç":"Choose model","Gönder":"Send","Durdur":"Stop","Model ara":"Search models","Kapat":"Close",
+  "örn. Scout":"e.g. Scout","örn. Kod yazar, hata ayıklar":"e.g. Writes and debugs code","örn. anthropic/claude-sonnet-4":"e.g. anthropic/claude-sonnet-4",
+  "Bu bot kim, nasıl cevap versin?":"Who is this bot and how should it answer?","Bot ara":"Search bots","Paylaş":"Share","Ne görmek istiyorsun?":"What do you want to see?",
+  "Göster":"Show","örn. Atakan":"e.g. Alex","Ne iş yaparsın, neyle ilgilenirsin?":"What do you do, what are you into?","örn. Kısa ve net, Türkçe, maddeli":"e.g. Short and clear, bulleted",
+  "Nakata'ya yaz":"Message Nakata","Talimat":"Instructions","Kategori":"Category","Model":"Model","Referans ekle":"Add reference","Oran":"Aspect",
+  "Hesap":"Account","Düzenle":"Edit","Varsayılan":"Default","Örnek botlar":"Sample bots","Tekrar gönder":"Resubmit","Güncelle ve yayınla":"Update and publish",
+  "Botu düzenle":"Edit bot","Botu sil":"Delete bot","Diğer":"Other","Yazı":"Writing","Kod":"Code","Eğitim":"Education","Çeviri":"Translation","Günlük":"Daily life",
+  "Eğlence":"Fun","İş":"Work","Sağlık":"Health","Oyun":"Games","Tümü":"All","Eşleşme yok":"No matches","Henüz sohbet yok":"No chats yet","Henüz bot yok":"No bots yet",
+  "(başlıksız)":"(untitled)","Sohbetlerde ara":"Search chats","Sil":"Delete","Yükleniyor…":"Loading…","Üretiliyor…":"Generating…","Referanslar yükleniyor…":"Uploading references…",
+  "Kaldır":"Remove","Onayla":"Approve","Reddet":"Reject","Yayında":"Live","İncelemede":"In review","Bildirildi":"Reported","Reddedildi":"Rejected",
+  "Talimat en az 10 karakter olmalı.":"Instructions must be at least 10 characters.","Yayınlamak için önce giriş yap.":"Sign in first to publish.",
+  "Yayınlanamadı":"Could not publish","Botun incelemeye gönderildi. Onaylanınca galeride görünür.":"Your bot was sent for review. It appears in Discover once approved.",
+  "Botun galeride güncellendi.":"Your bot was updated in Discover.","Bot galeriden kaldırılsın mı? Sayaçları sıfırlanır.":"Remove this bot from Discover? Its counters are reset.",
+  "Kaldırılamadı":"Could not remove","Bot galeriden kaldırıldı; cihazındaki kopyası duruyor.":"Bot removed from Discover; the copy on your device stays.",
+  "Bu yapımcının botları sana artık gösterilmesin mi?":"Stop showing this creator's bots to you?",
+  "Engellendi. Bu yapımcının botları artık galeride görünmeyecek.":"Blocked. This creator's bots will no longer appear in Discover.",
+  "Neden bildiriyorsun?":"Why are you reporting this?","Bildirimin alındı, teşekkürler.":"Your report was received, thank you.","Bağlantı kopyalandı.":"Link copied.",
+  "Botlarını görmek için giriş yap.":"Sign in to see your bots.","Engellenemedi":"Could not block",
+  "Bugünkü ücretsiz mesajların bitti. Yarın yenilenir; beklemek istemezsen Ayarlar'dan kendi anahtarını ekleyebilirsin.":"You've used today's free messages. They renew tomorrow; or add your own key in Settings to keep going.",
+  "Biraz hızlı gidiyoruz. Birkaç saniye bekleyip tekrar gönder.":"Going a bit fast. Wait a few seconds and send again.",
+  "Ücretsiz sohbet şu an çok yoğun. Biraz sonra tekrar dene.":"Free chat is very busy right now. Try again shortly.",
+  "Ücretsiz sohbet şu an kapalı. Ayarlar'dan kendi anahtarınla devam edebilirsin.":"Free chat is closed right now. You can continue with your own key in Settings.",
+  "Model cevap vermedi. Tekrar dene.":"The model did not answer. Try again.","Boş yanıt geldi. Modeli ve anahtarı kontrol et.":"Empty reply. Check the model and key.",
+  "Bağlantı yok":"No connection","Giriş yapılamadı":"Could not sign in","Şifre yanlış":"Wrong password",
+  "Hesabın kapatıldı; verilerin en geç 8 gün içinde silinecek. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz.":"Your account is closed; your data will be deleted within 8 days. If you change your mind, write to support@nakata.app within 7 days.",
+  "Referans yüklenemedi":"Could not upload reference","Üretim başlamadı":"Generation did not start","Üretim başarısız":"Generation failed","Kredin yetmiyor.":"Not enough credits.",
+  "Sonuç gelmedi, biraz sonra galeriye bak.":"No result yet; check the gallery in a moment.","Model (ücretsiz)":"Model (free)",
+  "Model listesi alınamadı; Ayarlar'dan model adını yazabilirsin.":"Could not load the model list; you can type the model name in Settings.",
+  "model-adı":"model-name","Önce giriş yap":"Sign in first","Bot bulunamadı":"Bot not found","Bu bot senin değil":"This bot isn't yours","Geçersiz istek":"Invalid request",
+  "Bu içerik yayınlanamaz.":"This content can't be published.","Günlük yayın sınırına ulaştın.":"You've reached today's publishing limit.","Bu bot şu an kapalı":"This bot is closed right now",
+  "Yönetici değil":"Not an admin","Geçersiz bot":"Invalid bot","Geçersiz işlem":"Invalid action","Kullanıcıyı engellemek için":"To block",
+  "Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.":"You are Nakata, a helpful assistant. Answer in the user's language, clearly and concisely.",
+};
+// Texts with numbers or names in them.
+const EN_RE = [
+  [/^(\d+) sn$/, "$1 s"], [/^(\d+) kredi$/, "$1 credits"], [/^Üret · (\d+) kredi$/, "Generate · $1 credits"],
+  [/^(\d+) sohbet$/, "$1 chats"], [/^(\d+) ♥$/, "$1 ♥"], [/^İsim 2–(\d+) karakter olmalı$/, "Name must be 2–$1 characters"],
+  [/^Açıklama en fazla (\d+) karakter$/, "Description is at most $1 characters"], [/^Talimat 10–(\d+) karakter olmalı$/, "Instructions must be 10–$1 characters"],
+  [/^Bağlantı: (.*)$/, "Connection: $1"], [/^Hata: (.*)$/, "Error: $1"],
+  [/^(Yayında|İncelemede|Bildirildi|Reddedildi) · (\d+) sohbet · (\d+) ♥(.*)$/, (m, s, c, l, r) => `${EN[s] || s} · ${c} chats · ${l} ♥${r}`],
+  [/^Kullanıcıya "(.*)" diye hitap et\.$/, 'Address the user as "$1".'], [/^Kullanıcı hakkında: (.*)$/, "About the user: $1"], [/^Cevap biçimi: (.*)$/, "Answer style: $1"],
+  [/^Örnek: (.*)$/, "Example: $1"], [/^Almak için: (.*)$/, "Get one: $1"],
+];
+let LANG = LS.get("nakata_lang", "en") === "tr" ? "tr" : "en";
+function tx(text){
+  if (LANG !== "en" || typeof text !== "string") return text;
+  const k = text.trim(); if (!k) return text;
+  if (Object.prototype.hasOwnProperty.call(EN, k)) return text.replace(k, EN[k]);
+  for (const [re, to] of EN_RE) if (re.test(k)) return text.replace(k, k.replace(re, to));
+  return text;
+}
+const I18N_ATTRS = ["placeholder", "aria-label", "title"];
+function i18nNode(n){
+  if (n.nodeType === 3) { n.__o ??= n.nodeValue; const v = LANG === "en" ? tx(n.__o) : n.__o; if (n.nodeValue !== v) n.nodeValue = v; return; }
+  if (n.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(n.tagName)) return;
+  for (const a of I18N_ATTRS) if (n.hasAttribute(a)) { n.__oa ??= {}; n.__oa[a] ??= n.getAttribute(a); const v = LANG === "en" ? tx(n.__oa[a]) : n.__oa[a]; if (n.getAttribute(a) !== v) n.setAttribute(a, v); }
+  for (const c of n.childNodes) i18nNode(c);
+}
+let i18nObs;
+function i18nApply(root = document.body){ i18nNode(root); i18nObs?.takeRecords(); document.documentElement.lang = LANG; }
+// Our own writes are dropped (takeRecords) so only real page changes are handled
+// and nothing loops; unchanged values are never rewritten.
+i18nObs = new MutationObserver((muts) => {
+  for (const m of muts) {
+    if (m.type === "characterData") { m.target.__o = m.target.nodeValue; if (LANG === "en") { const v = tx(m.target.__o); if (v !== m.target.nodeValue) m.target.nodeValue = v; } }
+    else if (m.type === "attributes") { const n = m.target, a = m.attributeName; n.__oa ??= {}; n.__oa[a] = n.getAttribute(a); if (LANG === "en") { const v = tx(n.__oa[a]); if (v !== n.getAttribute(a)) n.setAttribute(a, v); } }
+    else for (const n of m.addedNodes) i18nNode(n);
+  }
+  i18nObs.takeRecords();
+});
+i18nObs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+// Native dialogs carry text too.
+{ const c = window.confirm.bind(window), p = window.prompt.bind(window); window.confirm = (m) => c(tx(m)); window.prompt = (m, d) => p(tx(m), d); }
+
+const THEMES = { dark: "#151515", light: "#faf9f5", grey: "#262624" };
+function applyTheme(t){
+  const theme = THEMES[t] ? t : "dark";
+  document.documentElement.dataset.theme = theme; document.body.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEMES[theme]);
+  LS.set("nakata_theme", theme);
+}
+applyTheme(LS.get("nakata_theme", "dark"));
 
 /* ---- markdown (escaped first; only http(s) links) ---- */
 const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
@@ -630,23 +872,30 @@ $("#st-save").addEventListener("click", () => {
   $("#f-settings").classList.remove("on");
 });
 
+$("#st-lang").addEventListener("change", (e) => { LANG = e.target.value === "tr" ? "tr" : "en"; LS.set("nakata_lang", LANG); i18nApply(); haptic(); });
+$("#st-theme").addEventListener("change", (e) => { applyTheme(e.target.value); haptic(); });
+
 /* ---- bots (local personas) ---- */
 // Ready-made bots (Atakan: sample bots in onboarding and the picker).
 const BOT_TEMPLATES = [
-  { name: "Çevirmen", desc: "Türkçe ↔ İngilizce, doğal çeviri", persona: "Sen bir çevirmensin. Türkçe gelen metni İngilizceye, başka dildeki metni Türkçeye çevir. Anlamı ve tonu koru, doğal yaz, açıklama ekleme; yalnız çeviriyi ver." },
-  { name: "Yazı editörü", desc: "Metni düzeltir, akıcılaştırır", persona: "Sen titiz bir editörsün. Verilen metindeki yazım, dil bilgisi ve anlatım hatalarını düzelt, akıcılaştır, yazarın sesini koru. Önce düzeltilmiş metni ver, sonra en önemli değişiklikleri kısa maddelerle yaz." },
-  { name: "Kod yardımcısı", desc: "Kod yazar, hata ayıklar, açıklar", persona: "Sen deneyimli bir yazılımcısın. Kısa ve doğru cevap ver; kodu her zaman kod bloğu içinde, çalışır halde yaz. Hata ayıklarken önce olası sebebi söyle, sonra düzeltmeyi göster." },
-  { name: "Öğretmen", desc: "Konuları adım adım anlatır", persona: "Sen sabırlı bir öğretmensin. Konuyu sade bir dille, adım adım ve örnekle anlat. Sonunda anlaşıldığını kontrol etmek için kısa bir soru sor." },
-  { name: "Kısa ve net", desc: "En fazla birkaç cümle", persona: "Her zaman çok kısa cevap ver: en fazla üç cümle ya da üç madde. Gereksiz giriş ve özet yazma." },
+  { name: "Video Editor", desc: "Cuts, pacing, captions, shot lists", persona: "You are a senior video editor. Help the user turn raw footage or an idea into a tight video: propose the structure, a shot list, cut points and pacing, caption and sound choices, and the exact edit steps in their tool (CapCut, Premiere, DaVinci, Final Cut). Ask what the platform and length are if unknown. Be concrete: timestamps, durations, transitions. Answer in the user's language." },
+  { name: "Coding Agent", desc: "Writes, reviews and debugs code", persona: "You are an experienced software engineer. Give short, correct answers. Always put code in working code blocks. When debugging, name the likely cause first, then show the fix. Point out security and edge-case risks you notice. Answer in the user's language." },
+  { name: "Startup Co-founder", desc: "Pressure-tests ideas, plans and pitches", persona: "You are a pragmatic startup co-founder. Challenge the user's idea like an investor would: who pays, why now, how it grows, what could kill it. Then help turn it into a one-page plan with a first week of concrete actions. Be direct, no hype. Answer in the user's language." },
+  { name: "Image Prompt Artist", desc: "Turns ideas into image prompts", persona: "You write prompts for AI image models. From the user's idea, produce three prompt variants (clean, cinematic, stylized) that state subject, setting, lighting, lens or medium, mood and aspect ratio. Keep each prompt under 80 words. Ask one question if the idea is too vague. Answer in the user's language." },
+  { name: "Product Designer", desc: "UX flows, screens and critique", persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
+  { name: "Research Analyst", desc: "Structured research and summaries", persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
+  { name: "Social Media Manager", desc: "Posts, hooks and content calendars", persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
+  { name: "Writing Editor", desc: "Sharpens text and keeps your voice", persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
 ];
 function useTemplate(t){
   const bots = allBots(); bots[t.name] = { persona: t.persona, description: t.desc }; saveBots(bots);
-  activeBot = t.name; setModelLabel(); haptic();
+  galleryBot = null; activeBot = t.name; setModelLabel(); haptic();
 }
 function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
-function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; mascot?.setColor(orbColor()); paintModelChip(); }
+let galleryBot = null;   // a published bot opened from Keşfet: { id, name, persona, mascot }
+function setModelLabel(){ $("#modelName").textContent = galleryBot ? galleryBot.name : (activeBot || "Nakata"); mascot?.setColor(orbColor()); paintModelChip(); }
 function openBotSheet(){
   $("#drawer").classList.remove("on");
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
@@ -661,7 +910,7 @@ function openBotSheet(){
     const face = orb({ size: 34, color: isBot || tint ? botColor(name) : NAKATA_ORB_COLOR, expression: on ? "happy" : "neutral" });
     face.el.classList.add("small-orb");
     main.append(face.el, meta, chk.firstChild);
-    main.addEventListener("click", () => { activeBot = isBot ? name : null; setModelLabel(); closeSheet(); haptic(); });
+    main.addEventListener("click", () => { galleryBot = null; activeBot = isBot ? name : null; setModelLabel(); closeSheet(); haptic(); });
     row.append(main);
     if (isBot) {
       const edit = el("button", "edit"); edit.setAttribute("aria-label", "Düzenle"); edit.innerHTML = ICON_EDIT;
@@ -687,13 +936,24 @@ $("#modelBtn").addEventListener("click", openBotSheet);
 $("#botsRow").addEventListener("click", openBotSheet);
 
 let editingBot = null;
+function setPubStatus(status){
+  const dot = $("#bf-status");
+  $("#bf-unpub").hidden = !status;
+  if (!status) { dot.hidden = true; $("#bf-pub").textContent = "Galeride yayınla"; return; }
+  dot.hidden = false; dot.className = "statusdot " + status; dot.textContent = statusLabel(status);
+  $("#bf-pub").textContent = status === "rejected" ? "Tekrar gönder" : "Güncelle ve yayınla";
+}
 function openBotForm(name){
   const bot = name ? allBots()[name] : null;
   editingBot = name || null;
+  fillCatSelect();
   $("#botFormTitle").textContent = bot ? "Botu düzenle" : "Yeni bot";
   $("#bf-name").value = name || ""; $("#bf-name").readOnly = !!bot;
+  $("#bf-tagline").value = bot?.tagline || bot?.description || "";
+  $("#bf-category").value = bot?.category || "Diğer";
   $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
   $("#bf-del").hidden = !bot;
+  showErr("#bf-puberr", ""); setPubStatus(bot?.publishedStatus || "");
   closeSheet(); showPage("#f-botform");
   if (!bot) $("#bf-name").focus();
 }
@@ -704,9 +964,54 @@ $("#botSave").addEventListener("click", () => {
   if (!name) return $("#bf-name").focus();
   if (!persona.trim()) return $("#bf-persona").focus();
   const bots = allBots();
-  bots[name] = { persona, model: $("#bf-model").value.trim() || undefined };
+  const key = editingBot || name;
+  bots[key] = { ...(bots[key] || {}), persona, model: $("#bf-model").value.trim() || undefined,
+    tagline: $("#bf-tagline").value.trim() || undefined, description: $("#bf-tagline").value.trim() || undefined, category: $("#bf-category").value };
   saveBots(bots);
   $("#f-botform").classList.remove("on"); openBotSheet();
+});
+$("#bf-pub").addEventListener("click", async () => {
+  const name = $("#bf-name").value.trim(), persona = $("#bf-persona").value.trim();
+  const tagline = $("#bf-tagline").value.trim(), category = $("#bf-category").value, model = $("#bf-model").value.trim();
+  showErr("#bf-puberr", "");
+  if (name.length < 2) return $("#bf-name").focus();
+  if (persona.length < 10) { showErr("#bf-puberr", "Talimat en az 10 karakter olmalı."); return $("#bf-persona").focus(); }
+  if (!token()) { showErr("#bf-puberr", "Yayınlamak için önce giriş yap."); return openAccount(); }
+  const key = editingBot || name;
+  const bots = allBots(); const local = bots[key] || {};
+  const pubId = local.publishedId;
+  $("#bf-pub").disabled = true;
+  const body = { name, tagline, persona, category, model };
+  const r = pubId ? await api(`/bots/${pubId}`, { method: "POST", body }) : await api("/bots", { method: "POST", body });
+  $("#bf-pub").disabled = false;
+  if (!r.ok) { hapticError(); return showErr("#bf-puberr", r.j?.error?.message || "Yayınlanamadı"); }
+  const id = r.j.id || pubId, status = r.j.status || "pending";
+  bots[key] = { ...local, persona, model: model || undefined, tagline: tagline || undefined, description: tagline || undefined, category, publishedId: id, publishedStatus: status };
+  saveBots(bots);
+  setPubStatus(status); haptic("MEDIUM");
+  addNote(status === "pending" ? "Botun incelemeye gönderildi. Onaylanınca galeride görünür." : "Botun galeride güncellendi.");
+  $("#f-botform").classList.remove("on");
+});
+$("#bf-unpub").addEventListener("click", async () => {
+  const key = editingBot || $("#bf-name").value.trim();
+  const bots = allBots(); const local = bots[key];
+  if (!local?.publishedId) return;
+  if (!confirm("Bot galeriden kaldırılsın mı? Sayaçları sıfırlanır.")) return;
+  const r = await api(`/bots/${local.publishedId}`, { method: "DELETE" });
+  if (!r.ok && r.status !== 404) { hapticError(); return showErr("#bf-puberr", r.j?.error?.message || "Kaldırılamadı"); }
+  delete local.publishedId; delete local.publishedStatus;
+  bots[key] = local; saveBots(bots);
+  setPubStatus(""); haptic();
+  addNote("Bot galeriden kaldırıldı; cihazındaki kopyası duruyor.");
+});
+$("#bd-block").addEventListener("click", async () => {
+  if (!detailBot) return;
+  if (!token()) return openAccount();
+  if (!confirm("Bu yapımcının botları sana artık gösterilmesin mi?")) return;
+  const r = await api("/bots/block", { method: "POST", body: { botId: detailBot.id } });
+  if (!r.ok) { hapticError(); return addNote(r.j?.error?.message || "Engellenemedi", true); }
+  closeGalleryPages(); haptic();
+  addNote("Engellendi. Bu yapımcının botları artık galeride görünmeyecek.");
 });
 $("#bf-del").addEventListener("click", () => {
   if (!editingBot) return;
@@ -861,7 +1166,7 @@ function renderConvo(){
 function openConvo(id){
   const s = allSessions()[id]; if (!s) return;
   if (controller) controller.abort();
-  curId = id; convo = s.msgs.slice(); activeBot = s.bot || null; setModelLabel();
+  curId = id; convo = s.msgs.slice(); activeBot = s.bot || null; galleryBot = s.gbot || null; setModelLabel();
   showHero(convo.length === 0); renderConvo();
 }
 
@@ -870,7 +1175,7 @@ function persist(){
   if (!curId) curId = "c" + Date.now() + Math.random().toString(36).slice(2, 6);
   const title = (convo.find((m) => m.role === "user")?.content || "Sohbet").split("\n")[0].slice(0, 60);
   const all = allSessions();
-  all[curId] = { id: curId, title, ts: Date.now(), bot: activeBot || null, msgs: convo };
+  all[curId] = { id: curId, title, ts: Date.now(), bot: activeBot || null, gbot: galleryBot || null, msgs: convo };
   saveSessions(all);
 }
 
@@ -890,33 +1195,40 @@ const FREE_ERRORS = {
 };
 async function send(text){
   const cfg = getCfg();
-  const free = cfg.provider === "nakata";
-  if (!free && !cfg.key) { openSettings(); return; }
+  // A gallery bot always runs on the free tier: the server injects the bot's
+  // persona and meters the cost, so no client key or system prompt is needed.
+  const gb = galleryBot;
+  const free = gb ? true : cfg.provider === "nakata";
+  if (!gb && !free && !cfg.key) { openSettings(); return; }
   haptic(); showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true); showPending();
   convo.push({ role: "user", content: text });
 
-  const bot = activeBot ? allBots()[activeBot] : null;
+  const bot = !gb && activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
   const messages = [];
-  const prof = profileText();
-  const system = [bot && bot.persona ? bot.persona : (prof ? "Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver." : ""), prof].filter(Boolean).join("\n\n");
-  if (system) messages.push({ role: "system", content: system });
+  if (!gb) {
+    const prof = profileText();
+    const system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    if (system) messages.push({ role: "system", content: system });
+  }
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
 
   controller = new AbortController();
   let acc = "", frame = 0;
   const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc); scrollDown(); } };
   try {
-    const res = await fetch(cfg.base.replace(/\/+$/,"") + (free ? "/chat" : "/chat/completions"), {
+    const base = cfg.base.replace(/\/+$/, "");
+    const endpoint = gb ? `${base}/bots/${gb.id}/chat` : base + (free ? "/chat" : "/chat/completions");
+    const res = await fetch(endpoint, {
       method: "POST", signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        ...(free ? { "X-Nakata-Device": deviceId() } : { "Authorization": "Bearer " + cfg.key }),
+        ...(free ? { "X-Nakata-Device": deviceId(), ...(token() ? { "Authorization": "Bearer " + token() } : {}) } : { "Authorization": "Bearer " + cfg.key }),
         // OpenRouter's attribution headers only: Gemini rejects the CORS
         // preflight (403) when they are present, which fails every request.
-        ...(/openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
+        ...(!gb && /openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
-      body: JSON.stringify({ model: free ? (LS.get("nakata_free_model", "") || undefined) : model, stream: true, messages }),
+      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || undefined) : model), stream: true, messages }),
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
@@ -1191,10 +1503,152 @@ $("#modelChip").addEventListener("click", openModelSheet);
 /* ---- personalization (like ChatGPT's "customize"): added to every chat ---- */
 function profileText(){
   const p = LS.get("nakata_profile", {}), parts = [];
-  if (p.name) parts.push(`Kullanıcıya "${p.name}" diye hitap et.`);
-  if (p.about) parts.push(`Kullanıcı hakkında: ${p.about}`);
-  if (p.style) parts.push(`Cevap biçimi: ${p.style}`);
+  if (p.name) parts.push(tx(`Kullanıcıya "${p.name}" diye hitap et.`));
+  if (p.about) parts.push(tx(`Kullanıcı hakkında: ${p.about}`));
+  if (p.style) parts.push(tx(`Cevap biçimi: ${p.style}`));
   return parts.join("\n");
+}
+
+/* ---- bot gallery (Keşfet): publish, discover, chat, like, earnings, review ---- */
+const RARITY_TR = { rare: "Nadir", epic: "Epik", legendary: "Efsane" };
+const DEFAULT_CATS = ["Yazı", "Kod", "Eğitim", "Çeviri", "Günlük", "Eğlence", "İş", "Sağlık", "Oyun", "Diğer"];
+let botCats = DEFAULT_CATS.slice();
+let detailBot = null;
+let discSort = "top", discCat = "", discQ = "", discTimer = 0;
+
+async function loadCats(){
+  try { const r = await api("/bots/categories"); if (Array.isArray(r.j?.categories) && r.j.categories.length) botCats = r.j.categories; } catch {}
+}
+function fillCatSelect(){
+  const sel = $("#bf-category"); if (!sel || sel.children.length) return;
+  for (const c of botCats) { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.append(o); }
+}
+
+// one card: a tinted mascot orb inside a rarity frame
+function botCard(c){
+  const card = el("div", "card " + (c.rarity || "common"));
+  if (RARITY_TR[c.rarity]) card.append(el("div", "crarity", RARITY_TR[c.rarity]));
+  const face = orb({ size: 58, color: c.mascot?.color || NAKATA_ORB_COLOR, expression: c.mascot?.face || "happy" });
+  face.el.classList.add("small-orb", "face");
+  card.append(face.el, el("div", "cname", c.name), el("div", "ccat", c.category || "Diğer"), el("div", "ctag", c.tagline || ""));
+  const st = el("div", "cstats");
+  st.append(Object.assign(el("span"), { innerHTML: `<b>${c.chats || 0}</b> sohbet` }), Object.assign(el("span"), { innerHTML: `<b>${c.likes || 0}</b> ♥` }));
+  card.append(st);
+  card.addEventListener("click", () => { haptic(); openBotDetail(c.id); });
+  return card;
+}
+
+function destroyOrbs(root){ for (const o of root.querySelectorAll(".bot-orb")) o._orb?.destroy(); }
+
+async function loadDiscover(){
+  const cards = $("#disc-cards");
+  const params = new URLSearchParams({ sort: discSort, limit: "40" });
+  if (discCat) params.set("category", discCat);
+  if (discQ) params.set("q", discQ);
+  let r; try { r = await api("/bots?" + params.toString()); } catch { r = { ok: false }; }
+  destroyOrbs(cards); cards.replaceChildren();
+  const items = r.j?.items || [];
+  if (!items.length) { cards.append(el("div", "note", discQ ? "Eşleşme yok" : "Henüz bot yok")); return; }
+  for (const c of items) cards.append(botCard(c));
+}
+function buildCatChips(){
+  const box = $("#disc-cats"); box.replaceChildren();
+  const mk = (label, val) => { const c = el("button", "chip" + (discCat === val ? " on" : ""), label); c.onclick = () => { discCat = val; for (const x of box.children) x.classList.toggle("on", x === c); loadDiscover(); haptic(); }; return c; };
+  box.append(mk("Tümü", ""));
+  for (const cat of botCats) box.append(mk(cat, cat));
+}
+function openDiscover(){ closeDrawer(); fillCatSelect(); buildCatChips(); showPage("#f-discover"); loadDiscover(); }
+$("#discoverRow").addEventListener("click", openDiscover);
+$("#disc-q").addEventListener("input", (e) => { discQ = e.target.value.trim(); clearTimeout(discTimer); discTimer = setTimeout(loadDiscover, 280); });
+for (const t of document.querySelectorAll(".disc-tab")) t.addEventListener("click", () => {
+  discSort = t.dataset.sort; for (const x of document.querySelectorAll(".disc-tab")) x.classList.toggle("on", x === t); loadDiscover(); haptic();
+});
+
+// bot detail
+async function openBotDetail(id){
+  let r; try { r = await api(`/bots/${id}`); } catch { r = { ok: false }; }
+  if (!r.ok || !r.j?.bot) { hapticError(); return; }
+  const b = r.j.bot; detailBot = b;
+  destroyOrbs($("#bd-orb")); $("#bd-orb").replaceChildren(orb({ size: 86, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }).el);
+  $("#bd-cat").textContent = b.category || "Diğer";
+  $("#bd-name").textContent = b.name;
+  $("#bd-tag").textContent = b.tagline || "";
+  $("#bd-chats").textContent = b.chats || 0;
+  $("#bd-likes").textContent = b.likes || 0;
+  $("#bd-rarity").textContent = RARITY_TR[b.rarity] || "";
+  $("#bd-by").textContent = b.ownerName ? `@${b.ownerName}` : "";
+  $("#bd-like").classList.toggle("on", !!r.j.liked);
+  showPage("#f-botdetail");
+}
+function closeGalleryPages(){ for (const id of ["#f-botdetail", "#f-discover", "#f-mybots"]) $(id).classList.remove("on"); }
+$("#bd-open").addEventListener("click", () => {
+  if (!detailBot) return;
+  galleryBot = { id: detailBot.id, name: detailBot.name, persona: detailBot.persona, mascot: detailBot.mascot };
+  activeBot = null;
+  closeGalleryPages(); closeDrawer();
+  if (controller) controller.abort();
+  convo = []; curId = null; $("#thread").replaceChildren();
+  if (detailBot.welcome) { convo.push({ role: "assistant", content: detailBot.welcome }); showHero(false); renderConvo(); }
+  else showHero(true);
+  setModelLabel(); haptic();
+});
+$("#bd-like").addEventListener("click", async () => {
+  if (!detailBot || !token()) { if (!token()) openAccount(); return; }
+  const r = await api(`/bots/${detailBot.id}/like`, { method: "POST", body: {} });
+  if (r.ok) { $("#bd-like").classList.toggle("on", r.j.liked); $("#bd-likes").textContent = r.j.likes; haptic(); }
+});
+$("#bd-report").addEventListener("click", async () => {
+  if (!detailBot || !token()) { if (!token()) openAccount(); return; }
+  const reason = prompt("Neden bildiriyorsun?") || "";
+  const r = await api(`/bots/${detailBot.id}/report`, { method: "POST", body: { reason } });
+  if (r.ok) { addNote("Bildirimin alındı, teşekkürler."); haptic(); }
+});
+$("#bd-share").addEventListener("click", async () => {
+  if (!detailBot) return;
+  const url = `https://nakata.app/app?bot=${detailBot.id}`;
+  try { if (NATIVE.Share) await NATIVE.Share.share({ title: detailBot.name, url }); else { await navigator.clipboard.writeText(url); addNote("Bağlantı kopyalandı."); } }
+  catch {}
+  haptic();
+});
+
+// my bots + earnings + (admin) review queue
+function statusLabel(s){ return s === "live" ? "Yayında" : s === "pending" ? "İncelemede" : s === "flagged" ? "Bildirildi" : s === "rejected" ? "Reddedildi" : s; }
+async function openMyBots(){
+  closeDrawer();
+  const list = $("#mb-list"); destroyOrbs(list); list.replaceChildren();
+  showPage("#f-mybots");
+  if (!token()) { $("#mb-empty").hidden = false; $("#mb-empty").textContent = "Botlarını görmek için giriş yap."; $("#mb-earn").textContent = "0 kredi"; $("#mb-adminwrap").hidden = true; return; }
+  let r; try { r = await api("/bots/mine"); } catch { r = { ok: false }; }
+  const bots = r.j?.bots || [];
+  $("#mb-earn").textContent = `${r.j?.earnedCredits || 0} kredi`;
+  $("#mb-empty").hidden = bots.length > 0; $("#mb-empty").textContent = "Henüz bot yayınlamadın.";
+  for (const b of bots) {
+    const row = el("div", "botopt on"); row.style.padding = "10px 6px";
+    const face = orb({ size: 36, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }); face.el.classList.add("small-orb");
+    const meta = el("div", "meta"); meta.append(el("div", "nm", b.name), el("div", "ds", `${statusLabel(b.status)} · ${b.chats} sohbet · ${b.likes} ♥${RARITY_TR[b.rarity] ? " · " + RARITY_TR[b.rarity] : ""}`));
+    row.append(face.el, meta); list.append(row);
+  }
+  await loadAdminQueue();
+}
+$("#disc-mine").addEventListener("click", openMyBots);
+
+async function loadAdminQueue(){
+  // probe: only an admin account gets 200 here
+  let r; try { r = await api("/bots/admin/queue"); } catch { r = { ok: false, status: 0 }; }
+  const wrap = $("#mb-adminwrap"), q = $("#mb-queue");
+  if (!r.ok) { wrap.hidden = true; return; }
+  wrap.hidden = false; destroyOrbs(q); q.replaceChildren();
+  const items = r.j?.items || [];
+  $("#mb-queue-empty").hidden = items.length > 0;
+  for (const b of items) {
+    const row = el("div", "botopt"); row.style.cssText = "flex-wrap:wrap;padding:10px 6px;gap:8px";
+    const face = orb({ size: 34, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }); face.el.classList.add("small-orb");
+    const meta = el("div", "meta"); meta.append(el("div", "nm", `${b.name} · @${b.ownerName || ""}`), el("div", "ds", `${b.tagline || ""}${b.reports ? " · ⚑" + b.reports : ""}`));
+    const acts = el("div"); acts.style.cssText = "display:flex;gap:6px;width:100%;margin-top:2px";
+    const mk = (label, action, cls) => { const x = el("button", "", label); x.style.cssText = `flex:1;padding:8px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid var(--line);${cls}`; x.onclick = async () => { const a = await api(`/bots/admin/${b.id}/${action}`, { method: "POST", body: {} }); if (a.ok) { loadAdminQueue(); haptic(); } }; return x; };
+    acts.append(mk("Onayla", "approve", "color:#6ee7b7;border-color:#10b98155"), mk("Reddet", "reject", "color:var(--muted)"), mk("Kaldır", "remove", "color:var(--err);border-color:#e5736b55"));
+    row.append(face.el, meta, acts); q.append(row);
+  }
 }
 
 /* ---- boot ---- */
@@ -1204,14 +1658,19 @@ function profileText(){
     NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
     NATIVE.Keyboard?.addListener("keyboardDidShow", scrollDown);
   } catch {}
+  $("#st-lang").value = LANG; $("#st-theme").value = LS.get("nakata_theme", "dark");
   setModelLabel();
   renderSessions();
   grow();
   paintAccount();
+  i18nApply();
   if (token()) refreshAccount();
   paintModelChip(); loadModels().then(paintModelChip);
+  loadCats();
   if (!LS.get("nakata_welcomed", false)) showWelcome();
   // No first-run settings: the free model works without a key.
+  // A shared bot link (…?bot=<id>) opens that bot's card.
+  try { const shared = new URLSearchParams(location.search).get("bot"); if (shared) openBotDetail(shared); } catch {}
 })();
 </script>
 </body>
