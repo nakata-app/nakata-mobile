@@ -650,7 +650,7 @@ const EN = {
   "Model cevap vermedi. Tekrar dene.":"The model did not answer. Try again.","Boş yanıt geldi. Modeli ve anahtarı kontrol et.":"Empty reply. Check the model and key.",
   "Bağlantı yok":"No connection","Giriş yapılamadı":"Could not sign in","Şifre yanlış":"Wrong password",
   "Hesabın kapatıldı; verilerin en geç 8 gün içinde silinecek. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz.":"Your account is closed; your data will be deleted within 8 days. If you change your mind, write to support@nakata.app within 7 days.",
-  "Referans yüklenemedi":"Could not upload reference","Üretim başlamadı":"Generation did not start","Üretim başarısız":"Generation failed","Kredin yetmiyor.":"Not enough credits.",
+  "Referans yüklenemedi":"Could not upload reference","Üretim başlamadı":"Generation did not start","Üretim başarısız":"Generation failed","Kredin yetmiyor.":"Not enough credits.","Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?":"You've used today's free messages. Go on with this bot at 1 credit per message?",
   "Sonuç gelmedi, biraz sonra galeriye bak.":"No result yet; check the gallery in a moment.","Model (ücretsiz)":"Model (free)",
   "Model listesi alınamadı; Ayarlar'dan model adını yazabilirsin.":"Could not load the model list; you can type the model name in Settings.",
   "model-adı":"model-name","Önce giriş yap":"Sign in first","Bot bulunamadı":"Bot not found","Bu bot senin değil":"This bot isn't yours","Geçersiz istek":"Invalid request",
@@ -920,6 +920,7 @@ function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
 let galleryBot = null;   // a published bot opened from Keşfet: { id, name, persona, mascot }
+let payBots = false;     // agreed this session to pay credits for gallery-bot messages past the free quota
 function setModelLabel(){ $("#modelName").textContent = galleryBot ? galleryBot.name : (activeBot || "Nakata"); mascot?.setColor(orbColor()); paintModelChip(); }
 function openBotSheet(){
   $("#drawer").classList.remove("on");
@@ -1235,6 +1236,7 @@ const FREE_ERRORS = {
   free_busy: "Ücretsiz sohbet şu an çok yoğun. Biraz sonra tekrar dene.",
   free_closed: "Ücretsiz sohbet şu an kapalı. Ayarlar'dan kendi anahtarınla devam edebilirsin.",
   upstream: "Model cevap vermedi. Tekrar dene.",
+  no_credits: "Kredin yetmiyor.",
 };
 async function send(text){
   const cfg = getCfg();
@@ -1257,7 +1259,7 @@ async function send(text){
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
 
   controller = new AbortController();
-  let acc = "", frame = 0;
+  let acc = "", frame = 0, retry = null;
   const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc); scrollDown(); } };
   try {
     const base = cfg.base.replace(/\/+$/, "");
@@ -1271,11 +1273,14 @@ async function send(text){
         // preflight (403) when they are present, which fails every request.
         ...(!gb && /openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
-      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || undefined) : model), stream: true, messages }),
+      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || undefined) : model), stream: true, messages, ...(gb && payBots ? { pay: "credits" } : {}) }),
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
       const code = j.error && j.error.code;
+      // Past the free quota a signed-in user may go on with a gallery bot for credits.
+      if (code === "free_limit" && gb && token() && !payBots
+          && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = text; return; }
       if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true); return; }
       throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
     }
@@ -1307,6 +1312,9 @@ async function send(text){
     persist();
     controller = null; setBusy(false);
     if (acc) markLastReply();
+    if (acc && gb && payBots) refreshAccount();
+    // agreed to pay: send the same message again (its first bubble goes, the retry adds it back)
+    if (retry) { const rows = $("#thread").querySelectorAll(".row.user"); rows[rows.length - 1]?.remove(); send(retry); }
   }
 }
 

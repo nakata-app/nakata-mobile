@@ -23,6 +23,7 @@ REPLY = [
 
 class H(SimpleHTTPRequestHandler):
     limit = False
+    paylimit = False  # free quota used up: only a request that agreed to pay gets a reply
     last = path = None
     headers_seen = {}
 
@@ -38,7 +39,7 @@ class H(SimpleHTTPRequestHandler):
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         H.last, H.path, H.headers_seen = body, self.path, dict(self.headers)
-        if H.limit:
+        if H.limit or (H.paylimit and body.get("pay") != "credits"):
             out = json.dumps({"error": {"code": "free_limit", "message": "used up"}}).encode()
             self.send_response(429); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(out); return
         self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
@@ -96,7 +97,21 @@ with sync_playwright() as p:
     pg.fill("#prompt", "bir daha"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
     pg.wait_for_selector(".note.err", timeout=8000)
     check("used-up free day explained in Turkish", pg.inner_text(".note.err").startswith("Bugünkü ücretsiz mesajların bitti"))
-    H.limit = False; ctx.close()
+    H.limit = False
+
+    # a gallery bot past the free quota: a signed-in user is asked, and on yes the
+    # same message goes again with pay=credits (and later ones too, without asking)
+    H.paylimit = True; asked = []
+    pg.evaluate("localStorage.setItem('nakata_token', JSON.stringify('tok')); galleryBot = { id: 'b_0123456789abcdef', name: 'Scout' }")
+    pg.once("dialog", lambda d: (asked.append(d.message), d.accept()))
+    pg.fill("#prompt", "devam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("() => [...document.querySelectorAll('.row.user .bubble')].filter(b => b.textContent === 'devam').length === 1 && document.querySelectorAll('.md').length >= 2 && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
+    check("past the quota a bot chat asks before charging", len(asked) == 1 and "1 krediyle" in asked[0], str(asked))
+    check("on yes the message goes again, paid, shown once", H.path == "/api/mobile/bots/b_0123456789abcdef/chat" and H.last.get("pay") == "credits" and H.last["messages"][-1]["content"] == "devam", f"{H.path} {H.last.get('pay')}")
+    pg.fill("#prompt", "sonra"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("() => document.querySelectorAll('.md').length >= 3 && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
+    check("later messages pay without asking again", len(asked) == 1 and H.last.get("pay") == "credits")
+    H.paylimit = False; ctx.close()
 
     # BYOK setup with sessions and a bot
     ctx = b.new_context(**dev)
