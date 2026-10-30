@@ -35,6 +35,10 @@
   .preview { color: var(--dim); font: 12px ui-monospace, Menlo, monospace; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
   .tag { font: 10px ui-monospace, Menlo, monospace; color: var(--bg); background: var(--accent); border-radius: 4px; padding: 1px 4px; flex: none; }
   .tag.gone { background: var(--line); color: var(--dim); }
+  .quick { flex: none; display: flex; gap: 6px; margin-top: 2px; }
+  .quick button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; min-width: 40px; height: 34px; padding: 0 8px; font: 14px ui-monospace, Menlo, monospace; }
+  .quick button:active { border-color: var(--accent); color: var(--accent); }
+  .quick button.hot { border-color: var(--warn); color: var(--warn); }
   .sess { padding: 8px 16px 4px; color: var(--dim); font: 11px ui-monospace, Menlo, monospace; text-transform: uppercase; letter-spacing: .06em; background: var(--panel); }
   .filters { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
   .filters input { flex: 1; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 15px; }
@@ -130,7 +134,7 @@ function passes(w) {
 function row(w, gone) {
   const el = document.createElement("div");
   el.className = "win";
-  el.innerHTML = '<i class="dot"></i><div class="body"><div class="row1"><b></b><span class="age"></span><span class="tag" hidden></span></div><div class="meta"></div><div class="preview"></div></div>';
+  el.innerHTML = '<i class="dot"></i><div class="body"><div class="row1"><b></b><span class="age"></span><span class="tag" hidden></span></div><div class="meta"></div><div class="preview"></div></div><div class="quick" hidden></div>';
   const dot = el.querySelector(".dot"), b = el.querySelector("b"), age = el.querySelector(".age");
   const tag = el.querySelector(".tag"), meta = el.querySelector(".meta"), prev = el.querySelector(".preview");
   b.textContent = w.name;
@@ -152,6 +156,27 @@ function row(w, gone) {
   if (isNew(w)) { tag.hidden = false; tag.textContent = "yeni"; }
   prev.textContent = w.preview || "";
   if (w.active) b.style.color = "var(--accent)";
+  const quick = el.querySelector(".quick");
+  for (const q of [
+    { label: "⏎", key: "Enter", hot: s >= IDLE_SEC },
+    { label: "y⏎", text: "y", enter: true },
+    { label: "Esc", key: "Escape" },
+  ]) {
+    const btn = document.createElement("button");
+    btn.textContent = q.label;
+    if (q.hot) btn.classList.add("hot");
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        if (q.key) await api("/api/key", { t: w.target, key: q.key });
+        else await api("/api/send", { t: w.target, text: q.text, enter: q.enter });
+        btn.style.color = "var(--accent)";
+        setTimeout(() => { btn.style.color = ""; }, 400);
+      } catch { fail(); }
+    };
+    quick.appendChild(btn);
+  }
+  quick.hidden = false;
   el.onclick = () => showPane(w);
   return el;
 }
