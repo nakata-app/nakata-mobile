@@ -458,7 +458,6 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
       <input id="acc-pass" class="field" type="password" autocomplete="current-password">
       <div class="err-text" id="acc-err" hidden></div>
       <button class="primary" id="acc-login">Giriş yap</button>
-      <div class="hint">Hesabın yok mu? <a href="https://nakata.app/signup">nakata.app'te oluştur</a></div>
     </div>
     <div class="form" id="acc-in" hidden>
       <div class="acc-card"><span class="avatar-n" id="acc-av">N</span><div><b id="acc-name"></b><span class="muted" id="acc-credits"></span></div></div>
@@ -595,7 +594,7 @@ const EN = {
   "Galeriden kaldır":"Remove from Discover","Popüler":"Popular","Yeni":"New","Bot":"Bot","beğeni":"likes","Beğen":"Like","Bildir":"Report",
   "Engelle":"Block","Sohbete başla":"Start chat","Botlarım":"My bots","Kazanılan pay":"Earned share","0 kredi":"0 credits",
   "Henüz bot yayınlamadın.":"You haven't published a bot yet.","İnceleme kuyruğu":"Review queue","Kuyruk boş.":"The queue is empty.",
-  "E-posta ya da kullanıcı adı":"Email or username","Şifre":"Password","Hesabın yok mu?":"No account?","nakata.app'te oluştur":"Create one at nakata.app",
+  "E-posta ya da kullanıcı adı":"Email or username","Şifre":"Password",
   "Çıkış yap":"Sign out","Hesabı sil":"Delete account","Onay için şifren":"Your password to confirm","Hesabımı kalıcı olarak sil":"Delete my account permanently",
   "Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 8 gün içinde silinir. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz, hesabını geri açarız.":"Your account is closed immediately and all your data, including remaining credits, is deleted within 8 days. If you change your mind, write to support@nakata.app within 7 days and we will reopen it.",
   "Görsel üretmek için nakata.app hesabınla giriş yap; kredilerin buradan harcanır.":"Sign in with your nakata.app account to create images; your credits are spent here.",
@@ -1651,7 +1650,7 @@ $("#bd-report").addEventListener("click", async () => {
 });
 $("#bd-share").addEventListener("click", async () => {
   if (!detailBot) return;
-  const url = `https://nakata.app/app?bot=${detailBot.id}`;
+  const url = `https://nakata.app/b/${detailBot.id}`;
   try { if (NATIVE.Share) await NATIVE.Share.share({ title: detailBot.name, url }); else { await navigator.clipboard.writeText(url); addNote("Bağlantı kopyalandı."); } }
   catch {}
   haptic();
