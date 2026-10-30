@@ -32,7 +32,7 @@ class H(SimpleHTTPRequestHandler):
         if not self.authed():
             return self.reply(401, {"error": "Unauthorized"})
         if p.startswith("/api/mobile/credits"):
-            return self.reply(200, {"credits": 120, "image_credit_costs": {"gpt-image-2-5-flare-text-to-image": {"2K": 13}, "nano-banana-2-1": {"2K": 14}}})
+            return self.reply(200, {"credits": 120, "image_credit_costs": {"gpt-image-2-5-flare-text-to-image": {"2K": 13, "4K": 21}, "nano-banana-2-1": {"2K": 14, "4K": 20}}})
         if p.startswith("/api/mobile/gallery"):
             return self.reply(200, {"items": [{"url": "/mark.svg"}, {"url": "/clip.mp4"}], "total": 2})
         self.reply(404, {"error": "nf"})
@@ -107,12 +107,12 @@ with sync_playwright() as p:
     pg.wait_for_timeout(500)
     back = pg.evaluate("(() => { const i = document.getElementById('f-image'), a = document.getElementById('f-account'); return i.classList.contains('on') && !a.classList.contains('on') && document.elementFromPoint(195, 300).closest('#f-image') !== null; })()")
     check("signing in from Images returns to Images, on top", back)
-    check("studio: form, credits, text-to-image price", pg.is_visible("#img-form") and pg.inner_text("#img-credits") == "120 kredi" and pg.inner_text("#img-go") == "Üret · 13 kredi", pg.inner_text("#img-go"))
+    check("studio: form, credits, text-to-image price", pg.is_visible("#img-form") and pg.inner_text("#img-credits") == "120 kredi" and pg.inner_text("#img-go") == "Üret · 21 kredi", pg.inner_text("#img-go"))
     gal = pg.locator("#img-results .gen img").count()
     check("gallery loads images, skips videos", gal == 1, f"tiles={gal}")
     pg.set_input_files("#img-file", files=[{"name": "r.png", "mimeType": "image/png", "buffer": open(pub + "/../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", "rb").read()}])
     pg.wait_for_timeout(300)
-    check("a reference switches to the reference price", pg.inner_text("#img-go") == "Üret · 14 kredi" and pg.locator("#img-refs .ref img").count() == 1, pg.inner_text("#img-go"))
+    check("a reference switches to the reference price", pg.inner_text("#img-go") == "Üret · 20 kredi" and pg.locator("#img-refs .ref img").count() == 1, pg.inner_text("#img-go"))
     pg.click("#img-aspect .chip >> text=9:16")
     pg.fill("#img-prompt", "deniz kenarında kedi"); pg.click("#img-go")
     pg.wait_for_function("() => document.querySelectorAll('#img-results .gen img').length === 2", timeout=15000)
