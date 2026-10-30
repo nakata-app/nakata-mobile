@@ -320,12 +320,24 @@ async function listWindows() {
   // karakterlerini '_' yapıyor. '@@@' pencere adı/komutta geçmez, tmux ona dokunmaz.
   const out = await tmux(
     "list-windows", "-a", "-F",
-    "#{session_name}:#{window_index}@@@#{window_name}@@@#{pane_current_command}@@@#{window_activity}",
+    "#{session_name}:#{window_index}@@@#{window_name}@@@#{pane_current_command}@@@#{window_activity}@@@#{window_active}",
   );
   return out.trim().split("\n").filter(Boolean).map((line) => {
-    const [target, name, cmd, activity] = line.split("@@@");
-    return { target, name, cmd, activity: Number(activity) };
+    const [target, name, cmd, activity, active] = line.split("@@@");
+    return { target, name, cmd, activity: Number(activity), active: active === "1" };
   });
+}
+
+// Listede "duruyor mu, soruyor mu" görünsün diye her pencerenin son dolu satırı.
+// checkTarget bunu kullanmaz: her tuş gönderiminde onlarca capture-pane açılmasın.
+async function listWindowsWithPreview() {
+  const wins = await listWindows();
+  await Promise.all(wins.slice(0, 40).map(async (w) => {
+    const text = await tmux("capture-pane", "-p", "-J", "-t", w.target).catch(() => "");
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    w.preview = (lines[lines.length - 1] || "").slice(0, 120);
+  }));
+  return wins;
 }
 
 // Hedef hem biçim olarak geçerli hem de şu an var olan bir pencere olmalı.
@@ -347,7 +359,7 @@ async function handle(req) {
   if (req.method === "GET" && url.pathname === "/manifest.json") return new Response(Bun.file(`${DIR}/manifest.json`));
   if (req.method === "GET" && /^\/icon-(192|512)\.png$/.test(url.pathname)) return new Response(Bun.file(`${DIR}${url.pathname}`));
 
-  if (req.method === "GET" && url.pathname === "/api/windows") return json(await listWindows());
+  if (req.method === "GET" && url.pathname === "/api/windows") return json(await listWindowsWithPreview());
 
   if (req.method === "GET" && url.pathname === "/api/pane") {
     const t = url.searchParams.get("t");

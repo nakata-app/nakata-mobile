@@ -10,20 +10,37 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <title>Nakata Konsol</title>
 <style>
-  :root { --bg: #0f0f0e; --panel: #1a1a18; --line: #2a2a27; --text: #e8e8e3; --dim: #8a8a82; --accent: #a8d060; --err: #e06c5a; }
+  :root { --bg: #0f0f0e; --panel: #1a1a18; --line: #2a2a27; --text: #e8e8e3; --dim: #8a8a82; --accent: #a8d060; --warn: #e0b45a; --err: #e06c5a; }
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 -apple-system, system-ui, sans-serif; }
   body { display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
   header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); min-height: 52px; }
   header h1 { font-size: 17px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  header button { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 4px 0; }
+  header button { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 4px 6px; }
+  header button:disabled { color: var(--line); }
   #status { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
   #status.off { background: var(--err); }
   main { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
-  .win { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .win { display: flex; align-items: flex-start; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--line); }
   .win:active { background: var(--panel); }
-  .win b { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .win span { color: var(--dim); font: 13px ui-monospace, Menlo, monospace; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--dim); }
+  .dot.live { background: var(--accent); }
+  .dot.idle { background: var(--warn); }
+  .body { flex: 1; min-width: 0; }
+  .row1 { display: flex; align-items: baseline; gap: 8px; }
+  .row1 b { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .age { color: var(--dim); font: 12px ui-monospace, Menlo, monospace; flex: none; }
+  .age.idle { color: var(--warn); }
+  .meta { color: var(--dim); font: 12px ui-monospace, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview { color: var(--dim); font: 12px ui-monospace, Menlo, monospace; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+  .tag { font: 10px ui-monospace, Menlo, monospace; color: var(--bg); background: var(--accent); border-radius: 4px; padding: 1px 4px; flex: none; }
+  .tag.gone { background: var(--line); color: var(--dim); }
+  .sess { padding: 8px 16px 4px; color: var(--dim); font: 11px ui-monospace, Menlo, monospace; text-transform: uppercase; letter-spacing: .06em; background: var(--panel); }
+  .filters { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .filters input { flex: 1; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 15px; }
+  .filters input:focus { outline: none; border-color: var(--accent); }
+  .chip { flex: none; background: var(--panel); color: var(--dim); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 13px ui-monospace, Menlo, monospace; }
+  .chip.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
   pre { padding: 10px 12px; font: 11px/1.35 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
   #keys { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; border-top: 1px solid var(--line); }
   #keys button { flex: none; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: 13px ui-monospace, Menlo, monospace; }
@@ -39,9 +56,17 @@
 <body>
 <header>
   <button id="back" hidden>‹</button>
+  <button id="prev" hidden>‹‹</button>
   <h1 id="title">Konsol</h1>
+  <button id="next" hidden>››</button>
   <i id="status"></i>
 </header>
+<div id="filters" class="filters">
+  <input id="q" placeholder="ara" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <button class="chip on" data-f="all">tümü</button>
+  <button class="chip" data-f="idle">duran</button>
+  <button class="chip" data-f="new">yeni</button>
+</div>
 <main id="list"></main>
 <main id="paneWrap" hidden><pre id="pane"></pre></main>
 <div id="keys" hidden>
@@ -60,7 +85,18 @@
 </form>
 <script>
 const $ = (id) => document.getElementById(id);
-let target = null, timer = null;
+const IDLE_SEC = 300;       // 5 dk sessiz pencere "duruyor" sayılır
+const NEW_SEC = 120;        // son 2 dk içinde görülen pencere "yeni"
+const CLOSED_SEC = 90;      // kapanan pencere bu süre listede kalır
+const POLL_MS = 2500;
+
+let target = null, paneTimer = null, listTimer = null;
+let wins = [];                        // son alınan pencere listesi
+let seenAt = new Map();               // target -> ilk görülme zamanı (ms)
+let goneAt = new Map();               // target -> { at, name }
+let known = new Set();                // önceki turda var olan target'lar
+let primed = false;                   // ilk yüklemede her pencere "yeni" görünmesin
+let filter = "all", query = "";
 
 async function api(path, body) {
   const res = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
@@ -71,33 +107,149 @@ async function api(path, body) {
 }
 const fail = () => $("status").classList.add("off");
 
-async function showList() {
-  target = null; clearInterval(timer);
-  $("back").hidden = $("paneWrap").hidden = $("keys").hidden = $("send").hidden = true;
-  $("list").hidden = false; $("title").textContent = "Konsol";
+const ageSec = (w) => Math.max(0, Math.round(Date.now() / 1000 - (w.activity || 0)));
+function ageText(s) {
+  if (s < 60) return s + "sn";
+  if (s < 3600) return Math.round(s / 60) + "dk";
+  return Math.round(s / 3600) + "sa";
+}
+const isIdle = (w) => ageSec(w) >= IDLE_SEC;
+const isNew = (w) => Date.now() - (seenAt.get(w.target) || 0) < NEW_SEC * 1000;
+const sessName = (t) => String(t).split(":")[0];
+
+function passes(w) {
+  if (filter === "idle" && !isIdle(w)) return false;
+  if (filter === "new" && !isNew(w)) return false;
+  if (query) {
+    const hay = (w.name + " " + w.target + " " + (w.cmd || "") + " " + (w.preview || "")).toLowerCase();
+    if (!hay.includes(query)) return false;
+  }
+  return true;
+}
+
+function row(w, gone) {
+  const el = document.createElement("div");
+  el.className = "win";
+  el.innerHTML = '<i class="dot"></i><div class="body"><div class="row1"><b></b><span class="age"></span><span class="tag" hidden></span></div><div class="meta"></div><div class="preview"></div></div>';
+  const dot = el.querySelector(".dot"), b = el.querySelector("b"), age = el.querySelector(".age");
+  const tag = el.querySelector(".tag"), meta = el.querySelector(".meta"), prev = el.querySelector(".preview");
+  b.textContent = w.name;
+  meta.textContent = gone ? w.target : w.target + " · " + (w.cmd || "?");
+
+  if (gone) {
+    dot.classList.add("gone"); dot.style.background = "var(--line)";
+    tag.hidden = false; tag.textContent = "kapandı"; tag.classList.add("gone");
+    age.textContent = ageText(Math.round((Date.now() - gone) / 1000)) + " önce";
+    prev.textContent = "pencere kapatıldı";
+    el.style.opacity = ".55";
+    return el;
+  }
+
+  const s = ageSec(w);
+  if (s < 15) dot.classList.add("live");
+  else if (s >= IDLE_SEC) { dot.classList.add("idle"); age.classList.add("idle"); }
+  age.textContent = ageText(s);
+  if (isNew(w)) { tag.hidden = false; tag.textContent = "yeni"; }
+  prev.textContent = w.preview || "";
+  if (w.active) b.style.color = "var(--accent)";
+  el.onclick = () => showPane(w);
+  return el;
+}
+
+async function loadList() {
   try {
-    const wins = await api("/api/windows");
-    $("list").innerHTML = "";
-    if (!wins.length) { $("list").innerHTML = '<p class="empty">tmux penceresi yok</p>'; return; }
-    for (const w of wins.sort((a, b) => b.activity - a.activity)) {
-      const row = document.createElement("div");
-      row.className = "win";
-      row.innerHTML = "<b></b><span></span>";
-      row.querySelector("b").textContent = w.name;
-      row.querySelector("span").textContent = `${w.target} · ${w.cmd}`;
-      row.onclick = () => showPane(w);
-      $("list").appendChild(row);
-    }
+    const next = await api("/api/windows");
+    const now = Date.now();
+    const nextTargets = new Set(next.map((w) => w.target));
+    for (const t of nextTargets) if (!seenAt.has(t)) seenAt.set(t, primed ? now : 0);
+    for (const t of known) if (!nextTargets.has(t)) goneAt.set(t, { at: now, name: wins.find((w) => w.target === t)?.name || t });
+    for (const t of [...goneAt.keys()]) if (nextTargets.has(t)) goneAt.delete(t);
+    for (const [t, g] of goneAt) if (now - g.at > CLOSED_SEC * 1000) { goneAt.delete(t); seenAt.delete(t); }
+    known = nextTargets;
+    primed = true;
+    wins = next;
+    renderList();
   } catch { fail(); }
+}
+
+function renderList() {
+  const list = $("list");
+  const keep = list.scrollTop;
+  list.innerHTML = "";
+
+  const shown = wins.filter(passes);
+  const closed = [...goneAt.entries()].filter(([t, g]) => {
+    if (Date.now() - g.at > CLOSED_SEC * 1000) return false;
+    if (filter === "idle") return false;
+    if (filter === "new") return true;
+    if (!query) return true;
+    return t.toLowerCase().includes(query);
+  });
+
+  if (!shown.length && !closed.length) {
+    list.innerHTML = '<p class="empty">' + (wins.length ? "filtreye uyan pencere yok" : "tmux penceresi yok") + "</p>";
+    return;
+  }
+
+  let sess = null;
+  for (const w of shown.sort((a, b) => b.activity - a.activity)) {
+    const s = sessName(w.target);
+    if (s !== sess) {
+      sess = s;
+      const h = document.createElement("div");
+      h.className = "sess";
+      h.textContent = s + " · " + shown.filter((x) => sessName(x.target) === s).length + " pencere";
+      list.appendChild(h);
+    }
+    list.appendChild(row(w, 0));
+  }
+  for (const [t, g] of closed) {
+    list.appendChild(row({ target: t, name: g.name, cmd: "" }, g.at));
+  }
+  list.scrollTop = keep;
+}
+
+async function showList() {
+  target = null;
+  clearInterval(listTimer); clearInterval(paneTimer); paneTimer = null;
+  $("back").hidden = $("prev").hidden = $("next").hidden = true;
+  $("filters").hidden = false;
+  $("paneWrap").hidden = $("keys").hidden = $("send").hidden = true;
+  $("list").hidden = false; $("title").textContent = "Konsol";
+  await loadList();
+  clearInterval(listTimer);
+  listTimer = setInterval(() => { if (!document.hidden && !target) loadList(); }, POLL_MS);
 }
 
 function showPane(w) {
   target = w.target;
-  $("list").hidden = true;
-  $("back").hidden = $("paneWrap").hidden = $("keys").hidden = $("send").hidden = false;
-  $("title").textContent = w.name; $("pane").textContent = "";
+  clearInterval(listTimer); clearInterval(paneTimer);
+  $("list").hidden = $("filters").hidden = true;
+  $("back").hidden = $("prev").hidden = $("next").hidden = $("paneWrap").hidden = $("keys").hidden = $("send").hidden = false;
+  $("title").textContent = w.name + " · " + w.target;
+  $("pane").textContent = "";
   refresh(true);
-  timer = setInterval(() => { if (!document.hidden) refresh(false); }, 1500);
+  paneTimer = setInterval(() => { if (!document.hidden) refresh(false); }, 1500);
+  syncNav();
+}
+
+function syncNav() {
+  const i = wins.findIndex((x) => x.target === target);
+  $("prev").disabled = $("next").disabled = wins.length < 2;
+  if (i < 0) return;
+  const s = sessName(target);
+  const same = wins.filter((x) => sessName(x.target) === s);
+  $("title").textContent = (wins[i].name + " · " + target) + (same.length > 1 ? "  (" + (same.findIndex((x) => x.target === target) + 1) + "/" + same.length + ")" : "");
+}
+
+function step(dir) {
+  if (!target || wins.length < 2) return;
+  const s = sessName(target);
+  let pool = wins.filter((x) => sessName(x.target) === s);
+  if (pool.length < 2) pool = wins;
+  const i = pool.findIndex((x) => x.target === target);
+  const next = pool[(i + dir + pool.length) % pool.length];
+  if (next && next.target !== target) showPane(next);
 }
 
 async function refresh(force) {
@@ -108,10 +260,24 @@ async function refresh(force) {
     const { text } = await api(`/api/pane?t=${encodeURIComponent(target)}`);
     if ($("pane").textContent !== text) $("pane").textContent = text;
     if (atBottom) wrap.scrollTop = wrap.scrollHeight;
-  } catch { fail(); }
+  } catch (e) {
+    fail();
+    if (String(e.message).includes("pencere yok")) showList();
+  }
 }
 
 $("back").onclick = showList;
+$("prev").onclick = () => step(-1);
+$("next").onclick = () => step(1);
+$("q").oninput = (e) => { query = e.target.value.trim().toLowerCase(); renderList(); };
+document.querySelectorAll(".chip").forEach((c) => {
+  c.onclick = () => {
+    document.querySelectorAll(".chip").forEach((x) => x.classList.remove("on"));
+    c.classList.add("on");
+    filter = c.dataset.f;
+    renderList();
+  };
+});
 $("keys").onclick = async (e) => {
   const b = e.target.closest("button"); if (!b || !target) return;
   try {
