@@ -439,6 +439,7 @@ document.addEventListener("click", (e) => {
 const LS = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch{ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem(k); }catch{} },
 };
 
 /* ---- markdown (escaped first; only http(s) links) ---- */
@@ -500,10 +501,31 @@ const PROVIDERS = {
   custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI uyumlu herhangi bir adres (…/v1)" },
 };
 const FREE_CFG = { provider:"nakata", base:PROVIDERS.nakata.base, model:PROVIDERS.nakata.model, key:"" };
-// A saved BYOK setup without a key falls back to the free model.
-function getCfg(){ const c = LS.get("nakata_byok_cfg", null); return c && (c.provider === "nakata" || c.key) ? c : { ...FREE_CFG }; }
+/* BYOK settings. The API key belongs in the iOS Keychain, not in localStorage: the key is
+   read once at boot into cfgCache so the rest of the app keeps working synchronously. */
+const BYOK_KEY = "nakata_byok_cfg";
+let cfgCache = null;
+const keychain = () => NATIVE.SecureStorage || null;
+function getCfg(){ const c = cfgCache; return c && (c.provider === "nakata" || c.key) ? c : { ...FREE_CFG }; }
+function saveCfg(c){
+  cfgCache = c;
+  const kc = keychain();
+  if (kc) kc.set({ key: BYOK_KEY, value: JSON.stringify(c) }).catch(() => {});
+  else LS.set(BYOK_KEY, c);
+}
+async function loadCfg(){
+  const kc = keychain();
+  if (!kc) { cfgCache = LS.get(BYOK_KEY, null); return; }
+  let raw = null;
+  try { raw = (await kc.get({ key: BYOK_KEY })).value || null; } catch {}
+  const legacy = LS.get(BYOK_KEY, null);
+  if (legacy) {                              // a key saved by a build that still used plaintext storage
+    if (!raw) { raw = JSON.stringify(legacy); try { await kc.set({ key: BYOK_KEY, value: raw }); } catch {} }
+    LS.del(BYOK_KEY);
+  }
+  try { cfgCache = raw ? JSON.parse(raw) : null; } catch { cfgCache = null; }
+}
 function deviceId(){ let d = LS.get("nakata_device", ""); if (!d) { d = crypto.randomUUID(); LS.set("nakata_device", d); } return d; }
-function saveCfg(c){ LS.set("nakata_byok_cfg", c); }
 
 /* ---- drawer, sheet, pages ---- */
 function openDrawer(){ renderSessions($("#search").value); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
@@ -1176,18 +1198,21 @@ function profileText(){
 }
 
 /* ---- boot ---- */
-try {
-  NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
-  NATIVE.Keyboard?.addListener("keyboardDidShow", scrollDown);
-} catch {}
-setModelLabel();
-renderSessions();
-grow();
-paintAccount();
-if (token()) refreshAccount();
-paintModelChip(); loadModels().then(paintModelChip);
-if (!LS.get("nakata_welcomed", false)) showWelcome();
-// No first-run settings: the free model works without a key.
+(async () => {
+  await loadCfg();                                                  // the key comes from the Keychain, so read it first
+  try {
+    NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
+    NATIVE.Keyboard?.addListener("keyboardDidShow", scrollDown);
+  } catch {}
+  setModelLabel();
+  renderSessions();
+  grow();
+  paintAccount();
+  if (token()) refreshAccount();
+  paintModelChip(); loadModels().then(paintModelChip);
+  if (!LS.get("nakata_welcomed", false)) showWelcome();
+  // No first-run settings: the free model works without a key.
+})();
 </script>
 </body>
 </html>
