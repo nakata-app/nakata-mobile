@@ -58,7 +58,7 @@ with sync_playwright() as p:
     b = p.webkit.launch()
     dev = dict(p.devices["iPhone 14"]); dev["has_touch"] = False; dev["is_mobile"] = False
     ctx = b.new_context(**dev)
-    ctx.add_init_script(FAKE + f"""localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'m', key:'k'}}));
+    ctx.add_init_script(FAKE + "localStorage.setItem('nakata_welcomed','true');" + f"""localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'m', key:'k'}}));
       localStorage.setItem('nakata_byok_sessions', JSON.stringify({{a:{{id:'a',title:'Eski sohbet',ts:1,msgs:[{{role:'user',content:'x'}}]}}}}));""")
     pg = ctx.new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
@@ -84,13 +84,13 @@ with sync_playwright() as p:
     check("left-edge swipe closes a page", not pg.evaluate("document.getElementById('f-settings').classList.contains('on')"))
 
     sheet_on = "document.getElementById('botSheet').classList.contains('on')"
-    for start, sel_ in (("grip", ".grip"), ("list", ".botopt")):
+    for start, sel_ in (("grip", "#botSheet .grip"), ("list", "#botSheet .botopt")):
         pg.click("#modelBtn"); pg.wait_for_timeout(350)
         box = pg.locator(sel_).first.bounding_box()
         drag_down(pg, box["y"] + box["height"] / 2, box["y"] + 200)
         check(f"bot sheet closes when dragged down from the {start}", not pg.evaluate(sheet_on))
     pg.click("#modelBtn"); pg.wait_for_timeout(350)
-    box = pg.locator(".grip").bounding_box(); drag_down(pg, box["y"] + 2, box["y"] + 30)
+    box = pg.locator("#botSheet .grip").bounding_box(); drag_down(pg, box["y"] + 2, box["y"] + 30)
     check("a short drag leaves the sheet open", pg.evaluate(sheet_on))
     pg.click("#scrim", position={"x": 200, "y": 100}); pg.wait_for_timeout(300)
 

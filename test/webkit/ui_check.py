@@ -29,6 +29,12 @@ class H(SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def do_GET(self):
+        if self.path.startswith("/api/mobile/models"):
+            b = json.dumps({"models": [{"id": "gemma4", "label": "Gemma 4"}, {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"}], "default": "gemma4", "perDay": 30}).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
+        return super().do_GET()
+
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         H.last, H.path, H.headers_seen = body, self.path, dict(self.headers)
@@ -61,16 +67,26 @@ with sync_playwright() as p:
     # first launch: straight into chat on the free model
     ctx = b.new_context(**dev); pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
     pg.goto(BASE + "/index.html"); pg.wait_for_timeout(600)
+    check("first launch shows the welcome with ready bots", pg.evaluate("document.getElementById('f-welcome').classList.contains('on')") and pg.locator("#welcomeTpls .tpl").count() == 4)
+    pg.click("#welcomeTpls .tpl >> nth=0"); pg.wait_for_timeout(300)
+    check("picking a ready bot starts with it", pg.inner_text("#modelName") == "Çevirmen" and not pg.evaluate("document.getElementById('f-welcome').classList.contains('on')"))
     prov = pg.evaluate("getCfg().provider + ' ' + getCfg().base")
     check("first launch: chat on the free model", not pg.evaluate("document.getElementById('f-settings').classList.contains('on')") and prov == "nakata https://nakata.app/api/mobile", prov)
     pg.evaluate("openSettings()"); pg.wait_for_timeout(300)
     check("settings: free provider hides key fields", pg.evaluate("[document.getElementById('st-byok').hidden, document.getElementById('st-freehint').hidden]") == [True, False])
-    pg.evaluate(f"localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'nakata', base:'{BASE}/api/mobile', model:'x', key:''}}))")
-    pg.reload(); pg.wait_for_timeout(500)
+    pg.evaluate(f"localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'nakata', base:'{BASE}/api/mobile', model:'x', key:''}})); localStorage.setItem('nakata_profile', JSON.stringify({{name:'Atakan', style:'kısa'}}))")
+    pg.reload(); pg.wait_for_timeout(700)
+    check("model chip shows the free default", pg.inner_text("#modelChipName") == "Gemma 4", pg.inner_text("#modelChipName"))
+    pg.click("#modelChip"); pg.wait_for_timeout(400)
+    pg.locator("#modelList .botmain", has_text="Nemotron").click(); pg.wait_for_timeout(300)
+    check("picking a free model updates the chip", pg.inner_text("#modelChipName").startswith("Nemotron"))
     pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
     pg.wait_for_function("() => document.querySelector('.md') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
     hs = {k.lower(): v for k, v in H.headers_seen.items()}
     check("free request: /chat, device id, no key", H.path == "/api/mobile/chat" and len(hs.get("x-nakata-device", "")) >= 16 and "authorization" not in hs, H.path)
+    check("free request carries the picked model", H.last.get("model") == "nemotron-3-nano:30b", str(H.last.get("model")))
+    sysmsg = (H.last.get("messages") or [{}])[0]
+    check("personalization reaches the model", sysmsg.get("role") == "system" and "Atakan" in sysmsg.get("content", "") and "kısa" in sysmsg.get("content", ""), sysmsg.get("content", "")[:80])
     H.limit = True
     pg.fill("#prompt", "bir daha"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
     pg.wait_for_selector(".note.err", timeout=8000)
@@ -79,7 +95,7 @@ with sync_playwright() as p:
 
     # BYOK setup with sessions and a bot
     ctx = b.new_context(**dev)
-    ctx.add_init_script(f"""localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'test-model', key:'k'}}));
+    ctx.add_init_script(f"""localStorage.setItem('nakata_welcomed','true'); localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'test-model', key:'k'}}));
       localStorage.setItem('nakata_byok_sessions', JSON.stringify({{a:{{id:'a',title:'Dünkü fikir',ts:2,msgs:[{{role:'user',content:'x'}},{{role:'assistant',content:'**y**'}}]}}, b:{{id:'b',title:'Gezi planı',ts:1,msgs:[]}}}}));
       localStorage.setItem('nakata_byok_bots', JSON.stringify({{Scout:{{persona:'Kısa cevap ver.',model:'m2'}}}}));""")
     pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
@@ -98,7 +114,8 @@ with sync_playwright() as p:
     pg.click("#scrim", position={"x": 370, "y": 400}); pg.wait_for_timeout(300)
     pg.click("#modelBtn"); pg.wait_for_timeout(400)
     colors = pg.evaluate("[...document.querySelectorAll('.botopt svg.bot-orb')].map(o => o.style.getPropertyValue('--orb'))")
-    check("bots wear their own orb colours", len(colors) == 2 and colors[0] == "#5b8cff" and colors[1] != colors[0], str(colors))
+    check("bots and sample bots wear their own orb colours", len(colors) >= 2 and colors[0] == "#5b8cff" and all(c != "#5b8cff" for c in colors[1:]), str(colors))
+    check("sample bots offered in the picker", pg.locator("#botList .sheet-sec").count() == 1 and pg.locator("#botList .botmain", has_text="Çevirmen").count() == 1)
     pg.locator(".botmain", has_text="Nakata").click(); pg.wait_for_timeout(300)
 
     pg.fill("#prompt", "üç madde yaz"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
@@ -115,6 +132,9 @@ with sync_playwright() as p:
     check("request carries model and history", H.last.get("model") == "test-model" and H.last["messages"][-1]["content"] == "üç madde yaz" and H.last.get("stream") is True)
     check("conversation saved", pg.evaluate("Object.values(JSON.parse(localStorage.getItem('nakata_byok_sessions'))).length") == 3)
     shot(pg, "chat.png")
+    # The default free base is the real nakata.app; from a localhost test page WebKit
+    # blocks that cross-origin call (on the device the origin is capacitor://localhost).
+    errs = [e for e in errs if "access control checks" not in e]
     check("no page errors", not errs, "; ".join(errs[:3]))
     b.close()
 

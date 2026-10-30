@@ -178,6 +178,22 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .danger[hidden]{display:none}
 .muted{color:var(--muted)}
 
+/* model chip (like the desktop composer's model menu), templates, welcome */
+.mchip{display:flex;align-items:center;gap:3px;height:36px;padding:0 6px 0 2px;margin-left:-8px;color:var(--muted);font-size:13px;flex:none;max-width:42%}
+.mchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mchip svg{width:12px;height:12px}
+.msearch{margin:0 14px 6px}
+.msearch[hidden],#modelSearchRow[hidden]{display:none}
+.sect{margin:26px 0 0;font-size:15px;color:var(--ink)}
+.tpls{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.tpl{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px;border:1px solid var(--line);border-radius:14px}
+.tpl .nm{font-weight:600;color:var(--ink)}
+.tpl .ds{color:var(--muted);font-size:13px}
+.welcome{align-items:stretch;gap:12px;padding-top:calc(env(safe-area-inset-top) + 40px)}
+.welcome h1{margin:8px 0 0;text-align:center;font-size:26px;font-weight:700;letter-spacing:-.02em}
+.welcome .hint{text-align:center;font-size:15px}
+.sheet-sec{padding:12px 18px 4px;color:var(--muted);font-size:12px;font-weight:600}
+
 /* account (drawer footer like the desktop sidebar) */
 .acct{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border-radius:10px;text-align:left}
 .acct:active{background:#ffffff0f}
@@ -227,6 +243,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
   </div>
   <div class="composer-wrap">
     <form class="composer" id="composer">
+      <button type="button" class="mchip" id="modelChip" aria-label="Model seç"><span id="modelChipName">Gemma 4</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <textarea id="prompt" rows="1" placeholder="Nakata'ya yaz" enterkeyhint="send"></textarea>
       <button type="submit" class="send" id="sendBtn" aria-label="Gönder" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
@@ -246,9 +263,26 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
   <div class="slist" id="slist"></div>
   <nav class="nav dfoot">
     <button class="acct" id="accountRow"><span class="avatar-n" id="acctAv">N</span><span class="who"><b id="acctName">Giriş yap</b><span id="acctSub">nakata.app hesabı</span></span></button>
-    <button id="settingsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Ayarlar</button>
+    <button id="settingsRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Ayarlar</button>
   </nav>
 </aside>
+
+<div class="sheet" id="modelSheet">
+  <div class="grip"></div>
+  <h2 id="modelSheetTitle">Model</h2>
+  <label class="search msearch" id="modelSearchRow" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="modelSearch" placeholder="Model ara" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+  <div class="sheet-list" id="modelList"></div>
+</div>
+
+<section class="page" id="f-welcome">
+  <div class="scroll"><div class="form welcome">
+    <div class="nk-mascot" id="welcomeOrb"></div>
+    <h1>Nakata'ya hoş geldin</h1>
+    <div class="hint">Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.</div>
+    <div class="tpls" id="welcomeTpls"></div>
+    <button class="primary" id="welcomeGo">Başla</button>
+  </div></div>
+</section>
 
 <div class="sheet" id="botSheet">
   <div class="grip"></div>
@@ -363,6 +397,13 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
     <div class="hint" id="st-modelhint"></div>
     </div>
     <div class="hint" id="st-freehint" hidden>Günde 30 mesaja kadar ücretsiz. Daha fazlası için kendi anahtarınla bir sağlayıcı seç.</div>
+    <h3 class="sect">Kişiselleştirme</h3>
+    <label for="pf-name">Sana nasıl hitap edeyim?</label>
+    <input id="pf-name" class="field" autocomplete="off" placeholder="örn. Atakan">
+    <label for="pf-about">Hakkında</label>
+    <textarea id="pf-about" class="field" rows="3" placeholder="Ne iş yaparsın, neyle ilgilenirsin?"></textarea>
+    <label for="pf-style">Nasıl cevap versin?</label>
+    <textarea id="pf-style" class="field" rows="3" placeholder="örn. Kısa ve net, Türkçe, maddeli"></textarea>
     <button class="primary" id="st-save">Kaydet</button>
   </div></div>
 </section>
@@ -467,9 +508,9 @@ function saveCfg(c){ LS.set("nakata_byok_cfg", c); }
 /* ---- drawer, sheet, pages ---- */
 function openDrawer(){ renderSessions($("#search").value); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
 function closeDrawer(){ $("#drawer").classList.remove("on"); if (!$("#botSheet").classList.contains("on")) $("#scrim").classList.remove("on"); }
-function closeSheet(){ $("#botSheet").classList.remove("on"); if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
+function closeSheet(){ for (const sh of document.querySelectorAll(".sheet.on")) sh.classList.remove("on"); if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
 $("#menuBtn").addEventListener("click", openDrawer);
-$("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); $("#botSheet").classList.remove("on"); $("#scrim").classList.remove("on"); });
+$("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); for (const sh of document.querySelectorAll(".sheet.on")) sh.classList.remove("on"); $("#scrim").classList.remove("on"); });
 for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".page").classList.remove("on"));
 // Pages stack: the one opened last is drawn on top (they share one z-index otherwise
 // and DOM order decided, so Account opened from Images hid underneath it).
@@ -485,11 +526,11 @@ document.addEventListener("pointerdown", (e) => {
   if (e.button > 0) return;
   const drawer = $("#drawer"), page = topPage();
   let kind = null;
-  const sheet = $("#botSheet");
+  const sheet = document.querySelector(".sheet.on");
   if (page) { if (e.clientX <= EDGE) kind = "page"; }
-  else if (sheet.classList.contains("on")) { if (e.target.closest("#botSheet") && !(e.target.closest("#botList") && $("#botList").scrollTop > 0)) kind = "sheet"; }
+  else if (sheet) { const list = e.target.closest(".sheet-list"); if (e.target.closest(".sheet") === sheet && !(list && list.scrollTop > 0) && !e.target.closest("input")) kind = "sheet"; }
   else if (drawer.classList.contains("on")) { if (e.target.closest("#drawer,#scrim")) kind = "close"; }
-  else if (!$("#botSheet").classList.contains("on") && e.clientX <= EDGE) kind = "open";
+  else if (e.clientX <= EDGE) kind = "open";
   if (kind) drag = { kind, el: kind === "page" ? page : kind === "sheet" ? sheet : drawer, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, live: false, id: e.pointerId };
 });
 document.addEventListener("pointermove", (e) => {
@@ -538,6 +579,7 @@ function openSettings(){
   $("#st-provider").value = c.provider; fillProviderUI(c.provider);
   $("#st-base").value = c.base || (PROVIDERS[c.provider]||{}).base || "";
   $("#st-key").value = c.key || ""; $("#st-model").value = c.model || "";
+  const pf = LS.get("nakata_profile", {}); $("#pf-name").value = pf.name || ""; $("#pf-about").value = pf.about || ""; $("#pf-style").value = pf.style || "";
   closeDrawer(); showPage("#f-settings");
 }
 $("#settingsRow").addEventListener("click", openSettings);
@@ -552,6 +594,8 @@ $("#st-provider").addEventListener("change", (e) => {
 $("#st-eye").addEventListener("click", () => { const f = $("#st-key"); f.type = f.type === "password" ? "text" : "password"; });
 $("#st-save").addEventListener("click", () => {
   const provider = $("#st-provider").value;
+  LS.set("nakata_profile", { name: $("#pf-name").value.trim(), about: $("#pf-about").value.trim(), style: $("#pf-style").value.trim() });
+  modelCache = {};
   if (PROVIDERS[provider]?.free) { saveCfg({ ...FREE_CFG }); setModelLabel(); $("#f-settings").classList.remove("on"); return; }
   const base = $("#st-base").value.trim().replace(/\/+$/,"");
   const key = $("#st-key").value.trim();
@@ -565,22 +609,34 @@ $("#st-save").addEventListener("click", () => {
 });
 
 /* ---- bots (local personas) ---- */
+// Ready-made bots (Atakan: sample bots in onboarding and the picker).
+const BOT_TEMPLATES = [
+  { name: "Çevirmen", desc: "Türkçe ↔ İngilizce, doğal çeviri", persona: "Sen bir çevirmensin. Türkçe gelen metni İngilizceye, başka dildeki metni Türkçeye çevir. Anlamı ve tonu koru, doğal yaz, açıklama ekleme; yalnız çeviriyi ver." },
+  { name: "Yazı editörü", desc: "Metni düzeltir, akıcılaştırır", persona: "Sen titiz bir editörsün. Verilen metindeki yazım, dil bilgisi ve anlatım hatalarını düzelt, akıcılaştır, yazarın sesini koru. Önce düzeltilmiş metni ver, sonra en önemli değişiklikleri kısa maddelerle yaz." },
+  { name: "Kod yardımcısı", desc: "Kod yazar, hata ayıklar, açıklar", persona: "Sen deneyimli bir yazılımcısın. Kısa ve doğru cevap ver; kodu her zaman kod bloğu içinde, çalışır halde yaz. Hata ayıklarken önce olası sebebi söyle, sonra düzeltmeyi göster." },
+  { name: "Öğretmen", desc: "Konuları adım adım anlatır", persona: "Sen sabırlı bir öğretmensin. Konuyu sade bir dille, adım adım ve örnekle anlat. Sonunda anlaşıldığını kontrol etmek için kısa bir soru sor." },
+  { name: "Kısa ve net", desc: "En fazla birkaç cümle", persona: "Her zaman çok kısa cevap ver: en fazla üç cümle ya da üç madde. Gereksiz giriş ve özet yazma." },
+];
+function useTemplate(t){
+  const bots = allBots(); bots[t.name] = { persona: t.persona, description: t.desc }; saveBots(bots);
+  activeBot = t.name; setModelLabel(); haptic();
+}
 function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
-function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; mascot?.setColor(orbColor()); }
+function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; mascot?.setColor(orbColor()); paintModelChip(); }
 function openBotSheet(){
   $("#drawer").classList.remove("on");
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
   const list = $("#botList");
   for (const o of list.querySelectorAll(".bot-orb")) o._orb?.destroy();
   list.replaceChildren();
-  const mk = (name, desc, on, isBot) => {
+  const mk = (name, desc, on, isBot, tint) => {
     const row = el("div", "botopt" + (on ? " on" : ""));
     const main = el("button", "botmain");
     const meta = el("div", "meta"); meta.append(el("div", "nm", name)); if (desc) meta.append(el("div", "ds", desc));
     const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
-    const face = orb({ size: 34, color: isBot ? botColor(name) : NAKATA_ORB_COLOR, expression: on ? "happy" : "neutral" });
+    const face = orb({ size: 34, color: isBot || tint ? botColor(name) : NAKATA_ORB_COLOR, expression: on ? "happy" : "neutral" });
     face.el.classList.add("small-orb");
     main.append(face.el, meta, chk.firstChild);
     main.addEventListener("click", () => { activeBot = isBot ? name : null; setModelLabel(); closeSheet(); haptic(); });
@@ -594,6 +650,15 @@ function openBotSheet(){
   };
   list.append(mk("Nakata", "Varsayılan", !activeBot, false));
   for (const [name, bot] of Object.entries(allBots())) list.append(mk(name, bot.description || bot.model || "", activeBot === name, true));
+  const missing = BOT_TEMPLATES.filter((t) => !allBots()[t.name]);
+  if (missing.length) {
+    list.append(el("div", "sheet-sec", "Örnek botlar"));
+    for (const t of missing) {
+      const row = mk(t.name, t.desc, false, false, true);
+      row.querySelector(".botmain").onclick = () => { useTemplate(t); closeSheet(); };
+      list.append(row);
+    }
+  }
   list.classList.toggle("scrolls", list.scrollHeight > list.clientHeight);
 }
 $("#modelBtn").addEventListener("click", openBotSheet);
@@ -811,7 +876,9 @@ async function send(text){
   const bot = activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
   const messages = [];
-  if (bot && bot.persona) messages.push({ role: "system", content: bot.persona });
+  const prof = profileText();
+  const system = [bot && bot.persona ? bot.persona : (prof ? "Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver." : ""), prof].filter(Boolean).join("\n\n");
+  if (system) messages.push({ role: "system", content: system });
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
 
   controller = new AbortController();
@@ -827,7 +894,7 @@ async function send(text){
         // preflight (403) when they are present, which fails every request.
         ...(/openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
-      body: JSON.stringify({ model, stream: true, messages }),
+      body: JSON.stringify({ model: free ? (LS.get("nakata_free_model", "") || undefined) : model, stream: true, messages }),
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
@@ -1030,6 +1097,84 @@ $("#img-go").addEventListener("click", async () => {
   }
 });
 
+/* ---- welcome: first launch only ---- */
+function showWelcome(){
+  const box = $("#welcomeTpls"); box.replaceChildren();
+  for (const t of BOT_TEMPLATES.slice(0, 4)) {
+    const b = el("button", "tpl"); const face = orb({ size: 30, color: botColor(t.name), expression: "happy" }); face.el.classList.add("small-orb");
+    const meta = el("div"); meta.append(el("div", "nm", t.name), el("div", "ds", t.desc));
+    b.append(face.el, meta);
+    b.onclick = () => { useTemplate(t); finishWelcome(); };
+    box.append(b);
+  }
+  if (!$("#welcomeOrb").firstChild) $("#welcomeOrb").append(orb({ size: 72, color: NAKATA_ORB_COLOR, expression: "happy" }).el);
+  showPage("#f-welcome");
+}
+function finishWelcome(){ LS.set("nakata_welcomed", true); $("#f-welcome").classList.remove("on"); }
+$("#welcomeGo").addEventListener("click", finishWelcome);
+
+/* ---- model picker: the free list from nakata.app, or the provider's own /models ---- */
+let modelCache = {};   // provider -> [{ id, label }]
+function currentModel(){
+  const cfg = getCfg();
+  if (cfg.provider === "nakata") { const id = LS.get("nakata_free_model", ""); const m = (modelCache.nakata || []).find((x) => x.id === id); return { id, label: m ? m.label : (id || LS.get("nakata_free_label", "Gemma 4")) }; }
+  return { id: cfg.model, label: (cfg.model || "").split("/").pop() };
+}
+function paintModelChip(){ $("#modelChipName").textContent = currentModel().label || "Model"; }
+async function loadModels(){
+  const cfg = getCfg();
+  if (modelCache[cfg.provider]) return modelCache[cfg.provider];
+  try {
+    if (cfg.provider === "nakata") {
+      const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models"); const j = await r.json();
+      modelCache.nakata = j.models || [];
+      if (!LS.get("nakata_free_model", "")) LS.set("nakata_free_label", (modelCache.nakata.find((m) => m.id === j.default) || {}).label || "");
+    } else {
+      const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models", { headers: { Authorization: "Bearer " + cfg.key } });
+      const j = await r.json();
+      modelCache[cfg.provider] = (j.data || j.models || []).map((m) => ({ id: m.id || m.name, label: m.id || m.name })).filter((m) => m.id).sort((a, b) => a.id.localeCompare(b.id));
+    }
+  } catch { modelCache[cfg.provider] = []; }
+  return modelCache[cfg.provider];
+}
+async function openModelSheet(){
+  closeDrawer(); $("#scrim").classList.add("on"); $("#modelSheet").classList.add("on");
+  const list = $("#modelList"); list.replaceChildren(el("div", "note", "Yükleniyor…"));
+  const models = await loadModels(), cfg = getCfg();
+  $("#modelSheetTitle").textContent = cfg.provider === "nakata" ? "Model (ücretsiz)" : "Model";
+  $("#modelSearchRow").hidden = models.length < 12; $("#modelSearch").value = "";
+  const paint = (q = "") => {
+    list.replaceChildren();
+    const cur = currentModel().id;
+    const shown = models.filter((m) => !q || m.label.toLowerCase().includes(q.toLowerCase())).slice(0, 200);
+    if (!shown.length) { list.append(el("div", "note", models.length ? "Eşleşme yok" : "Model listesi alınamadı; Ayarlar'dan model adını yazabilirsin.")); return; }
+    for (const m of shown) {
+      const row = el("div", "botopt" + (m.id === cur || (!cur && cfg.provider === "nakata" && m.label === currentModel().label) ? " on" : ""));
+      const main = el("button", "botmain"); const meta = el("div", "meta"); meta.append(el("div", "nm", m.label));
+      const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
+      main.append(meta, chk.firstChild);
+      main.onclick = () => {
+        if (cfg.provider === "nakata") { LS.set("nakata_free_model", m.id); LS.set("nakata_free_label", m.label); }
+        else saveCfg({ ...cfg, model: m.id });
+        paintModelChip(); closeSheet(); haptic();
+      };
+      row.append(main); list.append(row);
+    }
+  };
+  paint();
+  $("#modelSearch").oninput = (e) => paint(e.target.value);
+}
+$("#modelChip").addEventListener("click", openModelSheet);
+
+/* ---- personalization (like ChatGPT's "customize"): added to every chat ---- */
+function profileText(){
+  const p = LS.get("nakata_profile", {}), parts = [];
+  if (p.name) parts.push(`Kullanıcıya "${p.name}" diye hitap et.`);
+  if (p.about) parts.push(`Kullanıcı hakkında: ${p.about}`);
+  if (p.style) parts.push(`Cevap biçimi: ${p.style}`);
+  return parts.join("\n");
+}
+
 /* ---- boot ---- */
 try {
   NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
@@ -1040,6 +1185,8 @@ renderSessions();
 grow();
 paintAccount();
 if (token()) refreshAccount();
+paintModelChip(); loadModels().then(paintModelChip);
+if (!LS.get("nakata_welcomed", false)) showWelcome();
 // No first-run settings: the free model works without a key.
 </script>
 </body>
