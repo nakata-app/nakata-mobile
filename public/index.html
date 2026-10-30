@@ -329,7 +329,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
       <button class="ghost" id="acc-logout">Çıkış yap</button>
       <button class="danger" id="acc-delete">Hesabı sil</button>
       <div class="form" id="acc-del-box" hidden style="padding:8px 0 0">
-        <div class="hint">Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 30 gün içinde silinir. Bu geri alınamaz.</div>
+        <div class="hint">Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 30 gün içinde silinir. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz, hesabını geri açarız.</div>
         <label for="acc-del-pass">Onay için şifren</label>
         <input id="acc-del-pass" class="field" type="password" autocomplete="current-password">
         <div class="err-text" id="acc-del-err" hidden></div>
@@ -1029,7 +1029,7 @@ $("#acc-del-go").addEventListener("click", async () => {
   const r = await api("/account/delete", { method: "POST", body: { password } });
   if (!r.ok) { hapticError(); return showErr("#acc-del-err", r.status === 403 ? "Şifre yanlış" : (r.j.error?.message || r.j.error || "Silinemedi")); }
   $("#acc-del-pass").value = ""; signOutLocal(); $("#f-account").classList.remove("on");
-  addNote("Hesabın kapatıldı; verilerin en geç 30 gün içinde silinecek.");
+  addNote("Hesabın kapatıldı; verilerin en geç 30 gün içinde silinecek. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz.");
 });
 
 /* ---- image studio: the site's models and their reference limits, always 4K ---- */
