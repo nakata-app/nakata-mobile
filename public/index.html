@@ -280,6 +280,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .bd-by{color:var(--muted);font-size:12.5px;text-align:center;padding:8px 0 2px}
 .earn-row{display:flex;justify-content:space-between;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--side-ink);font-size:14px}
 .earn-row b{color:var(--ink)}
+img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-events:none}
 .statusdot{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
 .statusdot.live{color:#6ee7b7;background:#10b98122}
 .statusdot.pending{color:#fcd34d;background:#f59e0b22}
@@ -378,6 +379,8 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
       </div>
       <div class="hint" style="margin-top:4px">Botunu herkes keşfedebilir ve kart olarak toplayabilir. Yayın öncesi incelenir.</div>
       <button class="primary" id="bf-pub" style="margin-top:12px">Galeride yayınla</button>
+      <button class="ghost" id="bf-mascot" hidden>AI maskot üret</button>
+      <div class="hint" id="bf-mascot-hint" hidden>İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.</div>
       <button class="ghost" id="bf-unpub" hidden>Galeriden kaldır</button>
       <div class="hint err-text" id="bf-puberr" hidden></div>
     </div>
@@ -583,7 +586,7 @@ const LS = {
    The interface text is written in Turkish; with English selected a dictionary
    rewrites it on the page (text nodes, placeholders, labels) as it appears. ---- */
 const EN = {
-  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
+  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
   "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
   "Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.":"You can start typing right away, or begin with a ready-made bot.",
   "Başla":"Start","Bot seç":"Choose a bot","Yeni bot":"New bot","Kaydet":"Save","İsim":"Name","Tek satır açıklama":"One-line description",
@@ -938,7 +941,7 @@ $("#botsRow").addEventListener("click", openBotSheet);
 let editingBot = null;
 function setPubStatus(status){
   const dot = $("#bf-status");
-  $("#bf-unpub").hidden = !status;
+  $("#bf-unpub").hidden = !status; $("#bf-mascot").hidden = !status; $("#bf-mascot-hint").hidden = !status;
   if (!status) { dot.hidden = true; $("#bf-pub").textContent = "Galeride yayınla"; return; }
   dot.hidden = false; dot.className = "statusdot " + status; dot.textContent = statusLabel(status);
   $("#bf-pub").textContent = status === "rejected" ? "Tekrar gönder" : "Güncelle ve yayınla";
@@ -991,6 +994,24 @@ $("#bf-pub").addEventListener("click", async () => {
   setPubStatus(status); haptic("MEDIUM");
   addNote(status === "pending" ? "Botun incelemeye gönderildi. Onaylanınca galeride görünür." : "Botun galeride güncellendi.");
   $("#f-botform").classList.remove("on");
+});
+$("#bf-mascot").addEventListener("click", async () => {
+  const key = editingBot || $("#bf-name").value.trim();
+  const bots = allBots(); const local = bots[key];
+  if (!local?.publishedId) return;
+  if (!confirm("Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?")) return;
+  const btn = $("#bf-mascot"); btn.disabled = true; showErr("#bf-puberr", "");
+  try {
+    for (let i = 0; i < 60; i++) {
+      const r = await api(`/bots/${local.publishedId}/mascot`, { method: "POST", body: { mode: "ai" } });
+      if (r.status === 402) return showErr("#bf-puberr", "Kredin yetmiyor.");
+      if (!r.ok || r.j?.failed) { hapticError(); return showErr("#bf-puberr", r.j?.error?.message || "Maskot üretilemedi"); }
+      if (r.j?.mascot) { haptic("MEDIUM"); addNote("Maskot hazır."); return; }
+      btn.textContent = "Maskot hazırlanıyor…";
+      await wait(i < 5 ? 2000 : 3000);
+    }
+    showErr("#bf-puberr", "Maskot henüz hazır değil, biraz sonra tekrar dene.");
+  } finally { btn.disabled = false; btn.textContent = "AI maskot üret"; }
 });
 $("#bf-unpub").addEventListener("click", async () => {
   const key = editingBot || $("#bf-name").value.trim();
@@ -1510,6 +1531,14 @@ function profileText(){
 }
 
 /* ---- bot gallery (Keşfet): publish, discover, chat, like, earnings, review ---- */
+// A bot's mascot: the generated image when it has one, otherwise the tinted orb.
+function mascotEl(m, size){
+  if (m && m.kind === "image" && typeof m.url === "string" && m.url.startsWith("https://")) {
+    const el = document.createElement("img"); el.src = m.url; el.alt = ""; el.width = size; el.height = size; el.className = "mascot-img"; el.loading = "lazy";
+    return { el };
+  }
+  return orb({ size, color: m?.color || NAKATA_ORB_COLOR, expression: m?.face || "happy" });
+}
 const RARITY_TR = { rare: "Nadir", epic: "Epik", legendary: "Efsane" };
 const DEFAULT_CATS = ["Yazı", "Kod", "Eğitim", "Çeviri", "Günlük", "Eğlence", "İş", "Sağlık", "Oyun", "Diğer"];
 let botCats = DEFAULT_CATS.slice();
@@ -1528,7 +1557,7 @@ function fillCatSelect(){
 function botCard(c){
   const card = el("div", "card " + (c.rarity || "common"));
   if (RARITY_TR[c.rarity]) card.append(el("div", "crarity", RARITY_TR[c.rarity]));
-  const face = orb({ size: 58, color: c.mascot?.color || NAKATA_ORB_COLOR, expression: c.mascot?.face || "happy" });
+  const face = mascotEl(c.mascot, 58);
   face.el.classList.add("small-orb", "face");
   card.append(face.el, el("div", "cname", c.name), el("div", "ccat", c.category || "Diğer"), el("div", "ctag", c.tagline || ""));
   const st = el("div", "cstats");
@@ -1569,7 +1598,7 @@ async function openBotDetail(id){
   let r; try { r = await api(`/bots/${id}`); } catch { r = { ok: false }; }
   if (!r.ok || !r.j?.bot) { hapticError(); return; }
   const b = r.j.bot; detailBot = b;
-  destroyOrbs($("#bd-orb")); $("#bd-orb").replaceChildren(orb({ size: 86, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }).el);
+  destroyOrbs($("#bd-orb")); $("#bd-orb").replaceChildren(mascotEl(b.mascot, 86).el);
   $("#bd-cat").textContent = b.category || "Diğer";
   $("#bd-name").textContent = b.name;
   $("#bd-tag").textContent = b.tagline || "";
@@ -1624,7 +1653,7 @@ async function openMyBots(){
   $("#mb-empty").hidden = bots.length > 0; $("#mb-empty").textContent = "Henüz bot yayınlamadın.";
   for (const b of bots) {
     const row = el("div", "botopt on"); row.style.padding = "10px 6px";
-    const face = orb({ size: 36, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }); face.el.classList.add("small-orb");
+    const face = mascotEl(b.mascot, 36); face.el.classList.add("small-orb");
     const meta = el("div", "meta"); meta.append(el("div", "nm", b.name), el("div", "ds", `${statusLabel(b.status)} · ${b.chats} sohbet · ${b.likes} ♥${RARITY_TR[b.rarity] ? " · " + RARITY_TR[b.rarity] : ""}`));
     row.append(face.el, meta); list.append(row);
   }
@@ -1642,7 +1671,7 @@ async function loadAdminQueue(){
   $("#mb-queue-empty").hidden = items.length > 0;
   for (const b of items) {
     const row = el("div", "botopt"); row.style.cssText = "flex-wrap:wrap;padding:10px 6px;gap:8px";
-    const face = orb({ size: 34, color: b.mascot?.color || NAKATA_ORB_COLOR, expression: b.mascot?.face || "happy" }); face.el.classList.add("small-orb");
+    const face = mascotEl(b.mascot, 34); face.el.classList.add("small-orb");
     const meta = el("div", "meta"); meta.append(el("div", "nm", `${b.name} · @${b.ownerName || ""}`), el("div", "ds", `${b.tagline || ""}${b.reports ? " · ⚑" + b.reports : ""}`));
     const acts = el("div"); acts.style.cssText = "display:flex;gap:6px;width:100%;margin-top:2px";
     const mk = (label, action, cls) => { const x = el("button", "", label); x.style.cssText = `flex:1;padding:8px;border-radius:9px;font-size:13px;font-weight:600;border:1px solid var(--line);${cls}`; x.onclick = async () => { const a = await api(`/bots/admin/${b.id}/${action}`, { method: "POST", body: {} }); if (a.ok) { loadAdminQueue(); haptic(); } }; return x; };
