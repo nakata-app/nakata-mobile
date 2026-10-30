@@ -24,6 +24,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Nakata uses the microphone only while you are in a voice conversation.</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>UILaunchStoryboardName</key>

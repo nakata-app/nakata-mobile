@@ -119,6 +119,13 @@ button.title:active{opacity:.6}
 form.composer{max-width:780px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--raised);border:1px solid var(--line);border-radius:22px;padding:6px 6px 6px 16px}
 form.composer textarea{flex:1;resize:none;max-height:160px;background:none;border:0;color:var(--ink);padding:8px 0;font:inherit;line-height:1.4;outline:none}
 form.composer textarea::placeholder{color:var(--muted)}
+.micbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--muted)}
+.micbtn svg{width:20px;height:20px}
+#f-voice{align-items:center;justify-content:center;text-align:center;gap:14px;padding:24px}
+#f-voice .vstate{color:var(--muted);font-size:15px;min-height:22px}
+#f-voice .vtimer{font-variant-numeric:tabular-nums;color:var(--side-ink);font-size:14px}
+#f-voice .vend{margin-top:18px;background:var(--err);color:#fff;border-radius:999px;padding:14px 34px;font-weight:600}
+#f-voice .vclose{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:6px}
 .send{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--accent);color:var(--on-accent)}
 .send svg{width:18px;height:18px}
 .send[disabled]{background:#ffffff1a;color:#ffffff59}
@@ -306,6 +313,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <form class="composer" id="composer">
       <button type="button" class="mchip" id="modelChip" aria-label="Model seç"><span id="modelChipName">Gemma 4</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <textarea id="prompt" rows="1" placeholder="Nakata'ya yaz" enterkeyhint="send"></textarea>
+      <button type="button" class="micbtn" id="micBtn" aria-label="Sesli konuş"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" class="send" id="sendBtn" aria-label="Gönder" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
   </div>
@@ -337,6 +345,15 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   <label class="search msearch" id="modelSearchRow" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="modelSearch" placeholder="Model ara" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
   <div class="sheet-list" id="modelList"></div>
 </div>
+
+<section class="page" id="f-voice">
+  <button class="icon fclose vclose" id="voiceClose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <div class="nk-mascot" id="voiceOrb"></div>
+  <div class="vstate" id="voiceState"></div>
+  <div class="vtimer" id="voiceTimer"></div>
+  <div class="hint" id="voiceFree" style="max-width:300px"></div>
+  <button class="vend" id="voiceEnd">Görüşmeyi bitir</button>
+</section>
 
 <section class="page" id="f-welcome">
   <div class="scroll"><div class="form welcome">
@@ -585,7 +602,12 @@ const LS = {
    The interface text is written in Turkish; with English selected a dictionary
    rewrites it on the page (text nodes, placeholders, labels) as it appears. ---- */
 const EN = {
-  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","Deste":"Deck","Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.":"No cards in your deck yet. A bot is added when you open it or like it.","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
+  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","Sesli konuş":"Talk","Görüşmeyi bitir":"End call","Bağlanıyor…":"Connecting…","Dinliyorum":"Listening","Bağlantı koptu.":"Connection lost.",
+  "Sesli konuşma şu an kapalı.":"Voice is closed right now.","Bugünkü ücretsiz sesli süren bitti ve kredin yetmiyor.":"Today's free voice time is used up and your credits are too low.",
+  "Zaten açık bir görüşmen var.":"You already have a call open.","Bugün çok fazla sesli görüşme açtın.":"You started too many calls today.","Sesli konuşmak için giriş yap.":"Sign in to talk.",
+  "Sesli görüşme başlatılamadı. Tekrar dene.":"The call could not start. Try again.","Sesli görüşme başlatılamadı.":"The call could not start.",
+  "Mikrofon izni verilmedi. Ayarlar'dan izin verebilirsin.":"Microphone access was not granted. You can allow it in Settings.","Görüşme süresi doldu.":"The call reached its time limit.",
+  "Kredin bitti, görüşme sonlandı.":"You ran out of credits; the call ended.","Uygulamadan çıkınca görüşme biter.":"The call ends when you leave the app.","Deste":"Deck","Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.":"No cards in your deck yet. A bot is added when you open it or like it.","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
   "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
   "Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.":"You can start typing right away, or begin with a ready-made bot.",
   "Başla":"Start","Bot seç":"Choose a bot","Yeni bot":"New bot","Kaydet":"Save","İsim":"Name","Tek satır açıklama":"One-line description",
@@ -644,7 +666,8 @@ const EN_RE = [
   [/^Bağlantı: (.*)$/, "Connection: $1"], [/^Hata: (.*)$/, "Error: $1"],
   [/^(Yayında|İncelemede|Bildirildi|Reddedildi) · (\d+) sohbet · (\d+) ♥(.*)$/, (m, s, c, l, r) => `${EN[s] || s} · ${c} chats · ${l} ♥${r}`],
   [/^Kullanıcıya "(.*)" diye hitap et\.$/, 'Address the user as "$1".'], [/^Kullanıcı hakkında: (.*)$/, "About the user: $1"], [/^Cevap biçimi: (.*)$/, "Answer style: $1"],
-  [/^Örnek: (.*)$/, "Example: $1"], [/^Almak için: (.*)$/, "Get one: $1"],
+  [/^Örnek: (.*)$/, "Example: $1"],
+  [/^Bugün (\d+) dk ücretsiz kaldı\. Sonrası (\d+) kredi\/dk\.$/, "$1 free minutes left today. After that $2 credits/min."], [/^Ücretsiz süre bitti: (\d+) kredi\/dk\.$/, "Free time is used up: $1 credits/min."], [/^Almak için: (.*)$/, "Get one: $1"],
 ];
 let LANG = LS.get("nakata_lang", "en") === "tr" ? "tr" : "en";
 function tx(text){
@@ -1695,6 +1718,82 @@ async function loadAdminQueue(){
     row.append(face.el, meta, acts); q.append(row);
   }
 }
+
+/* ---- voice conversation: GPT-Live over WebRTC, through nakata.app (the key never reaches the app) ---- */
+const VOICE_MSG = {
+  voice_closed: "Sesli konuşma şu an kapalı.",
+  voice_credits: "Bugünkü ücretsiz sesli süren bitti ve kredin yetmiyor.",
+  already_active: "Zaten açık bir görüşmen var.",
+  slow_down: "Bugün çok fazla sesli görüşme açtın.",
+  unauthorized: "Sesli konuşmak için giriş yap.",
+  upstream: "Sesli görüşme başlatılamadı. Tekrar dene.",
+};
+let voice = null;   // { pc, dc, stream, audio, id, ping, tick, t0, ending }
+const voiceOrb = orb({ size: 120, color: NAKATA_ORB_COLOR, expression: "neutral" });
+$("#voiceOrb").append(voiceOrb.el);
+function voiceSay(state, face){ $("#voiceState").textContent = state; if (face) voiceOrb.set(face); }
+function fmtTime(sec){ return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; }
+
+async function startVoice(){
+  if (voice) return;
+  if (!token()) { openAccount(); return; }
+  showPage("#f-voice"); haptic();
+  voiceOrb.setColor(orbColor()); $("#voiceTimer").textContent = ""; $("#voiceFree").textContent = "";
+  voiceSay("Bağlanıyor…", "thinking");
+  const v = voice = { ending: false, id: null };
+  try {
+    const st = await api("/voice/status");
+    if (st.ok && st.j.enabled === false) throw new Error(VOICE_MSG.voice_closed);
+    if (st.ok && st.j.freeLeftSec != null) $("#voiceFree").textContent = st.j.freeLeftSec > 0 ? `Bugün ${Math.floor(st.j.freeLeftSec / 60)} dk ücretsiz kaldı. Sonrası ${st.j.creditsPerMin} kredi/dk.` : `Ücretsiz süre bitti: ${st.j.creditsPerMin} kredi/dk.`;
+    v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const pc = v.pc = new RTCPeerConnection();
+    v.audio = new Audio(); v.audio.autoplay = true; v.audio.playsInline = true;
+    pc.ontrack = (e) => { v.audio.srcObject = e.streams[0]; v.audio.play().catch(() => {}); };
+    for (const t of v.stream.getTracks()) pc.addTrack(t, v.stream);
+    const dc = v.dc = pc.createDataChannel("oai-events");
+    dc.onmessage = (m) => {
+      let ev; try { ev = JSON.parse(m.data); } catch { return; }
+      if (ev.type === "session.started") { v.t0 = Date.now(); voiceSay("Dinliyorum", "attentive"); v.tick = setInterval(() => { $("#voiceTimer").textContent = fmtTime(Math.round((Date.now() - v.t0) / 1000)); }, 1000); }
+      else if (ev.type === "session.closed") v.closed?.();
+    };
+    pc.onconnectionstatechange = () => { if (["failed", "disconnected", "closed"].includes(pc.connectionState) && !v.ending) endVoice("Bağlantı koptu."); };
+    await pc.setLocalDescription(await pc.createOffer());
+    await new Promise((res) => { if (pc.iceGatheringState === "complete") return res(); const t = setTimeout(res, 10000); pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") { clearTimeout(t); res(); } }; });
+    const r = await api("/voice/session", { method: "POST", body: { sdp: pc.localDescription.sdp, bot: galleryBot?.id || undefined } });
+    if (!r.ok) throw new Error(VOICE_MSG[r.j?.error?.code] || r.j?.error?.message || "Sesli görüşme başlatılamadı.");
+    v.id = r.j.sessionId;
+    await pc.setRemoteDescription({ type: "answer", sdp: r.j.sdp });
+    v.ping = setInterval(async () => {
+      const p = await api("/voice/ping", { method: "POST", body: { sessionId: v.id } });
+      if (p.ok && p.j.stop) endVoice(p.j.freeLeftSec > 0 ? "Görüşme süresi doldu." : "Kredin bitti, görüşme sonlandı.");
+    }, (r.j.pingEverySec || 20) * 1000);
+  } catch (e) {
+    hapticError();
+    await endVoice(e.name === "NotAllowedError" ? "Mikrofon izni verilmedi. Ayarlar'dan izin verebilirsin." : (e.message || "Sesli görüşme başlatılamadı."));
+  }
+}
+
+async function endVoice(note){
+  const v = voice; if (!v || v.ending) return;
+  v.ending = true; voice = null;
+  clearInterval(v.ping); clearInterval(v.tick);
+  try {
+    if (v.dc?.readyState === "open") { v.dc.send(JSON.stringify({ type: "session.close" })); await Promise.race([new Promise((res) => { v.closed = res; }), wait(3000)]); }
+  } catch {}
+  if (v.id) api("/voice/end", { method: "POST", body: { sessionId: v.id } });
+  try { v.dc?.close(); v.pc?.close(); } catch {}
+  for (const t of v.stream?.getTracks?.() || []) t.stop();
+  if (v.audio) { v.audio.srcObject = null; }
+  voiceOrb.set("neutral");
+  $("#f-voice").classList.remove("on");
+  if (note) addNote(note, true);
+}
+$("#micBtn").addEventListener("click", startVoice);
+$("#voiceEnd").addEventListener("click", () => endVoice());
+$("#voiceClose").addEventListener("click", () => endVoice());
+// leaving the page any other way (edge swipe) also ends the call
+new MutationObserver(() => { if (voice && !$("#f-voice").classList.contains("on")) endVoice(); }).observe($("#f-voice"), { attributes: true, attributeFilter: ["class"] });
+document.addEventListener("visibilitychange", () => { if (document.hidden && voice) endVoice("Uygulamadan çıkınca görüşme biter."); });
 
 /* ---- boot ---- */
 (async () => {
