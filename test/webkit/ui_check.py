@@ -64,12 +64,17 @@ def shot(pg, name):
 with sync_playwright() as p:
     b = p.webkit.launch(); dev = p.devices["iPhone 14"]; errs = []
 
+    # a fresh install speaks English (the strings below are Turkish, so later contexts pin tr)
+    ctx = b.new_context(**dev); pg = ctx.new_page(); pg.goto(BASE + "/index.html"); pg.wait_for_timeout(400)
+    check("default language is English", pg.evaluate("document.documentElement.lang") == "en")
+    ctx.close()
+
     # first launch: straight into chat on the free model
-    ctx = b.new_context(**dev); pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
+    ctx = b.new_context(**dev); ctx.add_init_script("localStorage.setItem('nakata_lang', JSON.stringify('tr'));"); pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
     pg.goto(BASE + "/index.html"); pg.wait_for_timeout(600)
     check("first launch shows the welcome with ready bots", pg.evaluate("document.getElementById('f-welcome').classList.contains('on')") and pg.locator("#welcomeTpls .tpl").count() == 4)
     pg.click("#welcomeTpls .tpl >> nth=0"); pg.wait_for_timeout(300)
-    check("picking a ready bot starts with it", pg.inner_text("#modelName") == "Çevirmen" and not pg.evaluate("document.getElementById('f-welcome').classList.contains('on')"))
+    check("picking a ready bot starts with it", pg.inner_text("#modelName") == "Video Editor" and not pg.evaluate("document.getElementById('f-welcome').classList.contains('on')"))
     prov = pg.evaluate("getCfg().provider + ' ' + getCfg().base")
     check("first launch: chat on the free model", not pg.evaluate("document.getElementById('f-settings').classList.contains('on')") and prov == "nakata https://nakata.app/api/mobile", prov)
     pg.evaluate("openSettings()"); pg.wait_for_timeout(300)
@@ -95,7 +100,7 @@ with sync_playwright() as p:
 
     # BYOK setup with sessions and a bot
     ctx = b.new_context(**dev)
-    ctx.add_init_script(f"""localStorage.setItem('nakata_welcomed','true'); localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'test-model', key:'k'}}));
+    ctx.add_init_script(f"""localStorage.setItem('nakata_lang', JSON.stringify('tr')); localStorage.setItem('nakata_welcomed','true'); localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'test-model', key:'k'}}));
       localStorage.setItem('nakata_byok_sessions', JSON.stringify({{a:{{id:'a',title:'Dünkü fikir',ts:2,msgs:[{{role:'user',content:'x'}},{{role:'assistant',content:'**y**'}}]}}, b:{{id:'b',title:'Gezi planı',ts:1,msgs:[]}}}}));
       localStorage.setItem('nakata_byok_bots', JSON.stringify({{Scout:{{persona:'Kısa cevap ver.',model:'m2'}}}}));""")
     pg = ctx.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
@@ -115,7 +120,7 @@ with sync_playwright() as p:
     pg.click("#modelBtn"); pg.wait_for_timeout(400)
     colors = pg.evaluate("[...document.querySelectorAll('.botopt svg.bot-orb')].map(o => o.style.getPropertyValue('--orb'))")
     check("bots and sample bots wear their own orb colours", len(colors) >= 2 and colors[0] == "#5b8cff" and all(c != "#5b8cff" for c in colors[1:]), str(colors))
-    check("sample bots offered in the picker", pg.locator("#botList .sheet-sec").count() == 1 and pg.locator("#botList .botmain", has_text="Çevirmen").count() == 1)
+    check("sample bots offered in the picker", pg.locator("#botList .sheet-sec").count() == 1 and pg.locator("#botList .botmain", has_text="Video Editor").count() == 1)
     pg.locator(".botmain", has_text="Nakata").click(); pg.wait_for_timeout(300)
 
     pg.fill("#prompt", "üç madde yaz"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")

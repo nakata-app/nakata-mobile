@@ -58,7 +58,7 @@ with sync_playwright() as p:
     b = p.webkit.launch()
     dev = dict(p.devices["iPhone 14"]); dev["has_touch"] = False; dev["is_mobile"] = False
     ctx = b.new_context(**dev)
-    ctx.add_init_script(FAKE + "localStorage.setItem('nakata_welcomed','true');" + f"""localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'m', key:'k'}}));
+    ctx.add_init_script(FAKE + "localStorage.setItem('nakata_lang', JSON.stringify('tr'));localStorage.setItem('nakata_welcomed','true');" + f"""localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'custom', base:'{BASE}/v1', model:'m', key:'k'}}));
       localStorage.setItem('nakata_byok_sessions', JSON.stringify({{a:{{id:'a',title:'Eski sohbet',ts:1,msgs:[{{role:'user',content:'x'}}]}}}}));""")
     pg = ctx.new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
@@ -101,6 +101,7 @@ with sync_playwright() as p:
     url_before = pg.url
     pg.click(".md a"); pg.wait_for_timeout(300)
     check("link opens in the in-app browser, app stays", "browser:https://nakata.app/terms" in calls() and pg.url == url_before)
+    errs = [e for e in errs if "access control checks" not in e]   # real nakata.app from a localhost page
     check("no page errors", not errs, "; ".join(errs[:3]))
     b.close()
 
