@@ -49,7 +49,6 @@ button.title:active{opacity:.6}
 .hero{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:24px 20px 40px;max-width:640px;margin:0 auto}
 .hero[hidden]{display:none}
 .hero .brand{display:flex;flex-direction:column;align-items:center;gap:20px}
-.hero .brand img{width:104px;height:auto;opacity:.95}
 .hero h1{margin:0;font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em;text-align:center}
 .starters{display:flex;flex-direction:column;gap:10px}
 .starter{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:15px 16px;border:1px solid var(--line);border-radius:14px;color:var(--side-ink);font-size:15px}
@@ -62,9 +61,7 @@ button.title:active{opacity:.6}
 .row{display:flex;flex-direction:column}
 .row.user{align-items:flex-end}
 .bubble{max-width:86%;background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:10px 15px;white-space:pre-wrap;overflow-wrap:anywhere}
-.asst{display:flex;gap:12px;align-items:flex-start}
-.avatar{width:26px;height:26px;border-radius:7px;overflow:hidden;flex:none;margin-top:1px}
-.avatar img{width:100%;height:100%}
+.asst{display:block}
 .md{min-width:0;flex:1;overflow-wrap:anywhere}
 .md>:first-child{margin-top:0}
 .md>:last-child{margin-bottom:0}
@@ -81,6 +78,32 @@ button.title:active{opacity:.6}
 .reason{align-self:flex-start;max-width:100%;color:var(--muted);font-size:13px;line-height:1.45;border-left:2px solid var(--line);padding:1px 0 1px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
 .note{align-self:center;color:var(--muted);font-size:13px;text-align:center}
 .note.err{color:var(--err)}
+
+/* Nakata orb: animations and dark-theme body from the desktop (bots.css) */
+.bot-orb .orb-eyes{transform-box:fill-box;transform-origin:center;transition:transform .11s ease}
+.bot-orb .orb-eyes.orb-blink,.bot-orb .orb-eyes.orb-squint{transform:scaleY(.1)}
+.bot-orb .orb-look{transition:transform .18s ease-out}
+.bot-orb .orb-z{transition:opacity .3s ease}
+.bot-orb[data-expression="sleeping"] .orb-z text{animation:orb-z 2.4s ease-in-out infinite}
+.bot-orb[data-expression="sleeping"] .orb-z text+text{animation-delay:.6s}
+@keyframes orb-z{0%,100%{opacity:.25}50%{opacity:1}}
+.bot-orb[data-expression="thinking"] .orb-look{animation:orb-ponder 2.2s ease-in-out infinite}
+@keyframes orb-ponder{0%,100%{transform:translate(2px,-3px)}50%{transform:translate(7px,-5px)}}
+.bot-orb .orb-b0{stop-color:#33507e}
+.bot-orb .orb-b1{stop-color:#1b2c4a}
+.bot-orb .orb-b2{stop-color:#132038}
+.bot-orb .orb-rim{stroke:var(--orb);stroke-opacity:.9;stroke-width:5}
+.bot-orb{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--orb) 45%,transparent))}
+.small-orb .orb-shadow{display:none}
+.nk-mascot{display:flex;justify-content:center}
+.nk-mascot .bot-orb{filter:drop-shadow(0 16px 28px rgba(91,140,255,.28))}
+.pending{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.msg-actions{display:flex;align-items:center;gap:4px;margin-top:10px}
+.msg-actions .copy{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
+.msg-actions .copy svg{width:15px;height:15px}
+.reply-orb:is([data-expression="happy"],[data-expression="excited"],[data-expression="surprised"],[data-expression="angry"],[data-expression="unsure"],[data-expression="wink"]){animation:orb-pop .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes orb-pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.bot-orb *,.reply-orb{animation:none!important;transition:none!important}}
 
 /* composer */
 .composer-wrap{flex:none;padding:6px 12px calc(env(safe-area-inset-bottom) + 10px)}
@@ -125,7 +148,6 @@ form.composer textarea::placeholder{color:var(--muted)}
 .botopt{display:flex;align-items:center;border-radius:12px}
 .botmain{flex:1;display:flex;align-items:center;gap:12px;text-align:left;padding:11px 10px;border-radius:12px;min-width:0}
 .botmain:active{background:#ffffff0f}
-.botopt .avatar{width:32px;height:32px;border-radius:8px;margin:0}
 .botopt .meta{min-width:0;flex:1}
 .botopt .nm{font-weight:600;color:var(--ink)}
 .botopt .ds{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -172,7 +194,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 <main class="view" id="chatView">
   <div class="scroll" id="chatScroll">
     <section class="hero" id="hero">
-      <div class="brand"><img src="mark.svg" alt="Nakata" width="104" height="56"><h1>Ne lazım?</h1></div>
+      <div class="brand"><div class="nk-mascot" id="mascot"></div><h1>Ne lazım?</h1></div>
       <div class="starters" id="starters"></div>
     </section>
     <div id="thread" hidden></div>
@@ -259,10 +281,17 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
   </div></div>
 </section>
 
+<script src="bot-orb.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
-const avatar = (cls = "avatar") => { const a = el("div", cls); const i = el("img"); i.src = "mark-tile.svg"; i.alt = ""; a.append(i); return a; };
+// The desktop mascot (bot-orb.js): Nakata is the blue orb, each bot its own colour.
+const NAKATA_ORB_COLOR = "#5b8cff";
+const BOT_COLORS = ["#d97757", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#fbbf24"];
+const botColor = (name) => BOT_COLORS[[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % BOT_COLORS.length];
+const orbColor = () => (activeBot ? botColor(activeBot) : NAKATA_ORB_COLOR);
+const orb = (opts) => { const o = createOrb(opts); o.el._orb = o; return o; };
+const ICON_COPY = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
 const ICON_CHECK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const ICON_EDIT = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 const ICON_X = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
@@ -443,17 +472,21 @@ $("#st-save").addEventListener("click", () => {
 function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
-function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; }
+function setModelLabel(){ $("#modelName").textContent = activeBot || "Nakata"; mascot?.setColor(orbColor()); }
 function openBotSheet(){
   $("#drawer").classList.remove("on");
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
-  const list = $("#botList"); list.replaceChildren();
+  const list = $("#botList");
+  for (const o of list.querySelectorAll(".bot-orb")) o._orb?.destroy();
+  list.replaceChildren();
   const mk = (name, desc, on, isBot) => {
     const row = el("div", "botopt" + (on ? " on" : ""));
     const main = el("button", "botmain");
     const meta = el("div", "meta"); meta.append(el("div", "nm", name)); if (desc) meta.append(el("div", "ds", desc));
     const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
-    main.append(avatar(), meta, chk.firstChild);
+    const face = orb({ size: 34, color: isBot ? botColor(name) : NAKATA_ORB_COLOR, expression: on ? "happy" : "neutral" });
+    face.el.classList.add("small-orb");
+    main.append(face.el, meta, chk.firstChild);
     main.addEventListener("click", () => { activeBot = isBot ? name : null; setModelLabel(); closeSheet(); haptic(); });
     row.append(main);
     if (isBot) {
@@ -534,15 +567,107 @@ for (const s of STARTERS) {
   $("#starters").append(b);
 }
 
+/* ---- mascot: desktop app.js "Nakata mascot" + poke handler, same timings ---- */
+const mascot = orb({ size: 92, color: NAKATA_ORB_COLOR, expression: "neutral", follow: true });
+$("#mascot").append(mascot.el);
+{
+  let idle = null, asleep = false;
+  const doze = () => {
+    clearTimeout(idle);
+    idle = setTimeout(() => { mascot.set("sleepy"); idle = setTimeout(() => { mascot.set("sleeping"); asleep = true; }, 30000); }, 45000);
+  };
+  const wake = () => {
+    if (asleep) { asleep = false; mascot.set("surprised"); setTimeout(() => mascot.set("neutral"), 900); }
+    else if (mascot.expression === "sleepy") mascot.set("neutral");
+    doze();
+  };
+  window.addEventListener("pointerdown", wake, { passive: true });
+  window.addEventListener("pointermove", wake, { passive: true });
+  window.addEventListener("keydown", wake);
+  // Typing a first message: it perks up.
+  $("#prompt").addEventListener("input", () => {
+    if (!asleep && $("#prompt").value.trim()) mascot.set("attentive");
+    else if (!$("#prompt").value.trim()) mascot.set("neutral");
+  });
+  // Idle life: now and then a small glance, wink or smile.
+  const glance = () => setTimeout(() => {
+    if (!asleep && !$("#hero").hidden && mascot.expression === "neutral") {
+      const pick = ["curious", "wink", "happy", "attentive", "excited"][Math.floor(Math.random() * 5)];
+      mascot.set(pick);
+      setTimeout(() => mascot.expression === pick && mascot.set("neutral"), 1300);
+    }
+    glance();
+  }, 9000 + Math.random() * 12000);
+  doze(); glance();
+}
+// Poke an orb: once -> wink, a quick storm of pokes -> angry.
+{
+  const pokes = [], timers = new Map();
+  document.addEventListener("click", (e) => {
+    const o = e.target instanceof Element ? e.target.closest("svg.bot-orb")?._orb : null;
+    if (!o || e.target.closest("#botSheet")) return;
+    const now = Date.now(); pokes.push(now);
+    while (pokes.length && now - pokes[0] > 1600) pokes.shift();
+    const before = o.expression === "angry" || o.expression === "wink" ? "neutral" : o.expression;
+    o.set(pokes.length >= 4 ? "angry" : "wink"); haptic();
+    clearTimeout(timers.get(o));
+    timers.set(o, setTimeout(() => o.set(before), pokes.length >= 4 ? 1800 : 900));
+  });
+}
+
 function showHero(on){ $("#hero").hidden = !on; $("#thread").hidden = on; }
 function scrollDown(){ const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
 function addUser(text){ const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
+// Turn output goes above the "thinking" row while a turn runs.
+function put(node){ if (pendingRow) $("#thread").insertBefore(node, pendingRow); else $("#thread").append(node); scrollDown(); }
 function addAsst(){
   const r = el("div", "row"); const w = el("div", "asst");
-  const text = el("div", "md"); w.append(avatar(), text); r.append(w); $("#thread").append(r); scrollDown();
+  const text = el("div", "md"); w.append(text); r.append(w); put(r);
   return text;
 }
-function addNote(text, err){ const n = el("div", "note" + (err ? " err" : ""), text); $("#thread").append(n); scrollDown(); if (err) hapticError(); }
+function addNote(text, err){ put(el("div", "note" + (err ? " err" : ""), text)); if (err) { hapticError(); flashReply("surprised"); } }
+
+// Desktop: the orb thinks along while the run is live, with the elapsed time.
+let pendingRow = null, pendingOrb = null, pendingTick = 0;
+function showPending(){
+  pendingOrb ??= orb({ size: 22, color: orbColor(), expression: "thinking" });
+  pendingOrb.setColor(orbColor()); pendingOrb.set("thinking"); pendingOrb.el.classList.add("small-orb");
+  const time = el("span", "", "0 sn"), t0 = Date.now();
+  pendingRow = el("div", "pending"); pendingRow.append(pendingOrb.el, time);
+  $("#thread").append(pendingRow); scrollDown();
+  pendingTick = setInterval(() => { time.textContent = `${Math.round((Date.now() - t0) / 1000)} sn`; }, 1000);
+}
+function hidePending(){ clearInterval(pendingTick); pendingRow?.remove(); pendingRow = null; }
+
+// Desktop turnFace: the last answer carries the mascot, its face reading the turn.
+let replyOrb = null;
+function turnFace(text){
+  const t = String(text || "").trim();
+  if (/\?\s*$/.test(t) || /\b(hangisini|hangisi|ister misin|which one|should i|do you want)\b/i.test(t.slice(-240))) return "unsure";
+  return "happy";
+}
+function markLastReply(){
+  for (const bar of document.querySelectorAll("#thread .msg-actions")) bar.remove();
+  const rows = document.querySelectorAll("#thread .row:not(.user)");
+  const last = rows[rows.length - 1];
+  const text = convo.filter((m) => m.role === "assistant").at(-1)?.content;
+  if (!last || !text) return;
+  replyOrb ??= orb({ size: 28, color: orbColor(), expression: "neutral" });
+  replyOrb.setColor(orbColor()); replyOrb.el.classList.add("reply-orb", "small-orb");
+  const copy = el("button", "copy"); copy.innerHTML = ICON_COPY + "<span>Kopyala</span>";
+  copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); } catch { return; }
+    haptic(); copy.lastChild.textContent = "Kopyalandı";
+    setTimeout(() => { copy.lastChild.textContent = "Kopyala"; }, 1400);
+  });
+  const bar = el("div", "msg-actions"); bar.append(replyOrb.el, copy); last.append(bar);
+  replyOrb.set("neutral"); requestAnimationFrame(() => replyOrb.set(turnFace(text)));
+}
+function flashReply(face){
+  if (!replyOrb?.el.isConnected) return;
+  const before = replyOrb.expression; replyOrb.set(face);
+  setTimeout(() => replyOrb.expression === face && replyOrb.set(before), 1400);
+}
 
 function newChat(){
   if (controller) controller.abort();
@@ -558,6 +683,7 @@ function renderConvo(){
     if (m.role === "user") addUser(m.content);
     else if (m.role === "assistant" && m.content.trim()) addAsst().innerHTML = md(m.content);
   }
+  markLastReply();
 }
 function openConvo(id){
   const s = allSessions()[id]; if (!s) return;
@@ -593,7 +719,7 @@ async function send(text){
   const cfg = getCfg();
   const free = cfg.provider === "nakata";
   if (!free && !cfg.key) { openSettings(); return; }
-  haptic(); showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true);
+  haptic(); showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true); showPending();
   convo.push({ role: "user", content: text });
 
   const bot = activeBot ? allBots()[activeBot] : null;
@@ -635,7 +761,7 @@ async function send(text){
         let ev; try { ev = JSON.parse(payload); } catch { continue; }
         if (ev.error) { addNote("Hata: " + (ev.error.message || ev.error), true); continue; }
         const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
-        if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); $("#thread").append(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
+        if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
         if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paint); }
       }
     }
@@ -645,10 +771,12 @@ async function send(text){
     if (frame) { cancelAnimationFrame(frame); paint(); }
     if (e.name !== "AbortError") addNote("Bağlantı: " + e.message, true);
   } finally {
+    hidePending();
     if (acc) convo.push({ role: "assistant", content: acc });
     else convo.pop(); // a failed turn does not keep the user message
     persist();
     controller = null; setBusy(false);
+    if (acc) markLastReply();
   }
 }
 
