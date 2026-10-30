@@ -28,7 +28,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 40
     env:
-      TEAM_ID: HC5K8Z76UG
+      TEAM_ID: 4R8F8KK5SX
       SCHEME: App
       WORKSPACE: ios/App/App.xcworkspace
       # secrets can't be used in `if:` directly — mirror to an env var and gate on it
