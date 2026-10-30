@@ -24,6 +24,8 @@
   --accent:#c6613f; --on-accent:#ffffff; --err:#c3324a; --link:#c6613f;
   color-scheme:light;
 }
+:root[data-theme="light"] .bot-orb,:root[data-theme="light"] .nk-mascot .bot-orb{filter:none}
+:root[data-theme="light"] .bot-orb .orb-rim{stroke-opacity:0}
 :root[data-theme="grey"]{
   --bg:#262624; --side:#1f1e1c; --raised:#30302e; --line:#3a3a37;
   --ink:#f5f4ee; --side-ink:#c3c2b8; --muted:#9a978d;
@@ -537,6 +539,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
       <option value="groq">Groq</option>
       <option value="deepseek">DeepSeek</option>
       <option value="gemini">Google Gemini</option>
+      <option value="ollama">Ollama Cloud (kendi anahtarın)</option>
       <option value="custom">Özel adres</option>
     </select>
     <div id="st-byok">
@@ -602,7 +605,7 @@ const LS = {
    The interface text is written in Turkish; with English selected a dictionary
    rewrites it on the page (text nodes, placeholders, labels) as it appears. ---- */
 const EN = {
-  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","Sesli konuş":"Talk","Görüşmeyi bitir":"End call","Bağlanıyor…":"Connecting…","Dinliyorum":"Listening","Bağlantı koptu.":"Connection lost.",
+  "Nasıl yardımcı olabilirim?":"How can I help?","Yeni sohbet":"New chat","Ollama Cloud (kendi anahtarın)":"Ollama Cloud (your own key)","Anahtarın nakata.app üzerinden doğrudan Ollama'ya gider, orada saklanmaz. Örnek: gemma4:31b, glm-5.3, kimi-k3":"Your key goes through nakata.app straight to Ollama and is not stored there. Example: gemma4:31b, glm-5.3, kimi-k3","Ollama anahtarını Ayarlar'dan ekle.":"Add your Ollama key in Settings.","Sesli konuş":"Talk","Görüşmeyi bitir":"End call","Bağlanıyor…":"Connecting…","Dinliyorum":"Listening","Bağlantı koptu.":"Connection lost.",
   "Sesli konuşma şu an kapalı.":"Voice is closed right now.","Bugünkü ücretsiz sesli süren bitti ve kredin yetmiyor.":"Today's free voice time is used up and your credits are too low.",
   "Zaten açık bir görüşmen var.":"You already have a call open.","Bugün çok fazla sesli görüşme açtın.":"You started too many calls today.","Sesli konuşmak için giriş yap.":"Sign in to talk.",
   "Sesli görüşme başlatılamadı. Tekrar dene.":"The call could not start. Try again.","Sesli görüşme başlatılamadı.":"The call could not start.",
@@ -765,6 +768,9 @@ const PROVIDERS = {
              keyUrl:"https://platform.deepseek.com/api_keys", hint:"Örnek: deepseek-chat, deepseek-reasoner" },
   gemini:{ base:"https://generativelanguage.googleapis.com/v1beta/openai", model:"gemini-flash-lite-latest",
            keyUrl:"https://aistudio.google.com/apikey", hint:"Örnek: gemini-flash-lite-latest, gemini-3.5-flash, gemini-pro-latest" },
+  // ollama.com sends no CORS headers, so the app reaches it through a fixed-URL relay on nakata.app; the key is not stored there.
+  ollama:{ base:"https://nakata.app/api/mobile/ollama", model:"gemma4:31b",
+           keyUrl:"https://ollama.com/settings/keys", hint:"Anahtarın nakata.app üzerinden doğrudan Ollama'ya gider, orada saklanmaz. Örnek: gemma4:31b, glm-5.3, kimi-k3" },
   custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI uyumlu herhangi bir adres (…/v1)" },
 };
 const FREE_CFG = { provider:"nakata", base:PROVIDERS.nakata.base, model:PROVIDERS.nakata.model, key:"" };
@@ -1122,7 +1128,19 @@ $("#mascot").append(mascot.el);
   }, 9000 + Math.random() * 12000);
   doze(); glance();
 }
-// Poke an orb: once -> wink, a quick storm of pokes -> angry.
+// Poke an orb: a different reaction each time (never the same twice in a row), a quick storm of pokes -> angry.
+const POKE_FACES = ["wink", "happy", "surprised", "curious", "excited", "unsure", "attentive"];
+let lastPoke = null;
+function pokeFace(current){
+  const pool = POKE_FACES.filter((f) => f !== lastPoke && f !== current);
+  return (lastPoke = pool[Math.floor(Math.random() * pool.length)]);
+}
+// React with a face for a moment: `where` is an orb, or an element that holds one.
+function react(where, face, ms = 1400){
+  const o = where?.set ? where : (typeof where === "string" ? $(where) : where)?.querySelector?.("svg.bot-orb")?._orb;
+  if (!o) return;
+  const before = o.expression; o.set(face); setTimeout(() => o.expression === face && o.set(before === face ? "neutral" : before), ms);
+}
 {
   const pokes = [], timers = new Map();
   document.addEventListener("click", (e) => {
@@ -1130,8 +1148,8 @@ $("#mascot").append(mascot.el);
     if (!o || e.target.closest("#botSheet")) return;
     const now = Date.now(); pokes.push(now);
     while (pokes.length && now - pokes[0] > 1600) pokes.shift();
-    const before = o.expression === "angry" || o.expression === "wink" ? "neutral" : o.expression;
-    o.set(pokes.length >= 4 ? "angry" : "wink"); haptic();
+    const before = POKE_FACES.includes(o.expression) || o.expression === "angry" ? "neutral" : o.expression;
+    o.set(pokes.length >= 4 ? "angry" : pokeFace(o.expression)); haptic();
     clearTimeout(timers.get(o));
     timers.set(o, setTimeout(() => o.set(before), pokes.length >= 4 ? 1800 : 900));
   });
@@ -1147,7 +1165,7 @@ function addAsst(){
   const text = el("div", "md"); w.append(text); r.append(w); put(r);
   return text;
 }
-function addNote(text, err){ put(el("div", "note" + (err ? " err" : ""), text)); if (err) { hapticError(); flashReply("surprised"); } }
+function addNote(text, err){ put(el("div", "note" + (err ? " err" : ""), text)); if (err) { hapticError(); flashReply(/bitti|yoğun|kapalı|kredi|yetmiyor|limit/i.test(text) ? "sad" : "surprised"); } }
 
 // Desktop: the orb thinks along while the run is live, with the elapsed time.
 let pendingRow = null, pendingOrb = null, pendingTick = 0;
@@ -1671,7 +1689,7 @@ $("#bd-open").addEventListener("click", () => {
 $("#bd-like").addEventListener("click", async () => {
   if (!detailBot || !token()) { if (!token()) openAccount(); return; }
   const r = await api(`/bots/${detailBot.id}/like`, { method: "POST", body: {} });
-  if (r.ok) { $("#bd-like").classList.toggle("on", r.j.liked); $("#bd-likes").textContent = r.j.likes; if (r.j.liked) deckAdd({ ...detailBot, likes: r.j.likes }); haptic(); }
+  if (r.ok) { $("#bd-like").classList.toggle("on", r.j.liked); $("#bd-likes").textContent = r.j.likes; if (r.j.liked) react("#bd-orb", "excited"); if (r.j.liked) deckAdd({ ...detailBot, likes: r.j.likes }); haptic(); }
 });
 $("#bd-report").addEventListener("click", async () => {
   if (!detailBot || !token()) { if (!token()) openAccount(); return; }

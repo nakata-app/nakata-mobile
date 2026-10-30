@@ -125,7 +125,10 @@ with sync_playwright() as p:
     m = pg.evaluate("(() => { const o = document.querySelector('#mascot svg.bot-orb'); return Math.round(o.getBoundingClientRect().width); })()")
     check("desktop mascot greets the empty chat", m == 92, f"w={m}")
     pg.click("#mascot svg"); pg.wait_for_timeout(120)
-    check("poking the mascot makes it wink", pg.evaluate("document.querySelector('#mascot svg').dataset.expression") == "wink")
+    first = pg.evaluate("document.querySelector('#mascot svg').dataset.expression")
+    check("poking the mascot reacts with a face", first in ("wink", "happy", "surprised", "curious", "excited", "unsure", "attentive"), str(first))
+    pg.click("#mascot svg"); pg.wait_for_timeout(120)
+    check("a second poke picks another face", pg.evaluate("document.querySelector('#mascot svg').dataset.expression") not in (first, "neutral"))
     check("desktop chat heading, no starters", pg.inner_text(".hero h1") == "Nasıl yardımcı olabilirim?" and pg.locator(".starter").count() == 0)
     shot(pg, "empty.png")
 
