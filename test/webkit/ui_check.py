@@ -185,6 +185,21 @@ with sync_playwright() as p:
     md = pg.evaluate("(() => { const m = document.querySelector('.md'); return { strong: !!m.querySelector('strong'), li: m.querySelectorAll('li').length, pre: !!m.querySelector('pre code'), link: (m.querySelector('a') || {}).href || null, img: m.querySelectorAll('img').length, text: m.innerText }; })()")
     check("markdown renders (bold, list, code, link)", md["strong"] and md["li"] == 3 and md["pre"] and md["link"] == "https://nakata.app/")
     check("raw HTML from the model stays text", md["img"] == 0 and "<img src=x" in md["text"])
+    preview = pg.evaluate("""(() => {
+      const box = document.createElement('div');
+      box.innerHTML = md('![Belgrade skyline](https://thumb.wikimedia.org/wikipedia/commons/thumb/a/bc/travel.jpg/420px-travel.jpg)');
+      const img = box.querySelector('.md-chat-image');
+      const result = { maxWidth: img.style.maxWidth, maxHeight: img.style.maxHeight, cursor: img.style.cursor };
+      document.querySelector('#thread .md').append(img);
+      return result;
+    })()""")
+    check("chat images use compact inline previews", preview == {"maxWidth": "min(100%, 420px)", "maxHeight": "280px", "cursor": "zoom-in"}, str(preview))
+    pg.evaluate("document.querySelector('.md-chat-image').click()"); pg.wait_for_selector(".md-chat-image-lightbox:not([hidden])", timeout=2000)
+    check("clicking an image opens an in-chat full-size preview", pg.locator(".md-chat-image-lightbox img").get_attribute("alt") == "Belgrade skyline")
+    pg.evaluate("document.querySelector('.md-chat-image-lightbox img').click()")
+    check("tapping the enlarged image does not close it", pg.locator(".md-chat-image-lightbox:not([hidden])").count() == 1)
+    pg.locator(".md-chat-image-lightbox button").click(force=True)
+    check("image preview can be closed", pg.locator(".md-chat-image-lightbox[hidden]").count() == 1)
     check("reasoning shown", pg.locator(".reason").count() == 1)
     check("request carries model and history", H.last.get("model") == "test-model" and H.last["messages"][-1]["content"] == "üç madde yaz" and H.last.get("stream") is True)
     check("conversation saved", pg.evaluate("Object.values(JSON.parse(localStorage.getItem('nakata_byok_sessions'))).length") == 3)
