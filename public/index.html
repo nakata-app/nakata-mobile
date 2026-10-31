@@ -45,6 +45,11 @@ button:active{transform:scale(.97)}
    icon carries width/height attributes and a size rule. */
 svg{display:block;flex:none}
 img{display:block;-webkit-user-drag:none;pointer-events:none}
+img.md-chat-image{pointer-events:auto!important;cursor:zoom-in}
+.md-chat-image-lightbox{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.9);cursor:zoom-out}
+.md-chat-image-lightbox[hidden]{display:none}
+.md-chat-image-lightbox img{display:block;width:auto;height:auto;max-width:92vw;max-height:88vh;object-fit:contain;border-radius:12px;pointer-events:auto!important}
+.md-chat-image-lightbox button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:44px;height:44px;border-radius:50%;background:#ffffff22;color:#fff;font-size:28px;line-height:1}
 
 /* top bar */
 header{display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top) + 4px) 6px 4px;flex:none;min-height:52px}
@@ -567,6 +572,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   </div></div>
 </section>
 
+<script src="travel-chat.js?v=20261031-v2"></script>
 <script src="bot-orb.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -718,6 +724,7 @@ function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
     ? "<code>" + esc(part.slice(1, -1)) + "</code>"
     : esc(part)
+        .replace(/!\[([^\]]*)\]\((https:\/\/(?:upload|thumb)\.wikimedia\.org\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/(^|[\s(])[*_](?!\s)(.+?)[*_](?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -915,6 +922,7 @@ const BOT_TEMPLATES = [
   { name: "Image Prompt Artist", desc: "Turns ideas into image prompts", persona: "You write prompts for AI image models. From the user's idea, produce three prompt variants (clean, cinematic, stylized) that state subject, setting, lighting, lens or medium, mood and aspect ratio. Keep each prompt under 80 words. Ask one question if the idea is too vague. Answer in the user's language." },
   { name: "Product Designer", desc: "UX flows, screens and critique", persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
   { name: "Research Analyst", desc: "Structured research and summaries", persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
+  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Answer in the traveller's language. Reuse trip context and ask only for the most important missing detail. Verify attractions, transport, food and accommodation with supplied live sources; never invent places, prices or schedules. Clearly separate confirmed facts, estimates and unknowns. Build realistic day-by-day routes with transfer times, named food options, weather alternatives and an itemised budget. Cite exact sources and use local dates and times. Never present background-only research as live verification." },
   { name: "Social Media Manager", desc: "Posts, hooks and content calendars", persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
   { name: "Writing Editor", desc: "Sharpens text and keeps your voice", persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
 ];
@@ -1156,6 +1164,40 @@ function react(where, face, ms = 1400){
 }
 
 function showHero(on){ $("#hero").hidden = !on; $("#thread").hidden = on; }
+let chatImageLightbox;
+function openChatImagePreview(src, alt) {
+  if (!chatImageLightbox) {
+    const overlay = document.createElement("div");
+    overlay.className = "md-chat-image-lightbox";
+    overlay.hidden = true;
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Image preview");
+    const image = document.createElement("img");
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Close image");
+    const hide = () => { overlay.hidden = true; };
+    overlay.addEventListener("click", (event) => { if (event.target === overlay) hide(); });
+    image.addEventListener("click", (event) => event.stopPropagation());
+    close.addEventListener("click", hide);
+    overlay.append(image, close);
+    document.body.append(overlay);
+    chatImageLightbox = overlay;
+  }
+  const image = chatImageLightbox.querySelector("img");
+  image.src = src;
+  image.alt = alt || "";
+  chatImageLightbox.hidden = false;
+}
+document.addEventListener("click", (event) => {
+  const image = event.target.closest?.(".md-chat-image");
+  if (image) { openChatImagePreview(image.src, image.alt); return; }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && chatImageLightbox && !chatImageLightbox.hidden) chatImageLightbox.hidden = true;
+});
 function scrollDown(){ const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
 function addUser(text){ const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
 // Turn output goes above the "thinking" row while a turn runs.
@@ -1268,10 +1310,17 @@ async function send(text){
 
   const bot = !gb && activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
+  const travelAssistant = !gb && window.NakataTravelResearch?.isTravelAssistant({ id: activeBot === "Travel Assistant" ? "travel-assistant" : "", name: activeBot });
+  const travelResearch = travelAssistant ? await window.NakataTravelResearch.search({
+    history: convo,
+    deviceId: deviceId(),
+    endpoint: "https://nakata.app/api/mobile/travel-research"
+  }) : null;
   const messages = [];
   if (!gb) {
     const prof = profileText();
-    const system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    let system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    if (travelAssistant) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (system) messages.push({ role: "system", content: system });
   }
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
@@ -1319,6 +1368,11 @@ async function send(text){
       }
     }
     if (frame) { cancelAnimationFrame(frame); paint(); }
+    if (acc && travelResearch) {
+      acc = window.NakataTravelResearch.enrich(acc, travelResearch);
+      if (bubble) bubble.innerHTML = md(acc);
+      scrollDown();
+    }
     if (!acc && !reasonNode) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true);
   } catch (e) {
     if (frame) { cancelAnimationFrame(frame); paint(); }
