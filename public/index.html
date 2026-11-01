@@ -45,6 +45,11 @@ button:active{transform:scale(.97)}
    icon carries width/height attributes and a size rule. */
 svg{display:block;flex:none}
 img{display:block;-webkit-user-drag:none;pointer-events:none}
+img.md-chat-image{pointer-events:auto!important;cursor:zoom-in}
+.md-chat-image-lightbox{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.9);cursor:zoom-out}
+.md-chat-image-lightbox[hidden]{display:none}
+.md-chat-image-lightbox img{display:block;width:auto;height:auto;max-width:92vw;max-height:88vh;object-fit:contain;border-radius:12px;pointer-events:auto!important}
+.md-chat-image-lightbox button{position:absolute;top:calc(env(safe-area-inset-top) + 12px);right:14px;width:44px;height:44px;border-radius:50%;background:#ffffff22;color:#fff;font-size:28px;line-height:1}
 
 /* top bar */
 header{display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top) + 4px) 6px 4px;flex:none;min-height:52px}
@@ -112,6 +117,9 @@ button.title:active{opacity:.6}
 .msg-actions{display:flex;align-items:center;gap:4px;margin-top:10px}
 .msg-actions .copy{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
 .msg-actions .copy svg{width:15px;height:15px}
+.msg-actions .report{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
+.msg-actions .report:disabled{opacity:.65;cursor:default}
+.msg-actions .report svg{width:15px;height:15px}
 .reply-orb:is([data-expression="happy"],[data-expression="excited"],[data-expression="surprised"],[data-expression="angry"],[data-expression="unsure"],[data-expression="wink"]){animation:orb-pop .5s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes orb-pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.bot-orb *,.reply-orb{animation:none!important;transition:none!important}}
@@ -294,6 +302,12 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .statusdot.live{color:#6ee7b7;background:#10b98122}
 .statusdot.pending{color:#fcd34d;background:#f59e0b22}
 .statusdot.flagged,.statusdot.rejected{color:var(--err);background:#e5736b22}
+
+.cloud-artifacts{width:100%;margin:10px 0 18px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--raised);display:grid;gap:8px}
+.cloud-artifacts-title{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.cloud-artifact-download{min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font-size:13px;text-align:left;overflow-wrap:anywhere}
+.cloud-artifact-download:disabled{opacity:.55}
+
 </style>
 </head>
 <body>
@@ -556,6 +570,12 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <div class="hint" id="st-modelhint"></div>
     </div>
     <div class="hint" id="st-freehint" hidden>Günde 500 bin tokena kadar ücretsiz. Daha fazlası için kendi anahtarınla bir sağlayıcı seç.</div>
+    <div id="st-adult-section">
+      <h3 class="sect">Sansürsüz mod (18+)</h3>
+      <label for="st-adult">18+ onayı</label>
+      <select id="st-adult" class="field"><option value="off">Kapalı</option><option value="on">Açık</option></select>
+      <div class="hint" id="st-adult-hint">Bu özellik için hesabına giriş yapmalısın.</div>
+    </div>
     <h3 class="sect">Kişiselleştirme</h3>
     <label for="pf-name">Sana nasıl hitap edeyim?</label>
     <input id="pf-name" class="field" autocomplete="off" placeholder="örn. Atakan">
@@ -567,6 +587,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   </div></div>
 </section>
 
+<script src="travel-chat.js?v=20261031-v2"></script>
 <script src="bot-orb.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -612,6 +633,23 @@ const EN = {
   "Mikrofon izni verilmedi. Ayarlar'dan izin verebilirsin.":"Microphone access was not granted. You can allow it in Settings.","Görüşme süresi doldu.":"The call reached its time limit.",
   "Kredin bitti, görüşme sonlandı.":"You ran out of credits; the call ended.","Uygulamadan çıkınca görüşme biter.":"The call ends when you leave the app.","Deste":"Deck","Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.":"No cards in your deck yet. A bot is added when you open it or like it.","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
   "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
+  "Sansürsüz mod (18+)":"Uncensored mode (18+)","18+ onayı":"18+ consent","Kapalı":"Off","Açık":"On",
+  "Bu özellik için hesabına giriş yapmalısın.":"Sign in to your account to use this feature.",
+  "18+ onayı kontrol ediliyor…":"Checking 18+ consent…",
+  "Yaş doğrulama yöntemi hukuki açıdan onaylanana kadar 18+ modeller kapalı.":"18+ models are disabled until a legally compliant age-verification method is approved.",
+  "18+ onayı açık. Yetişkinler arasındaki açık cinsel içerik desteklenir; 18 yaş altı kişileri içeren cinsel içerik ve diğer güvenlik sınırları kapalı kalır.":"18+ consent is on. Explicit sexual content between adults is supported; sexual content involving anyone under 18 and the other safety limits remain blocked.",
+  "Sansürsüz modelleri görmek için 18+ onayını aç.":"Turn on 18+ consent to see uncensored models.",
+  "Bu mod yalnızca 18 yaş ve üzeri yetişkinler içindir. 18 yaşından küçükleri içeren cinsel içerik, gerçek kişilere yönelik cinsel içerik veya zarar, kitle imha silahları ve zararlı yazılım kesinlikle yasaktır. Devam ederek 18 yaşından büyük olduğunu ve koşulları kabul ettiğini onaylıyor musun?":"This mode is for adults aged 18 or older only. Sexual content involving anyone under 18, sexual content or harm targeting real people, weapons of mass destruction, and malware are strictly prohibited. By continuing, do you confirm that you are at least 18 and accept these terms?",
+  "18+ onayı kaydedilemedi. Tekrar dene.":"Could not save 18+ consent. Try again.",
+  "18+ modu açıldı.":"18+ mode enabled.","18+ modu kapatıldı.":"18+ mode disabled.",
+  "Sansürsüz modeller 18+ onayı gerektiriyor. Uygulamada Ayarlar → Sansürsüz mod (18+) bölümünden açabilirsin.\nUncensored models need the 18+ consent: turn it on in the app under Settings → Uncensored mode (18+).":"Uncensored models require 18+ consent. Turn it on under Settings → Uncensored mode (18+).",
+  "Bu isteği yanıtlamıyorum: 18 yaşından küçükleri içeren cinsel içerik sansürsüz modda da kesinlikle kapalı.":"I won't answer this: sexual content involving anyone under 18 stays blocked in uncensored mode too.",
+  "Bu isteği yanıtlamıyorum: kimyasal, biyolojik, radyolojik ya da nükleer silah yapımına yardım sansürsüz modda da kapalı.":"I won't answer this: help building chemical, biological, radiological or nuclear weapons stays blocked in uncensored mode too.",
+  "Bu isteği yanıtlamıyorum: gerçek bir kişiyi bulmak, takip etmek, tehdit etmek ya da ifşa etmek sansürsüz modda da kapalı.":"I won't answer this: finding, stalking, threatening or exposing a real person stays blocked in uncensored mode too.",
+  "Bu isteği yanıtlamıyorum: başkalarına karşı kullanılacak zararlı yazılım üretmek sansürsüz modda da kapalı.":"I won't answer this: building malware to use against others stays blocked in uncensored mode too.",
+  "Refuseless sağlayıcı bakiyesi yetersiz; model geçici olarak kullanılamıyor.":"The Refuseless provider balance is too low; this model is temporarily unavailable.",
+  "Sansürsüz modeller şu anda kapalı.":"Uncensored models are closed right now.",
+  "Model (ücretsiz + 18+)":"Model (free + 18+)",
   "Hemen yazmaya başlayabilirsin. İstersen hazır bir botla başla.":"You can start typing right away, or begin with a ready-made bot.",
   "Başla":"Start","Bot seç":"Choose a bot","Yeni bot":"New bot","Kaydet":"Save","İsim":"Name","Tek satır açıklama":"One-line description",
   "(galeri için)":"(for the gallery)","(boşsa varsayılan)":"(default if empty)","Galeride yayınla":"Publish to Discover",
@@ -670,6 +708,7 @@ const EN_RE = [
   [/^(Yayında|İncelemede|Bildirildi|Reddedildi) · (\d+) sohbet · (\d+) ♥(.*)$/, (m, s, c, l, r) => `${EN[s] || s} · ${c} chats · ${l} ♥${r}`],
   [/^Kullanıcıya "(.*)" diye hitap et\.$/, 'Address the user as "$1".'], [/^Kullanıcı hakkında: (.*)$/, "About the user: $1"], [/^Cevap biçimi: (.*)$/, "Answer style: $1"],
   [/^Örnek: (.*)$/, "Example: $1"],
+  [/^18\+ · (\d+) kredi\/mesaj$/, "18+ · $1 credits/message"],
   [/^Bugün (\d+) dk ücretsiz kaldı\. Sonrası (\d+) kredi\/dk\.$/, "$1 free minutes left today. After that $2 credits/min."], [/^Ücretsiz süre bitti: (\d+) kredi\/dk\.$/, "Free time is used up: $1 credits/min."], [/^Almak için: (.*)$/, "Get one: $1"],
 ];
 let LANG = LS.get("nakata_lang", "en") === "tr" ? "tr" : "en";
@@ -718,6 +757,7 @@ function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
     ? "<code>" + esc(part.slice(1, -1)) + "</code>"
     : esc(part)
+    .replace(/!\[([^\]]*)\]\((https:\/\/(?:upload|thumb)\.wikimedia\.org\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/(^|[\s(])[*_](?!\s)(.+?)[*_](?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
@@ -864,10 +904,34 @@ document.addEventListener("click", (e) => { if (swallowClick) { swallowClick = f
 function fillProviderUI(p){
   const pr = PROVIDERS[p] || PROVIDERS.custom;
   $("#st-byok").hidden = !!pr.free; $("#st-freehint").hidden = !pr.free;
+  $("#st-adult-section").hidden = p !== "nakata";
   $("#st-base").value = pr.base; $("#st-base").readOnly = (p !== "custom");
   $("#st-model").placeholder = pr.model || "model-adı";
   $("#st-modelhint").textContent = pr.hint || "";
   $("#st-getkey").innerHTML = pr.keyUrl ? `Almak için: <a href="${pr.keyUrl}" target="_blank" rel="noopener">${pr.keyUrl.replace(/^https?:\/\//,"")}</a>` : "";
+}
+let adultConsent = false;
+let adultFeatureEnabled = false;
+let adultConsentBusy = false;
+function paintAdultConsent(){
+  const select = $("#st-adult"), hint = $("#st-adult-hint");
+  select.value = adultConsent ? "on" : "off";
+  select.disabled = !adultFeatureEnabled || !token() || adultConsentBusy;
+  hint.textContent = !adultFeatureEnabled ? tx("Yaş doğrulama yöntemi hukuki açıdan onaylanana kadar 18+ modeller kapalı.")
+    : !token() ? tx("Bu özellik için hesabına giriş yapmalısın.")
+    : adultConsent ? tx("18+ onayı açık. Yetişkinler arasındaki açık cinsel içerik desteklenir; 18 yaş altı kişileri içeren cinsel içerik ve diğer güvenlik sınırları kapalı kalır.")
+    : tx("Sansürsüz modelleri görmek için 18+ onayını aç.");
+}
+async function refreshAdultConsent(){
+  if (!token()) { adultConsent = false; adultFeatureEnabled = false; paintAdultConsent(); return false; }
+  adultConsentBusy = true; paintAdultConsent();
+  const r = await api("/uncensored-consent");
+  const previous = adultConsent, wasEnabled = adultFeatureEnabled;
+  adultFeatureEnabled = !!(r.ok && r.j?.enabled === true);
+  adultConsent = adultFeatureEnabled && r.j?.adult === true;
+  if (adultConsent !== previous || adultFeatureEnabled !== wasEnabled) modelCache = {};
+  adultConsentBusy = false; paintAdultConsent();
+  return adultConsent;
 }
 function openSettings(){
   const c = getCfg();
@@ -876,8 +940,24 @@ function openSettings(){
   $("#st-key").value = c.key || ""; $("#st-model").value = c.model || "";
   const pf = LS.get("nakata_profile", {}); $("#pf-name").value = pf.name || ""; $("#pf-about").value = pf.about || ""; $("#pf-style").value = pf.style || "";
   closeDrawer(); showPage("#f-settings");
+  void refreshAdultConsent();
 }
 $("#settingsRow").addEventListener("click", openSettings);
+$("#st-adult").addEventListener("change", async (e) => {
+  const on = e.target.value === "on";
+  if (!token()) { e.target.value = "off"; openAccount(); return; }
+  if (on && !confirm(tx("Bu mod yalnızca 18 yaş ve üzeri yetişkinler içindir. 18 yaşından küçükleri içeren cinsel içerik, gerçek kişilere yönelik cinsel içerik veya zarar, kitle imha silahları ve zararlı yazılım kesinlikle yasaktır. Devam ederek 18 yaşından büyük olduğunu ve koşulları kabul ettiğini onaylıyor musun?"))) {
+    e.target.value = adultConsent ? "on" : "off"; return;
+  }
+  adultConsentBusy = true; paintAdultConsent();
+  const r = await api("/uncensored-consent", { method: "POST", body: { on } });
+  adultConsentBusy = false;
+  if (!r.ok) { paintAdultConsent(); $("#st-adult-hint").textContent = tx("18+ onayı kaydedilemedi. Tekrar dene."); return; }
+  adultConsent = on; modelCache = {};
+  if (!on && String(LS.get("nakata_free_model", "")).startsWith("refuseless/")) { LS.del("nakata_free_model"); LS.del("nakata_free_label"); }
+  paintAdultConsent();
+  haptic();
+});
 $("#st-provider").addEventListener("change", (e) => {
   const p = e.target.value, pr = PROVIDERS[p] || PROVIDERS.custom;
   fillProviderUI(p);
@@ -916,6 +996,7 @@ const BOT_TEMPLATES = [
   { name: "Product Designer", desc: "UX flows, screens and critique", persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
   { name: "Research Analyst", desc: "Structured research and summaries", persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
   { name: "Social Media Manager", desc: "Posts, hooks and content calendars", persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
+  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Always answer in the traveller's language. Be specific, practical, visually descriptive and candid. Never give a generic list when the user asks for a trip plan.\n\nDISCOVERY: Reuse everything already in the conversation. Ask only for the single most important missing detail. Establish departure city, destination, exact dates/year, group size, total budget/currency and travel style. Clarify a missing year when ambiguous.\n\nRESEARCH: Use the supplied research extracts and available web tools before recommending places. Verify that every named attraction, neighbourhood, restaurant, bar, club and transport operator exists in the stated city. Prefer official attraction, transport, airport and venue pages. Cite important claims with exact source links. Check dates. If supplied research is background-only, do not describe it as live verification or use it to assert current opening hours, prices, schedules, events, availability, weather or entry rules. If no live sources are available, say so and label current details unverified. Never invent places, sources, prices or timetables.\n\nITINERARY: Give an overall recommendation and route overview, then one section for each calendar day. Use morning, lunch, afternoon, dinner and evening blocks. Group nearby stops together; provide visit duration and realistic transfer time. Explain why each stop is worth visiting. Include named food and nightlife choices, not just generic streets. Keep each day realistic with breaks, 3-5 main stops maximum, and a lighter arrival/departure day. Include indoor alternatives for winter or rain. Preserve original local place names when useful.\n\nVISUALS: Use supplied real image references to enrich the trip and retain their captions, credits and licence details. Never invent image links or claim a photo depicts a specific venue unless verified.\n\nBUDGET: Break down accommodation, intercity transport, local transit, meals, activities, connectivity, insurance and contingency. Separate checked prices from estimates, state currency, search date and assumptions. Do not present estimates as quotes. Compare transport and hotels by time, location, total cost, taxes and cancellation terms. For entry rules, verify official sources and clarify nationality and transit details when relevant. Consider solo safety, late arrivals, accessibility and dietary needs without exaggeration.\n\nOUTPUT: Quick trip read; neighbourhood route overview; detailed day-by-day schedule; food and nightlife shortlist; getting around; itemised estimated budget; reservations and practical tips; linked sources. Use local time and exact dates. Mark each detail CONFIRMED, ESTIMATED or TO VERIFY. Maintain a compact trip summary across follow-ups and update only what changed." },
   { name: "Writing Editor", desc: "Sharpens text and keeps your voice", persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
 ];
 function useTemplate(t){
@@ -1084,7 +1165,7 @@ function renderSessions(filter = ""){
     const t = el("button", "st", s.title || "(başlıksız)");
     t.addEventListener("click", () => { closeDrawer(); openConvo(s.id); });
     const x = el("button", "x"); x.setAttribute("aria-label", "Sil"); x.innerHTML = ICON_X;
-    x.addEventListener("click", (e) => { e.stopPropagation(); const all = allSessions(); delete all[s.id]; saveSessions(all); if (curId === s.id) newChat(); else renderSessions($("#search").value); });
+    x.addEventListener("click", (e) => { e.stopPropagation(); if (token()) chatCloudRequest("/conversations/" + encodeURIComponent(s.id), { method: "DELETE" }).catch(() => {}); const all = allSessions(); delete all[s.id]; saveSessions(all); if (curId === s.id) newChat(); else renderSessions($("#search").value); });
     row.append(t, x); list.append(row);
   }
 }
@@ -1156,6 +1237,41 @@ function react(where, face, ms = 1400){
 }
 
 function showHero(on){ $("#hero").hidden = !on; $("#thread").hidden = on; }
+let chatImageLightbox;
+function openChatImagePreview(src, alt) {
+  if (!chatImageLightbox) {
+    const overlay = document.createElement("div");
+    overlay.className = "md-chat-image-lightbox";
+    overlay.hidden = true;
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Image preview");
+    const image = document.createElement("img");
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Close image");
+    const hide = () => { overlay.hidden = true; };
+    overlay.addEventListener("click", (event) => { if (event.target === overlay) hide(); });
+    image.addEventListener("click", (event) => event.stopPropagation());
+    close.addEventListener("click", hide);
+    overlay.append(image, close);
+    document.body.append(overlay);
+    chatImageLightbox = overlay;
+  }
+  const image = chatImageLightbox.querySelector("img");
+  image.src = src;
+  image.alt = alt || "";
+  chatImageLightbox.hidden = false;
+}
+document.addEventListener("click", (event) => {
+  const image = event.target.closest?.(".md-chat-image");
+  if (image) { openChatImagePreview(image.src, image.alt); return; }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && chatImageLightbox && !chatImageLightbox.hidden) chatImageLightbox.hidden = true;
+});
+
 function scrollDown(){ const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
 function addUser(text){ const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
 // Turn output goes above the "thinking" row while a turn runs.
@@ -1186,8 +1302,32 @@ function turnFace(text){
   if (/\?\s*$/.test(t) || /\b(hangisini|hangisi|ister misin|which one|should i|do you want)\b/i.test(t.slice(-240))) return "unsure";
   return "happy";
 }
+function reportModel(){
+  if (galleryBot?.id) return `gallery:${galleryBot.id}`;
+  const bot = activeBot ? allBots()[activeBot] : null;
+  return bot?.model || getCfg().model || "unknown";
+}
+function addReportAction(row, text){
+  if (!row || row.querySelector(".report")) return;
+  const button = el("button", "report");
+  button.type = "button"; button.setAttribute("aria-label", "Bu AI yanıtını bildir");
+  button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5m0 0c5-4 10 4 16 0v11c-6 4-11-4-16 0"/></svg><span>Bildir</span>';
+  button.addEventListener("click", async () => {
+    if (!token()) { button.lastChild.textContent = "Giriş gerekli"; return; }
+    const original = button.lastChild.textContent; button.disabled = true; button.lastChild.textContent = "Gönderiliyor…";
+    const result = await api("/safety-report", { method: "POST", body: { content: String(text || "").slice(0, 12000), model: reportModel(), reason: "other" } });
+    if (result.ok) {
+      const savedLabel = result.j?.evidenceEncrypted ? "Bildirildi" : "Kaydedildi · metin şifrelenmedi";
+      button.lastChild.textContent = savedLabel; haptic();
+    } else {
+      button.disabled = false; button.lastChild.textContent = result.j?.error?.message || (result.status === 401 ? "Giriş gerekli" : "Tekrar dene");
+      if (result.status === 401) setTimeout(() => { if (button.isConnected) button.lastChild.textContent = original; }, 2200);
+    }
+  });
+  const bar = el("div", "msg-actions"); bar.classList.add("report-actions"); bar.append(button); row.append(bar);
+}
 function markLastReply(){
-  for (const bar of document.querySelectorAll("#thread .msg-actions")) bar.remove();
+  for (const bar of document.querySelectorAll("#thread .msg-actions:not(.report-actions)")) bar.remove();
   const rows = document.querySelectorAll("#thread .row:not(.user)");
   const last = rows[rows.length - 1];
   const text = convo.filter((m) => m.role === "assistant").at(-1)?.content;
@@ -1201,6 +1341,7 @@ function markLastReply(){
     setTimeout(() => { copy.lastChild.textContent = "Kopyala"; }, 1400);
   });
   const bar = el("div", "msg-actions"); bar.append(replyOrb.el, copy); last.append(bar);
+  addReportAction(last, text);
   replyOrb.set("neutral"); requestAnimationFrame(() => replyOrb.set(turnFace(text)));
 }
 function flashReply(face){
@@ -1221,9 +1362,13 @@ function renderConvo(){
   $("#thread").replaceChildren();
   for (const m of convo) {
     if (m.role === "user") addUser(m.content);
-    else if (m.role === "assistant" && m.content.trim()) addAsst().innerHTML = md(m.content);
+    else if (m.role === "assistant" && m.content.trim()) {
+      const node = addAsst(); node.innerHTML = md(m.content);
+      addReportAction(node.parentElement?.parentElement, m.content);
+    }
   }
   markLastReply();
+  if (token() && curId) renderCloudArtifacts(curId).catch(() => {});
 }
 function openConvo(id){
   const s = allSessions()[id]; if (!s) return;
@@ -1239,6 +1384,7 @@ function persist(){
   const all = allSessions();
   all[curId] = { id: curId, title, ts: Date.now(), bot: activeBot || null, gbot: galleryBot || null, msgs: convo };
   saveSessions(all);
+  scheduleChatCloudSync();
 }
 
 function setBusy(on){
@@ -1253,6 +1399,10 @@ const FREE_ERRORS = {
   slow_down: "Biraz hızlı gidiyoruz. Birkaç saniye bekleyip tekrar gönder.",
   free_busy: "Ücretsiz sohbet şu an çok yoğun. Biraz sonra tekrar dene.",
   free_closed: "Ücretsiz sohbet şu an kapalı. Ayarlar'dan kendi anahtarınla devam edebilirsin.",
+  consent_required: "Sansürsüz modeller 18+ onayı gerektiriyor. Uygulamada Ayarlar → Sansürsüz mod (18+) bölümünden açabilirsin.\nUncensored models need the 18+ consent: turn it on in the app under Settings → Uncensored mode (18+).",
+  hard_floor: "Bu istek güvenlik sınırları nedeniyle engellendi.",
+  provider_budget: "Refuseless sağlayıcı bakiyesi yetersiz; model geçici olarak kullanılamıyor.",
+  uncensored_closed: "Sansürsüz modeller şu anda kapalı.",
   upstream: "Model cevap vermedi. Tekrar dene.",
   no_credits: "Kredin yetmiyor.",
 };
@@ -1268,10 +1418,17 @@ async function send(text){
 
   const bot = !gb && activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
+  const travelAssistant = !gb && window.NakataTravelResearch?.isTravelAssistant({ id: activeBot === "Travel Assistant" ? "travel-assistant" : "", name: activeBot });
+  const travelResearch = travelAssistant ? await window.NakataTravelResearch.search({
+    history: convo,
+    deviceId: deviceId(),
+    endpoint: "https://nakata.app/api/mobile/travel-research"
+  }) : null;
   const messages = [];
   if (!gb) {
     const prof = profileText();
-    const system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    let system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    if (travelAssistant) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (system) messages.push({ role: "system", content: system });
   }
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
@@ -1299,6 +1456,9 @@ async function send(text){
       // Past the free quota a signed-in user may go on with a gallery bot for credits.
       if (code === "free_limit" && gb && token() && !payBots
           && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = text; return; }
+      if (["consent_required", "hard_floor", "provider_budget", "uncensored_closed"].includes(code)) {
+        addNote(tx(j.error?.message || FREE_ERRORS[code]), true); return;
+      }
       if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true); return; }
       throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
     }
@@ -1320,6 +1480,11 @@ async function send(text){
     }
     if (frame) { cancelAnimationFrame(frame); paint(); }
     if (!acc && !reasonNode) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true);
+    if (acc && travelResearch) {
+      acc = window.NakataTravelResearch.enrich(acc, travelResearch);
+      if (bubble) bubble.innerHTML = md(acc);
+      scrollDown();
+    }
   } catch (e) {
     if (frame) { cancelAnimationFrame(frame); paint(); }
     if (e.name !== "AbortError") addNote("Bağlantı: " + e.message, true);
@@ -1352,7 +1517,145 @@ const ICON_PLUS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" s
 let account = LS.get("nakata_account", null);   // { name, credits }
 let imageCosts = {};
 const token = () => LS.get("nakata_token", "");
-function signOutLocal(){ LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; paintAccount(); }
+let chatCloudBusy = false, chatCloudTimer = null;
+async function chatCloudResponse(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const t = token(); if (t) headers.Authorization = "Bearer " + t;
+  if (options.body != null && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  const response = await fetch("https://nakata.app/api/chat" + path, { ...options, headers });
+  if (!response.ok) {
+    const data = await response.clone().json().catch(() => ({}));
+    throw new Error(data?.error?.message || data?.error || "Chat sync failed");
+  }
+  return response;
+}
+async function chatCloudRequest(path, options = {}) {
+  return (await chatCloudResponse(path, options)).json();
+}
+async function mobileArtifactHash(bytes) {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, "0")).join("");
+}
+async function uploadMobileArtifacts(session) {
+  if (!token() || !session?.id) return session?.artifacts || [];
+  const messages = Array.isArray(session.msgs) ? session.msgs : [];
+  const route = "/conversations/" + encodeURIComponent(session.id) + "/artifacts";
+  const listed = await chatCloudRequest(route);
+  const known = new Map((listed.artifacts || []).map(item => [item.id, item]));
+  for (let mi = 0; mi < messages.length; mi++) {
+    const message = messages[mi];
+    if (message.role !== "assistant" || typeof message.content !== "string") continue;
+    let bi = 0;
+    for (const match of message.content.matchAll(/```html\s*\n?([\s\S]*?)```/gi)) {
+      const source = match[1].replace(/\n$/, "");
+      const bytes = new TextEncoder().encode(source);
+      if (!bytes.byteLength || bytes.byteLength > 8 * 1024 * 1024) { bi++; continue; }
+      const seed = String(session.id) + ":" + String(message.id || mi) + ":" + bi++;
+      const id = "html_" + (await mobileArtifactHash(new TextEncoder().encode(seed))).slice(0, 32);
+      const sha256 = await mobileArtifactHash(bytes);
+      if (known.get(id)?.sha256 === sha256) continue;
+      const result = await chatCloudRequest(route + "/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "text/html; charset=utf-8", "X-Artifact-Name": "nakata-artifact-" + (mi + 1) + "-" + bi + ".html", "X-Artifact-Hash": sha256 },
+        body: bytes,
+      });
+      if (result.artifact) known.set(id, { ...result.artifact, sha256 });
+    }
+  }
+  return [...known.values()];
+}
+
+async function renderCloudArtifacts(conversationId) {
+  if (!token() || !conversationId || conversationId !== curId) return;
+  const result = await chatCloudRequest("/conversations/" + encodeURIComponent(conversationId) + "/artifacts");
+  if (conversationId !== curId) return;
+  $("#thread .cloud-artifacts")?.remove();
+  if (!(result.artifacts || []).length) return;
+  const panel = el("section", "cloud-artifacts");
+  const heading = el("div", "cloud-artifacts-title"); heading.textContent = "PAYLAŞILAN DOSYALAR"; panel.append(heading);
+  for (const artifact of result.artifacts) {
+    const button = el("button", "cloud-artifact-download");
+    button.type = "button";
+    button.textContent = artifact.name + " · " + Math.max(1, Math.round((artifact.size || 0) / 1024)) + " KB";
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const response = await chatCloudResponse("/conversations/" + encodeURIComponent(conversationId) + "/artifacts/" + encodeURIComponent(artifact.id));
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a"); anchor.href = url; anchor.download = artifact.name || "artifact";
+        document.body.append(anchor); anchor.click(); anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+      } catch (error) { button.textContent = error.message || "İndirme başarısız"; }
+      finally { button.disabled = false; }
+    });
+    panel.append(button);
+  }
+  $("#thread").append(panel);
+}
+function scheduleChatCloudSync(){
+  if (!token()) return;
+  clearTimeout(chatCloudTimer);
+  chatCloudTimer = setTimeout(() => syncChatCloud({ uploadOnly: true }).catch(() => {}), 900);
+}
+async function syncChatCloud({ uploadOnly = false } = {}) {
+  if (!token() || chatCloudBusy) return;
+  chatCloudBusy = true;
+  try {
+    const remote = [], deletedIds = new Set();
+    for (let offset = 0; offset < 1000; offset += 100) {
+      const page = await chatCloudRequest("/conversations?limit=100&offset=" + offset);
+      remote.push(...(page.conversations || []));
+      for (const id of page.deletedIds || []) deletedIds.add(id);
+      if (remote.length >= (page.total || 0) || !(page.conversations || []).length) break;
+    }
+    const local = allSessions();
+    for (const id of deletedIds) delete local[id];
+    if (deletedIds.size) {
+      saveSessions(local);
+      if (curId && deletedIds.has(curId)) newChat();
+    }
+    const byId = new Map(remote.map(c => [c.id, c]));
+    for (const session of Object.values(local)) {
+      const meta = byId.get(session.id);
+      if (!meta || (session.ts || 0) > (meta.updatedAt || 0)) {
+        const artifacts = await uploadMobileArtifacts(session).catch(() => session.artifacts || meta?.artifacts || []);
+        const localBot = session.bot ? allBots()[session.bot] : null;
+        const bot = session.gbot
+          ? { kind: "community", id: session.gbot.id || "", name: session.gbot.name || "", bot: session.gbot }
+          : localBot ? { kind: "local", id: String(localBot.id || session.bot), name: localBot.name || String(session.bot), bot: localBot }
+          : session.bot ? { kind: "local", id: String(session.bot) } : { kind: "default" };
+        await chatCloudRequest("/conversations/" + encodeURIComponent(session.id), {
+          method: "PUT",
+          body: JSON.stringify({ id: session.id, title: session.title || "", createdAt: session.ts, updatedAt: session.ts, messages: session.msgs || [], bot, artifacts }),
+        });
+      }
+    }
+    if (!uploadOnly) {
+      for (const meta of remote) {
+        const session = local[meta.id];
+        if (session && (session.ts || 0) >= (meta.updatedAt || 0)) continue;
+        const detail = await chatCloudRequest("/conversations/" + encodeURIComponent(meta.id));
+        const c = detail.conversation;
+        if (c.bot?.kind === "local" && c.bot.bot) {
+          const bots = allBots();
+          bots[c.bot.bot.name || c.bot.id] = c.bot.bot;
+          saveBots(bots);
+        }
+        local[c.id] = {
+          id: c.id, title: c.title || "(başlıksız)", ts: c.updatedAt || Date.now(),
+          bot: c.bot?.kind === "local" ? (c.bot.bot?.name || c.bot.id) : null,
+          gbot: c.bot?.kind === "community" ? (c.bot.bot || { id: c.bot.id, name: c.bot.name }) : null,
+          msgs: Array.isArray(c.messages) ? c.messages : [], artifacts: c.artifacts || [],
+        };
+      }
+      saveSessions(local);
+      renderSessions($("#search")?.value || "");
+      if (curId && local[curId]) openConvo(curId);
+    }
+  } finally { chatCloudBusy = false; }
+}
+function signOutLocal(){ LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; adultConsent = false; adultFeatureEnabled = false; modelCache = {}; paintAdultConsent(); paintAccount(); }
 async function api(path, { method = "GET", body, form } = {}) {
   const headers = {}, t = token();
   if (t) headers.Authorization = "Bearer " + t;
@@ -1400,6 +1703,7 @@ $("#acc-login").addEventListener("click", async () => {
   account = { name: r.j.username || r.j.user || email, credits: typeof r.j.credits === "number" ? r.j.credits : undefined };
   LS.set("nakata_account", account); $("#acc-pass").value = ""; haptic();
   await refreshAccount();
+  await syncChatCloud().catch(() => {});
   if ($("#f-image").classList.contains("on")) { $("#f-account").classList.remove("on"); loadGallery(); }
 });
 $("#acc-logout").addEventListener("click", async () => { await api("/logout", { method: "POST", body: {} }); signOutLocal(); haptic(); });
@@ -1526,11 +1830,12 @@ function currentModel(){
 function paintModelChip(){ $("#modelChipName").textContent = currentModel().label || "Model"; }
 async function loadModels(){
   const cfg = getCfg();
+  if (cfg.provider === "nakata") await refreshAdultConsent();
   if (modelCache[cfg.provider]) return modelCache[cfg.provider];
   try {
     if (cfg.provider === "nakata") {
       const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models"); const j = await r.json();
-      modelCache.nakata = j.models || [];
+      modelCache.nakata = (j.models || []).filter((m) => !m.requiresConsent || adultConsent);
       if (!LS.get("nakata_free_model", "")) LS.set("nakata_free_label", (modelCache.nakata.find((m) => m.id === j.default) || {}).label || "");
     } else {
       const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models", { headers: { Authorization: "Bearer " + cfg.key } });
@@ -1544,7 +1849,7 @@ async function openModelSheet(){
   closeDrawer(); $("#scrim").classList.add("on"); $("#modelSheet").classList.add("on");
   const list = $("#modelList"); list.replaceChildren(el("div", "note", "Yükleniyor…"));
   const models = await loadModels(), cfg = getCfg();
-  $("#modelSheetTitle").textContent = cfg.provider === "nakata" ? "Model (ücretsiz)" : "Model";
+  $("#modelSheetTitle").textContent = cfg.provider === "nakata" ? (adultConsent ? "Model (ücretsiz + 18+)" : "Model (ücretsiz)") : "Model";
   $("#modelSearchRow").hidden = models.length < 12; $("#modelSearch").value = "";
   const paint = (q = "") => {
     list.replaceChildren();
@@ -1554,6 +1859,7 @@ async function openModelSheet(){
     for (const m of shown) {
       const row = el("div", "botopt" + (m.id === cur || (!cur && cfg.provider === "nakata" && m.label === currentModel().label) ? " on" : ""));
       const main = el("button", "botmain"); const meta = el("div", "meta"); meta.append(el("div", "nm", m.label));
+      if (m.requiresConsent) meta.append(el("div", "hint", tx(`18+ · ${m.credits || 1} kredi/mesaj`)));
       const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
       main.append(meta, chk.firstChild);
       main.onclick = () => {
@@ -1834,7 +2140,9 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && voi
   grow();
   paintAccount();
   i18nApply();
-  if (token()) refreshAccount();
+  if (token()) { refreshAccount(); syncChatCloud().catch(() => {}); }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && token()) syncChatCloud().catch(() => {}); });
+  window.addEventListener("focus", () => { if (token()) syncChatCloud().catch(() => {}); });
   paintModelChip(); loadModels().then(paintModelChip);
   loadCats();
   if (!LS.get("nakata_welcomed", false)) showWelcome();
