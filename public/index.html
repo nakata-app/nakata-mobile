@@ -757,7 +757,7 @@ function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
     ? "<code>" + esc(part.slice(1, -1)) + "</code>"
     : esc(part)
-    .replace(/!\[([^\]]*)\]\((https:\/\/(?:upload|thumb)\.wikimedia\.org\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
+    .replace(/!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/(^|[\s(])[*_](?!\s)(.+?)[*_](?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
