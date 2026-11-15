@@ -87,7 +87,16 @@ button.title:active{opacity:.6}
 .md ul,.md ol{margin:0 0 .7em;padding-left:1.3em}
 .md li{margin:.2em 0}
 .md code{font:14px/1.4 var(--mono);background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
-.md pre{margin:0 0 .8em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto}
+.md pre{margin:0 0 .8em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;overflow:hidden;color:#f5f4ee}
+.md pre .ph{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #ffffff16;font:11px/1.2 var(--mono);color:#a7a49c;letter-spacing:.04em;text-transform:uppercase}
+.md pre .ph button{font:inherit;text-transform:none;letter-spacing:0;color:#d6d4cc;padding:2px 8px;border-radius:6px;background:transparent;border:0}
+.md pre .ph button:active{background:#ffffff18}
+.md pre code{display:block;padding:12px 14px;background:none;border:0;border-radius:0;overflow-x:auto;white-space:pre;font-size:13.5px;line-height:1.5;color:#f5f4ee}
+.md blockquote{margin:0 0 .8em;padding:2px 0 2px 12px;border-left:2px solid var(--line);color:var(--muted)}
+.md hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.md table{border-collapse:collapse;margin:0 0 .8em;font-size:14px;display:block;overflow-x:auto;max-width:100%}
+.md th,.md td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+.md th{background:var(--raised);font-weight:600}
 .md pre code{background:none;border:0;padding:0;font-size:13px;white-space:pre}
 .md a{color:var(--link);text-decoration:none}
 .md strong{font-weight:650}
@@ -307,6 +316,57 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .cloud-artifacts-title{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
 .cloud-artifact-download{min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font-size:13px;text-align:left;overflow-wrap:anywhere}
 .cloud-artifact-download:disabled{opacity:.55}
+.art{margin:0 0 .8em;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--raised)}
+.art-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--side)}
+.art-badge{font:700 10px/1 var(--mono);letter-spacing:.14em;color:var(--accent)}
+.art-toggle{font-size:12px;color:var(--muted);padding:3px 10px;border:1px solid var(--line);border-radius:8px;background:transparent}
+.art-toggle[aria-pressed="true"]{color:var(--ink);border-color:var(--muted)}
+.art-frame{width:100%;height:300px;border:0;display:block;background:#fff}
+.art-svg{height:auto;max-height:340px;padding:10px;box-sizing:border-box;object-fit:contain;cursor:zoom-in}
+.art-source{margin:0;border:0!important;border-radius:0!important;max-height:300px;overflow:auto}
+.srcs{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.srcs-h{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.srcs a{display:flex;gap:7px;align-items:baseline;font-size:12.5px;color:var(--ink);text-decoration:none;overflow:hidden}
+.srcs a span{flex:0 0 auto;min-width:16px;height:16px;padding:0 4px;border-radius:5px;background:var(--raised);border:1px solid var(--line);color:var(--muted);font-size:10px;display:flex;align-items:center;justify-content:center}
+.srcs a em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-shots{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.msg-shots img{width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in}
+.msg-files{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.msg-file{font:12px/1.3 var(--mono);padding:4px 8px;border-radius:8px;background:var(--raised);border:1px solid var(--line);color:var(--muted)}
+.msg-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px}
+.msg-actions .retry{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
+.servedby{font-size:11px;color:var(--muted);margin-left:auto;padding:0 4px}
+form.composer{padding:6px 6px 6px 8px;gap:6px}
+form.composer textarea{min-width:0}
+.attach-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;color:var(--muted)}
+.attach-btn:disabled{opacity:.35}
+.attach-bar{max-width:780px;margin:0 auto 8px;display:flex;gap:8px;overflow-x:auto;padding:2px 4px}
+.attach-bar[hidden]{display:none}
+.attach-thumb{position:relative;flex:0 0 auto;width:62px;height:62px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--raised)}
+.attach-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.attach-fchip{position:relative;flex:0 0 auto;height:62px;max-width:168px;padding:8px 26px 8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;justify-content:center;gap:2px}
+.attach-fchip b{font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach-fchip span{font-size:11px;color:var(--muted)}
+.attach-rm{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#000b;color:#fff;font:12px/1 system-ui;display:flex;align-items:center;justify-content:center}
+.mchip{margin-left:0;max-width:34%}
+.agent-cmd{display:grid;gap:10px}
+.agent-cmd[hidden]{display:none}
+#agentTaskNotice{height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--accent);font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+#agentTaskNotice[hidden]{display:none}
+.agent-box{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:10px}
+.agent-box[hidden]{display:none}
+.agent-box h3{margin:0;font-size:15px;font-weight:600;color:var(--ink)}
+.agent-status{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+.agent-actions{display:flex;gap:8px}
+.agent-actions>*{flex:1}
+#agentTaskHistory{border-top:1px solid var(--line);padding-top:10px}
+#agentTaskHistory summary{cursor:pointer;font-size:13.5px;font-weight:500;color:var(--ink);min-height:32px}
+#agentTasks{display:grid;gap:6px;padding:6px 0 0;list-style:none;margin:0}
+#agentTasks button{display:grid;width:100%;gap:3px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raised);color:var(--ink);font:inherit}
+#agentTasks button[aria-current="true"]{border-color:var(--accent)}
+#agentTasks button span{font-size:13.5px;overflow-wrap:anywhere}
+#agentTasks button small{color:var(--muted);font-size:12px}
+.agent-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0d0d0c;color:#f5f4ee;font:12px/1.5 var(--mono);margin:0}
 
 </style>
 </head>
@@ -315,6 +375,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 <header>
   <button class="icon" id="menuBtn" aria-label="Menü"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h16"/></svg></button>
   <button class="title" id="modelBtn"><span id="modelName">Nakata</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button id="agentTaskNotice" type="button" hidden></button>
   <button class="icon" id="newBtn" aria-label="Yeni sohbet"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 </header>
 
@@ -326,7 +387,10 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <div id="thread" hidden></div>
   </div>
   <div class="composer-wrap">
+    <div class="attach-bar" id="attachBar" hidden></div>
+    <input type="file" id="chatFile" accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.yml,.yaml,.log" multiple hidden>
     <form class="composer" id="composer">
+      <button type="button" class="attach-btn" id="attachBtn" aria-label="Dosya veya görsel ekle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
       <button type="button" class="mchip" id="modelChip" aria-label="Model seç"><span id="modelChipName">Gemma 4</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <textarea id="prompt" rows="1" placeholder="Nakata'ya yaz" enterkeyhint="send"></textarea>
       <button type="button" class="micbtn" id="micBtn" aria-label="Sesli konuş"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
@@ -495,6 +559,31 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <div class="form" id="acc-in" hidden>
       <div class="acc-card"><span class="avatar-n" id="acc-av">N</span><div><b id="acc-name"></b><span class="muted" id="acc-credits"></span></div></div>
       <button class="ghost" id="acc-logout">Çıkış yap</button>
+      <div class="agent-box" id="agentControl" hidden>
+        <h3 id="agentControlTitle">Nakata ile Mac’i kontrol et</h3>
+        <div class="hint" id="agentControlDesc">Nakata Desktop → Hesap → Mobil cihazı eşleştir menüsünden tek kullanımlık kod üret. Kodu buraya gir; Mac üzerinde ayrıca onay gerekir.</div>
+        <p class="agent-status" id="agentPairStatus" role="status">Bağlı değil</p>
+        <div id="agentPairEntry">
+          <label for="agentPairCode">Nakata Desktop tek kullanımlık kodu</label>
+          <input id="agentPairCode" class="field" type="text" inputmode="text" autocomplete="one-time-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
+        </div>
+        <button class="primary" id="agentPairButton" type="button">Bu Mac’e bağlan</button>
+        <div id="agentCommandArea" class="agent-cmd" hidden>
+          <label for="agentCommandPrompt">Mac’te çalıştırılacak görev</label>
+          <textarea id="agentCommandPrompt" class="field" rows="3" maxlength="12000" placeholder="Nakata’nın Mac’inde ne yapmasını istediğini yaz"></textarea>
+          <div class="agent-actions">
+            <button class="primary" id="agentCommandSend" type="button">Mac’e gönder</button>
+            <button class="ghost" id="agentUnpair" type="button">Bağlantıyı kes</button>
+          </div>
+          <details id="agentTaskHistory">
+            <summary id="agentTaskHistoryLabel">Son görevler</summary>
+            <p class="agent-status" id="agentTaskHistoryState" role="status"></p>
+            <ul id="agentTasks"></ul>
+          </details>
+          <p class="agent-status" id="agentCommandStatus" role="status"></p>
+          <pre class="agent-result" id="agentCommandResult" hidden></pre>
+        </div>
+      </div>
       <button class="danger" id="acc-delete">Hesabı sil</button>
       <div class="form" id="acc-del-box" hidden style="padding:8px 0 0">
         <div class="hint">Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 8 gün içinde silinir. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz, hesabını geri açarız.</div>
@@ -698,6 +787,38 @@ const EN = {
   "Bu içerik yayınlanamaz.":"This content can't be published.","Günlük yayın sınırına ulaştın.":"You've reached today's publishing limit.","Bu bot şu an kapalı":"This bot is closed right now",
   "Yönetici değil":"Not an admin","Geçersiz bot":"Invalid bot","Geçersiz işlem":"Invalid action","Kullanıcıyı engellemek için":"To block",
   "Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.":"You are Nakata, a helpful assistant. Answer in the user's language, clearly and concisely.",
+  "Dosya veya görsel ekle":"Attach file or photo","Kaynak":"Source","Diyagram":"Diagram",
+  "Yeniden dene":"Retry","Kaynaklar":"Sources","Web'de araştırılıyor…":"Searching the web…",
+  "Hava durumu alınıyor…":"Checking the weather…","Araç çalıştırılıyor…":"Running tool…",
+  "En fazla 2 görsel eklenebilir.":"Up to 2 images can be attached.",
+  "Dosya okunamadı.":"Could not read file.","Görsel yüklenemedi.":"Could not load image.",
+  "Bu görseli incele.":"Analyze this image.",
+  "Nakata ile Mac’i kontrol et":"Control a Mac with Nakata",
+  "Nakata Desktop → Hesap → Mobil cihazı eşleştir menüsünden tek kullanımlık kod üret. Kodu buraya gir; Mac üzerinde ayrıca onay gerekir.":"Create a one-time code in Nakata Desktop → Account → Pair mobile device. Enter it here; the Mac must still approve locally.",
+  "Bağlı değil":"Not connected","Nakata Desktop tek kullanımlık kodu":"One-time code from Nakata Desktop",
+  "Bu Mac’e bağlan":"Connect this Mac","Mac’te çalıştırılacak görev":"Task to run on Mac",
+  "Nakata’nın Mac’inde ne yapmasını istediğini yaz":"Describe what Nakata should do on your Mac",
+  "Mac’e gönder":"Send to Mac","Bağlantıyı kes":"Disconnect","Son görevler":"Recent tasks",
+  "Nakata Desktop’ta görünen kodu gir.":"Enter the code shown by Nakata Desktop.",
+  "Mac üzerindeki yerel onay bekleniyor…":"Waiting for approval on your Mac…",
+  "Mac çevrimiçi ve eşleştirilmiş.":"Mac is online and paired.",
+  "Eşleştirme kayıtlı; Mac şu anda çevrimdışı.":"Paired, but the Mac is currently offline.",
+  "Eşleştirme sona erdi veya bağlantı kesildi.":"Pairing expired or was disconnected.",
+  "Mac bağlantısı kontrol edilemedi. Tekrar deneyin.":"Could not check Mac connection. Try again.",
+  "Nakata Desktop’tan aldığın 16 karakterli kodu gir.":"Enter the 16-character code from Nakata Desktop.",
+  "Kod doğrulanıyor; Mac onayı bekleniyor…":"Verifying code and waiting for Mac approval…",
+  "Eşleştirme kodu kullanılamadı.":"Pairing code could not be claimed.",
+  "Nakata Desktop bağlantısı kuruldu.":"Connected to Nakata Desktop.",
+  "Eşleştirme Mac üzerinde reddedildi veya zaman aşımına uğradı.":"Pairing was declined or expired on the Mac.",
+  "Eşleştirme isteği zaman aşımına uğradı. Mac’te yeni kod üret.":"Pairing request expired. Generate a new code on the Mac.",
+  "Mac bağlantısı kesildi.":"Mac disconnected.",
+  "Görev Mac’inize gönderiliyor…":"Sending task to your Mac…",
+  "Sırada · Mac bekleniyor":"Queued · waiting for Mac",
+  "Mac’te · onay bekliyor olabilir":"On Mac · may be awaiting approval",
+  "Görev tamamlandı":"Task completed","Görev başarısız":"Task failed",
+  "Mac’te reddedildi":"Declined on Mac","Durum bilinmiyor":"Status unknown",
+  "Henüz görev yok.":"No tasks yet.",
+  "Görevler güncellenemedi. Yeniden deneniyor…":"Could not update tasks. Retrying…",
 };
 // Texts with numbers or names in them.
 const EN_RE = [
@@ -752,33 +873,82 @@ function applyTheme(t){
 applyTheme(LS.get("nakata_theme", "dark"));
 
 /* ---- markdown (escaped first; only http(s) links) ---- */
-const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+function cleanCitations(s){
+  return String(s ?? "").replace(/\[(\d{1,2})\](?=\s|$|[.,;:!?])/g, "").replace(/\s+([.,;:!?])/g, "$1");
+}
+function sanitizeSvg(raw){
+  let s = raw.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  const m = s.match(/<svg\b[\s\S]*?<\/svg>/i);
+  if (m) s = m[0];
+  if (!/\bxmlns\s*=/.test(s.slice(0, 120))) s = s.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  return s;
+}
 function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
     ? "<code>" + esc(part.slice(1, -1)) + "</code>"
     : esc(part)
-    .replace(/!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
+        .replace(/!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/(^|[\s(])[*_](?!\s)(.+?)[*_](?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
   ).join("");
 }
+function svgArtHtml(raw){
+  const clean = sanitizeSvg(raw);
+  const uri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clean);
+  return `<div class="art"><div class="art-head"><span class="art-badge">SVG</span><button type="button" class="art-toggle" data-art-src aria-pressed="false">${esc(tx("Kaynak"))}</button></div><img class="art-frame art-svg md-chat-image" alt="${esc(tx("Diyagram"))}" src="${esc(uri)}"><pre class="art-source" hidden><code>${esc(raw)}</code></pre></div>`;
+}
+function artHtml(badge, srcdoc, raw, sandbox){
+  return `<div class="art"><div class="art-head"><span class="art-badge">${esc(badge)}</span><button type="button" class="art-toggle" data-art-src aria-pressed="false">${esc(tx("Kaynak"))}</button></div><iframe class="art-frame" sandbox="${sandbox}" referrerpolicy="no-referrer" loading="lazy" srcdoc="${esc(srcdoc)}"></iframe><pre class="art-source" hidden><code>${esc(raw)}</code></pre></div>`;
+}
 function md(src){
-  const out = [], lines = src.replace(/\r/g, "").split("\n");
-  let para = [], list = null;
+  const out = [], lines = String(src ?? "").replace(/\r/g, "").split("\n");
+  let para = [], list = null, quote = [];
   const endPara = () => { if (para.length) { out.push("<p>" + para.map(inline).join("<br>") + "</p>"); para = []; } };
   const endList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  const endQuote = () => { if (quote.length) { out.push("<blockquote><p>" + quote.map(inline).join("<br>") + "</p></blockquote>"); quote = []; } };
+  const parseCells = (row) => row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
   for (let i = 0; i < lines.length; i++) {
     const ln = lines[i];
-    if (/^\s*```/.test(ln)) {
-      endPara(); endList();
+    const fence = ln.match(/^\s*```(\S*)/);
+    if (fence) {
+      endPara(); endList(); endQuote();
+      const lang = (fence[1] || "").toLowerCase();
       const code = [];
-      while (++i < lines.length && !/^\s*```/.test(lines[i])) code.push(lines[i]);
-      out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>");
+      while (++i < lines.length && !/^\s*```\s*$/.test(lines[i])) code.push(lines[i]);
+      const raw = code.join("\n");
+      if (lang === "svg" && raw.length <= 250000 && /<svg\b/i.test(raw) && /<\/svg>/i.test(raw)) {
+        out.push(svgArtHtml(raw));
+        continue;
+      }
+      if (lang === "html" && raw.length <= 250000 && /<(?:html|body|div|canvas|svg|table|section|main|style|script)\b/i.test(raw)) {
+        out.push(artHtml("HTML", raw, raw, "allow-scripts"));
+        continue;
+      }
+      out.push(`<pre><div class="ph"><span>${esc(lang || "text")}</span><button type="button" data-copy-code>${esc(tx("Kopyala"))}</button></div><code>${esc(raw)}</code></pre>`);
       continue;
     }
+    if (/^\s*(?:---+|___+|\*\*\*+)\s*$/.test(ln)) {
+      endPara(); endList(); endQuote(); out.push("<hr>"); continue;
+    }
     const h = ln.match(/^(#{1,6})\s+(.*)$/);
-    if (h) { endPara(); endList(); const n = h[1].length <= 2 ? 3 : 4; out.push(`<h${n}>${inline(h[2])}</h${n}>`); continue; }
+    if (h) { endPara(); endList(); endQuote(); const n = h[1].length <= 2 ? 3 : 4; out.push(`<h${n}>${inline(h[2])}</h${n}>`); continue; }
+    const bq = ln.match(/^\s*>\s?(.*)$/);
+    if (bq) { endPara(); endList(); quote.push(bq[1]); continue; }
+    endQuote();
+    if (ln.includes("|") && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)*\s*\|?\s*$/.test(lines[i + 1])) {
+      endPara(); endList();
+      const head = parseCells(ln);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].trim() && lines[i].includes("|")) { rows.push(parseCells(lines[i])); i++; }
+      i--;
+      let tbl = "<table><thead><tr>" + head.map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead>";
+      if (rows.length) tbl += "<tbody>" + rows.map((r) => "<tr>" + head.map((_, k) => `<td>${inline(r[k] || "")}</td>`).join("") + "</tr>").join("") + "</tbody>";
+      out.push(tbl + "</table>");
+      continue;
+    }
     const li = ln.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/);
     if (li) {
       endPara();
@@ -790,7 +960,7 @@ function md(src){
     if (!ln.trim()) { endPara(); endList(); continue; }
     endList(); para.push(ln);
   }
-  endPara(); endList();
+  endPara(); endList(); endQuote();
   return out.join("");
 }
 
@@ -1264,16 +1434,91 @@ function openChatImagePreview(src, alt) {
   image.alt = alt || "";
   chatImageLightbox.hidden = false;
 }
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const image = event.target.closest?.(".md-chat-image");
   if (image) { openChatImagePreview(image.src, image.alt); return; }
+  const art = event.target.closest?.("[data-art-src]");
+  if (art) {
+    const box = art.closest(".art");
+    const src = box?.querySelector(".art-source"), frame = box?.querySelector(".art-frame");
+    const showSrc = art.getAttribute("aria-pressed") !== "true";
+    art.setAttribute("aria-pressed", showSrc ? "true" : "false");
+    if (src) src.hidden = !showSrc;
+    if (frame) frame.style.display = showSrc ? "none" : "block";
+    return;
+  }
+  const cp = event.target.closest?.("[data-copy-code]");
+  if (cp) {
+    const code = cp.closest("pre")?.querySelector("code")?.textContent || "";
+    try { await navigator.clipboard.writeText(code); haptic(); cp.textContent = tx("Kopyalandı"); setTimeout(() => { cp.textContent = tx("Kopyala"); }, 1400); } catch {}
+  }
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && chatImageLightbox && !chatImageLightbox.hidden) chatImageLightbox.hidden = true;
 });
 
+let pendingAttachments = [];
+function renderAttachBar(){
+  const bar = $("#attachBar"); if (!bar) return;
+  bar.replaceChildren();
+  bar.hidden = !pendingAttachments.length;
+  pendingAttachments.forEach((item, idx) => {
+    const wrap = el("div", item.kind === "image" ? "attach-thumb" : "attach-fchip");
+    if (item.kind === "image") {
+      const img = document.createElement("img"); img.src = item.dataUrl; img.alt = item.name || ""; wrap.append(img);
+    } else {
+      wrap.append(el("b", "", item.name), el("span", "", Math.max(1, Math.round(item.size / 1024)) + " KB"));
+    }
+    const rm = el("button", "attach-rm", "×"); rm.type = "button"; rm.setAttribute("aria-label", tx("Kapat"));
+    rm.addEventListener("click", () => { pendingAttachments.splice(idx, 1); renderAttachBar(); updateSendBtn(); });
+    wrap.append(rm);
+    bar.append(wrap);
+  });
+}
+function resizeChatImage(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const encode = (maxEdge, q) => {
+          const scale = Math.min(1, maxEdge / Math.max(img.width || 1, img.height || 1));
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          return c.toDataURL("image/jpeg", q);
+        };
+        let dataUrl = encode(1400, 0.82);
+        if (dataUrl.length > 850000) dataUrl = encode(1000, 0.68);
+        if (dataUrl.length > 880000) dataUrl = encode(760, 0.56);
+        resolve(dataUrl);
+      } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img_load")); };
+    img.src = url;
+  });
+}
+function updateSendBtn(){ const b = $("#sendBtn"); if (b && !controller) b.disabled = !$("#prompt").value.trim() && !pendingAttachments.length; }
+
 function scrollDown(){ const c = $("#chatScroll"); c.scrollTop = c.scrollHeight; }
-function addUser(text){ const r = el("div", "row user"); r.append(el("div", "bubble", text)); $("#thread").append(r); scrollDown(); }
+function addUser(text, images = [], files = []){
+  const r = el("div", "row user");
+  if (images.length) {
+    const shots = el("div", "msg-shots");
+    for (const url of images) {
+      const img = document.createElement("img"); img.src = url; img.alt = ""; img.className = "md-chat-image"; shots.append(img);
+    }
+    r.append(shots);
+  }
+  if (files.length) {
+    const box = el("div", "msg-files");
+    for (const f of files) box.append(el("span", "msg-file", f.name));
+    r.append(box);
+  }
+  if (text || (!images.length && !files.length)) r.append(el("div", "bubble", text || ""));
+  $("#thread").append(r); scrollDown();
+}
 // Turn output goes above the "thinking" row while a turn runs.
 function put(node){ if (pendingRow) $("#thread").insertBefore(node, pendingRow); else $("#thread").append(node); scrollDown(); }
 function addAsst(){
@@ -1281,19 +1526,61 @@ function addAsst(){
   const text = el("div", "md"); w.append(text); r.append(w); put(r);
   return text;
 }
-function addNote(text, err){ put(el("div", "note" + (err ? " err" : ""), text)); if (err) { hapticError(); flashReply(/bitti|yoğun|kapalı|kredi|yetmiyor|limit/i.test(text) ? "sad" : "surprised"); } }
+function addNote(text, err, retryTurn){
+  put(el("div", "note" + (err ? " err" : ""), text));
+  if (err && retryTurn) {
+    const act = el("div", "msg-actions");
+    const btn = el("button", "retry"); btn.type = "button";
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>' + esc(tx("Yeniden dene")) + '</span>';
+    btn.addEventListener("click", () => {
+      if (controller) return;
+      act.remove();
+      const rows = $("#thread").querySelectorAll(".row.user");
+      rows[rows.length - 1]?.remove();
+      send(retryTurn.text, { images: retryTurn.images || [], files: retryTurn.files || [] });
+    });
+    act.append(btn); put(act);
+  }
+  if (err) { hapticError(); flashReply(/bitti|yoğun|kapalı|kredi|yetmiyor|limit/i.test(text) ? "sad" : "surprised"); }
+}
+function renderSources(row, sources){
+  if (!row || !Array.isArray(sources) || !sources.length) return;
+  const asst = row.querySelector(".asst");
+  if (!asst || asst.querySelector(".srcs")) return;
+  const box = el("div", "srcs");
+  box.append(el("div", "srcs-h", tx("Kaynaklar")));
+  sources.slice(0, 8).forEach((s, idx) => {
+    if (!/^https?:\/\//i.test(String(s?.url || ""))) return;
+    const a = document.createElement("a"); a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+    a.append(el("span", "", String(idx + 1)), el("em", "", s.title || s.url));
+    box.append(a);
+  });
+  if (box.children.length > 1) asst.append(box);
+}
 
 // Desktop: the orb thinks along while the run is live, with the elapsed time.
-let pendingRow = null, pendingOrb = null, pendingTick = 0;
+let pendingRow = null, pendingOrb = null, pendingTick = 0, pendingStatus = "", pendingTimeEl = null, pendingStart = 0;
+function setPendingStatus(status){
+  pendingStatus = status ? tx(status) : "";
+  if (pendingTimeEl) {
+    const secs = Math.max(0, Math.round((Date.now() - pendingStart) / 1000));
+    pendingTimeEl.textContent = pendingStatus ? `${pendingStatus} · ${secs} sn` : `${secs} sn`;
+  }
+}
 function showPending(){
   pendingOrb ??= orb({ size: 22, color: orbColor(), expression: "thinking" });
   pendingOrb.setColor(orbColor()); pendingOrb.set("thinking"); pendingOrb.el.classList.add("small-orb");
-  const time = el("span", "", "0 sn"), t0 = Date.now();
-  pendingRow = el("div", "pending"); pendingRow.append(pendingOrb.el, time);
+  pendingStart = Date.now(); pendingStatus = "";
+  pendingTimeEl = el("span", "");
+  setPendingStatus("");
+  pendingRow = el("div", "pending"); pendingRow.append(pendingOrb.el, pendingTimeEl);
   $("#thread").append(pendingRow); scrollDown();
-  pendingTick = setInterval(() => { time.textContent = `${Math.round((Date.now() - t0) / 1000)} sn`; }, 1000);
+  pendingTick = setInterval(() => {
+    const secs = Math.max(0, Math.round((Date.now() - pendingStart) / 1000));
+    if (pendingTimeEl) pendingTimeEl.textContent = pendingStatus ? `${pendingStatus} · ${secs} sn` : `${secs} sn`;
+  }, 1000);
 }
-function hidePending(){ clearInterval(pendingTick); pendingRow?.remove(); pendingRow = null; }
+function hidePending(){ clearInterval(pendingTick); pendingRow?.remove(); pendingRow = null; pendingTimeEl = null; pendingStatus = ""; }
 
 // Desktop turnFace: the last answer carries the mascot, its face reading the turn.
 let replyOrb = null;
@@ -1326,21 +1613,37 @@ function addReportAction(row, text){
   });
   const bar = el("div", "msg-actions"); bar.classList.add("report-actions"); bar.append(button); row.append(bar);
 }
+function retryLastTurn(){
+  if (controller) return;
+  let ui = -1;
+  for (let i = convo.length - 1; i >= 0; i--) if (convo[i].role === "user") { ui = i; break; }
+  if (ui < 0) return;
+  const lastUser = convo[ui];
+  convo = convo.slice(0, ui);
+  renderConvo();
+  send(lastUser.content, { images: lastUser.images || [], files: lastUser.files || [] });
+}
 function markLastReply(){
   for (const bar of document.querySelectorAll("#thread .msg-actions:not(.report-actions)")) bar.remove();
   const rows = document.querySelectorAll("#thread .row:not(.user)");
   const last = rows[rows.length - 1];
-  const text = convo.filter((m) => m.role === "assistant").at(-1)?.content;
+  const lastMsg = convo.filter((m) => m.role === "assistant").at(-1);
+  const text = lastMsg?.content;
   if (!last || !text) return;
   replyOrb ??= orb({ size: 28, color: orbColor(), expression: "neutral" });
   replyOrb.setColor(orbColor()); replyOrb.el.classList.add("reply-orb", "small-orb");
-  const copy = el("button", "copy"); copy.innerHTML = ICON_COPY + "<span>Kopyala</span>";
+  const copy = el("button", "copy"); copy.innerHTML = ICON_COPY + "<span>" + esc(tx("Kopyala")) + "</span>";
   copy.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(text); } catch { return; }
-    haptic(); copy.lastChild.textContent = "Kopyalandı";
-    setTimeout(() => { copy.lastChild.textContent = "Kopyala"; }, 1400);
+    haptic(); copy.lastChild.textContent = tx("Kopyalandı");
+    setTimeout(() => { copy.lastChild.textContent = tx("Kopyala"); }, 1400);
   });
-  const bar = el("div", "msg-actions"); bar.append(replyOrb.el, copy); last.append(bar);
+  const redo = el("button", "retry"); redo.type = "button";
+  redo.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>' + esc(tx("Yeniden dene")) + '</span>';
+  redo.addEventListener("click", retryLastTurn);
+  const bar = el("div", "msg-actions"); bar.append(replyOrb.el, copy, redo);
+  if (lastMsg?.servedBy) bar.append(el("span", "servedby", lastMsg.servedBy));
+  last.append(bar);
   addReportAction(last, text);
   replyOrb.set("neutral"); requestAnimationFrame(() => replyOrb.set(turnFace(text)));
 }
@@ -1352,6 +1655,7 @@ function flashReply(face){
 
 function newChat(){
   if (controller) controller.abort();
+  pendingAttachments = []; renderAttachBar(); updateSendBtn();
   convo = []; curId = null; showHero(true); $("#thread").replaceChildren(); closeDrawer();
   renderSessions($("#search").value);
 }
@@ -1361,10 +1665,12 @@ $("#newBtn2").addEventListener("click", newChat);
 function renderConvo(){
   $("#thread").replaceChildren();
   for (const m of convo) {
-    if (m.role === "user") addUser(m.content);
+    if (m.role === "user") addUser(m.content, m.images || [], m.files || []);
     else if (m.role === "assistant" && m.content.trim()) {
       const node = addAsst(); node.innerHTML = md(m.content);
-      addReportAction(node.parentElement?.parentElement, m.content);
+      const row = node.parentElement?.parentElement;
+      renderSources(row, m.sources);
+      addReportAction(row, m.content);
     }
   }
   markLastReply();
@@ -1380,7 +1686,8 @@ function openConvo(id){
 function persist(){
   if (!convo.length) return;
   if (!curId) curId = "c" + Date.now() + Math.random().toString(36).slice(2, 6);
-  const title = (convo.find((m) => m.role === "user")?.content || "Sohbet").split("\n")[0].slice(0, 60);
+  const firstUser = convo.find((m) => m.role === "user");
+  const title = (firstUser?.content || firstUser?.files?.[0]?.name || (firstUser?.images?.length ? tx("Görsel") : "") || "Sohbet").split("\n")[0].slice(0, 60);
   const all = allSessions();
   all[curId] = { id: curId, title, ts: Date.now(), bot: activeBot || null, gbot: galleryBot || null, msgs: convo };
   saveSessions(all);
@@ -1389,7 +1696,7 @@ function persist(){
 
 function setBusy(on){
   const b = $("#sendBtn");
-  b.disabled = !on && !$("#prompt").value.trim();
+  b.disabled = !on && !$("#prompt").value.trim() && !pendingAttachments.length;
   b.setAttribute("aria-label", on ? "Durdur" : "Gönder");
   b.querySelector("svg").innerHTML = on ? SEND_STOP : SEND_UP;
 }
@@ -1406,15 +1713,29 @@ const FREE_ERRORS = {
   upstream: "Model cevap vermedi. Tekrar dene.",
   no_credits: "Kredin yetmiyor.",
 };
-async function send(text){
+function toApiContent(m){
+  const fileText = (m.files || []).map((f) => `\n\n[${f.name}]\n\`\`\`\n${f.text}\n\`\`\``).join("");
+  const combined = (m.content || "") + fileText;
+  if (!m.images?.length) return combined;
+  const parts = [{ type: "text", text: combined || tx("Bu görseli incele.") }];
+  for (const url of m.images) parts.push({ type: "image_url", image_url: { url } });
+  return parts;
+}
+async function send(text, opts = {}){
+  const images = (opts.images || []).slice(0, 2);
+  const files = opts.files || [];
+  if (!text && !images.length && !files.length) return;
   const cfg = getCfg();
   // A gallery bot always runs on the free tier: the server injects the bot's
   // persona and meters the cost, so no client key or system prompt is needed.
   const gb = galleryBot;
   const free = gb ? true : cfg.provider === "nakata";
   if (!gb && !free && !cfg.key) { openSettings(); return; }
-  haptic(); showHero(false); addUser(text); bubble = null; reasonNode = null; setBusy(true); showPending();
-  convo.push({ role: "user", content: text });
+  haptic(); showHero(false); addUser(text, images, files); bubble = null; reasonNode = null; setBusy(true); showPending();
+  const userTurn = { role: "user", content: text };
+  if (images.length) userTurn.images = images;
+  if (files.length) userTurn.files = files;
+  convo.push(userTurn);
 
   const bot = !gb && activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
@@ -1431,11 +1752,13 @@ async function send(text){
     if (travelAssistant) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (system) messages.push({ role: "system", content: system });
   }
-  for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.content });
+  for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.role === "user" ? toApiContent(m) : m.content });
 
   controller = new AbortController();
-  let acc = "", frame = 0, retry = null;
+  let acc = "", frame = 0, retry = null, servedBy = "";
+  const msgSources = [], seenSrc = new Set(), msgImages = [], seenImg = new Set();
   const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc); scrollDown(); } };
+  const turnRetry = { text, images, files };
   try {
     const base = cfg.base.replace(/\/+$/, "");
     const endpoint = gb ? `${base}/bots/${gb.id}/chat` : base + (free ? "/chat" : "/chat/completions");
@@ -1455,13 +1778,14 @@ async function send(text){
       const code = j.error && j.error.code;
       // Past the free quota a signed-in user may go on with a gallery bot for credits.
       if (code === "free_limit" && gb && token() && !payBots
-          && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = text; return; }
+          && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = turnRetry; return; }
       if (["consent_required", "hard_floor", "provider_budget", "uncensored_closed"].includes(code)) {
         addNote(tx(j.error?.message || FREE_ERRORS[code]), true); return;
       }
-      if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true); return; }
+      if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true, ["upstream", "free_busy", "slow_down"].includes(code) ? turnRetry : null); return; }
       throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
     }
+    servedBy = res.headers.get("x-nakata-served-by") || "";
     const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
     for (;;) {
       const { value, done } = await reader.read(); if (done) break;
@@ -1474,41 +1798,92 @@ async function send(text){
         let ev; try { ev = JSON.parse(payload); } catch { continue; }
         if (ev.error) { addNote("Hata: " + (ev.error.message || ev.error), true); continue; }
         const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
+        const tc = ev.type === "tool_call" ? { name: ev.tool, args: ev.args } : d.tool_call;
+        if (tc?.name) {
+          if (tc.name === "web_search") setPendingStatus("Web'de araştırılıyor…");
+          else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
+          else setPendingStatus("Araç çalıştırılıyor…");
+        }
+        const srcs = ev.type === "tool_result" ? ev.sources : d.sources;
+        if (Array.isArray(srcs)) {
+          for (const s of srcs) {
+            if (s?.url && !seenSrc.has(s.url)) { seenSrc.add(s.url); msgSources.push({ title: String(s.title || s.url), url: String(s.url) }); }
+          }
+        }
+        const imgs = ev.type === "tool_result" ? ev.images : d.images;
+        if (Array.isArray(imgs)) {
+          for (const im of imgs) {
+            const u = String(im?.url || "");
+            if (/^https:\/\//i.test(u) && !seenImg.has(u)) { seenImg.add(u); msgImages.push({ title: String(im.title || ""), url: u }); }
+          }
+        }
         if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
         if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paint); }
       }
     }
     if (frame) { cancelAnimationFrame(frame); paint(); }
-    if (!acc && !reasonNode) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true);
-    if (acc && travelResearch) {
-      acc = window.NakataTravelResearch.enrich(acc, travelResearch);
+    if (!acc && !reasonNode) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true, turnRetry);
+    if (acc) {
+      acc = cleanCitations(acc);
+      if (travelResearch) acc = window.NakataTravelResearch.enrich(acc, travelResearch);
+      const wantsPic = !travelResearch && msgImages.length && !/!\[[^\]]*\]\(https:\/\//.test(acc) && (window.NakataTravelResearch?.wantsImages?.(text) || /fotoğraf|görsel|resim|nerede|nasıl görün|göster|photo|image|picture|show me/i.test(text));
+      if (wantsPic) {
+        const pics = msgImages.slice(0, 2).map((im) => `![${String(im.title || "").replace(/[[\]\n\r]/g, "")}](${im.url})`).join("\n\n");
+        if (pics) acc += "\n\n" + pics;
+      }
       if (bubble) bubble.innerHTML = md(acc);
+      const row = bubble?.parentElement?.parentElement;
+      if (msgSources.length) renderSources(row, msgSources);
       scrollDown();
     }
   } catch (e) {
     if (frame) { cancelAnimationFrame(frame); paint(); }
-    if (e.name !== "AbortError") addNote("Bağlantı: " + e.message, true);
+    if (e.name !== "AbortError") addNote("Bağlantı: " + e.message, true, turnRetry);
   } finally {
     hidePending();
-    if (acc) convo.push({ role: "assistant", content: acc });
-    else convo.pop(); // a failed turn does not keep the user message
+    if (acc) {
+      const msg = { role: "assistant", content: acc };
+      if (msgSources.length) msg.sources = msgSources;
+      if (servedBy) msg.servedBy = servedBy;
+      convo.push(msg);
+    } else convo.pop(); // a failed turn does not keep the user message
     persist();
     controller = null; setBusy(false);
     if (acc) markLastReply();
     if (acc && gb && payBots) refreshAccount();
     // agreed to pay: send the same message again (its first bubble goes, the retry adds it back)
-    if (retry) { const rows = $("#thread").querySelectorAll(".row.user"); rows[rows.length - 1]?.remove(); send(retry); }
+    if (retry) { const rows = $("#thread").querySelectorAll(".row.user"); rows[rows.length - 1]?.remove(); send(retry.text, { images: retry.images || [], files: retry.files || [] }); }
   }
 }
 
+$("#attachBtn").addEventListener("click", () => $("#chatFile").click());
+$("#chatFile").addEventListener("change", async (e) => {
+  const picked = Array.from(e.target.files || []);
+  e.target.value = "";
+  for (const file of picked) {
+    if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name)) {
+      if (pendingAttachments.filter((x) => x.kind === "image").length >= 2) { addNote(tx("En fazla 2 görsel eklenebilir."), true); break; }
+      try { const dataUrl = await resizeChatImage(file); pendingAttachments.push({ kind: "image", name: file.name, dataUrl }); }
+      catch { addNote(tx("Görsel yüklenemedi."), true); }
+    } else if (file.size <= 512000) {
+      try { const raw = (await file.text()).slice(0, 24000); pendingAttachments.push({ kind: "file", name: file.name, size: file.size || raw.length, text: raw }); }
+      catch { addNote(tx("Dosya okunamadı."), true); }
+    }
+  }
+  renderAttachBar(); updateSendBtn();
+});
 $("#composer").addEventListener("submit", (e) => {
   e.preventDefault();
   if (controller) { controller.abort(); return; }
-  const text = $("#prompt").value.trim(); if (!text) return;
-  $("#prompt").value = ""; grow(); setBusy(false); send(text);
+  const text = $("#prompt").value.trim();
+  const imgs = pendingAttachments.filter((x) => x.kind === "image").map((x) => x.dataUrl);
+  const docFiles = pendingAttachments.filter((x) => x.kind === "file").map(({ name, size, text: ft }) => ({ name, size, text: ft }));
+  if (!text && !imgs.length && !docFiles.length) return;
+  $("#prompt").value = ""; pendingAttachments = []; renderAttachBar(); grow(); setBusy(false);
+  send(text, { images: imgs, files: docFiles });
 });
 function grow(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = `${Math.min(t.scrollHeight, 160)}px`; }
-$("#prompt").addEventListener("input", () => { grow(); if (!controller) $("#sendBtn").disabled = !$("#prompt").value.trim(); });
+$("#prompt").addEventListener("input", () => { grow(); updateSendBtn(); });
 $("#prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); } });
 
 /* ---- nakata.app account (routes/mobile.js on the server) ---- */
@@ -1525,7 +1900,9 @@ async function chatCloudResponse(path, options = {}) {
   const response = await fetch("https://nakata.app/api/chat" + path, { ...options, headers });
   if (!response.ok) {
     const data = await response.clone().json().catch(() => ({}));
-    throw new Error(data?.error?.message || data?.error || "Chat sync failed");
+    const err = new Error(data?.error?.message || data?.error || ("HTTP " + response.status));
+    err.status = response.status;
+    throw err;
   }
   return response;
 }
@@ -1625,9 +2002,15 @@ async function syncChatCloud({ uploadOnly = false } = {}) {
           ? { kind: "community", id: session.gbot.id || "", name: session.gbot.name || "", bot: session.gbot }
           : localBot ? { kind: "local", id: String(localBot.id || session.bot), name: localBot.name || String(session.bot), bot: localBot }
           : session.bot ? { kind: "local", id: String(session.bot) } : { kind: "default" };
+        let cloudMsgs = session.msgs || [];
+        let body = JSON.stringify({ id: session.id, title: session.title || "", createdAt: session.ts, updatedAt: session.ts, messages: cloudMsgs, bot, artifacts });
+        if (body.length > 1800000) {
+          cloudMsgs = cloudMsgs.map((m) => m.images?.length ? { ...m, images: undefined } : m);
+          body = JSON.stringify({ id: session.id, title: session.title || "", createdAt: session.ts, updatedAt: session.ts, messages: cloudMsgs, bot, artifacts });
+        }
         await chatCloudRequest("/conversations/" + encodeURIComponent(session.id), {
           method: "PUT",
-          body: JSON.stringify({ id: session.id, title: session.title || "", createdAt: session.ts, updatedAt: session.ts, messages: session.msgs || [], bot, artifacts }),
+          body,
         });
       }
     }
@@ -1655,7 +2038,7 @@ async function syncChatCloud({ uploadOnly = false } = {}) {
     }
   } finally { chatCloudBusy = false; }
 }
-function signOutLocal(){ LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; adultConsent = false; adultFeatureEnabled = false; modelCache = {}; paintAdultConsent(); paintAccount(); }
+function signOutLocal(){ clearAgentTasks(); LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; adultConsent = false; adultFeatureEnabled = false; modelCache = {}; paintAdultConsent(); paintAccount(); }
 async function api(path, { method = "GET", body, form } = {}) {
   const headers = {}, t = token();
   if (t) headers.Authorization = "Bearer " + t;
@@ -1680,6 +2063,7 @@ function paintAccount(){
   $("#img-signin").hidden = on; $("#img-form").hidden = !on;
   $("#img-credits").textContent = credits;
   paintCost();
+  void refreshAgentControl();
 }
 async function refreshAccount(){
   if (!token()) return paintAccount();
@@ -1687,7 +2071,186 @@ async function refreshAccount(){
   if (r.ok) { account = { ...(account || { name: "" }), credits: r.j.credits }; imageCosts = r.j.image_credit_costs || {}; LS.set("nakata_account", account); }
   paintAccount();
 }
-function openAccount(){ closeDrawer(); $("#acc-del-box").hidden = true; showPage("#f-account"); refreshAccount(); }
+function openAccount(){ closeDrawer(); $("#acc-del-box").hidden = true; showPage("#f-account"); refreshAccount(); void refreshAgentControl(); }
+
+let activeAgentPairId = null, agentPairingBusy = false, agentCommandBusy = false;
+let agentTaskSelection = null, agentTaskPair = null, agentTaskAccount = null, agentTaskTimer = null;
+let agentTaskGeneration = 0, agentTaskNoticeId = null, agentPendingIds = new Set();
+const agentAcct = () => (token() && account?.name) ? String(account.name).trim().toLowerCase() : (token() ? "_signed_in" : "");
+const agentPairKey = () => "nk_agent_pair:" + agentAcct();
+const agentPageOpen = () => $("#f-account").classList.contains("on");
+function agentTaskLabel(status){
+  return ({
+    queued: tx("Sırada · Mac bekleniyor"),
+    running: tx("Mac’te · onay bekliyor olabilir"),
+    completed: tx("Görev tamamlandı"),
+    error: tx("Görev başarısız"),
+    denied: tx("Mac’te reddedildi"),
+  })[status] || tx("Durum bilinmiyor");
+}
+function clearAgentTasks(){
+  agentTaskGeneration++; clearTimeout(agentTaskTimer); agentTaskTimer = null;
+  agentTaskAccount = null; agentTaskPair = null; agentTaskSelection = null; agentTaskNoticeId = null;
+  agentPendingIds.clear();
+  $("#agentTaskNotice").hidden = true;
+  $("#agentTasks").replaceChildren();
+  $("#agentTaskHistoryState").textContent = "";
+  $("#agentCommandStatus").textContent = "";
+  $("#agentCommandResult").textContent = "";
+  $("#agentCommandResult").hidden = true;
+}
+async function refreshAgentTasks(){
+  clearTimeout(agentTaskTimer);
+  const acct = agentAcct();
+  if (!acct || !agentTaskPair || document.hidden || (!agentPageOpen() && !agentPendingIds.size)) return;
+  const pair = agentTaskPair, generation = ++agentTaskGeneration;
+  const current = () => generation === agentTaskGeneration && acct === agentAcct() && pair === agentTaskPair;
+  const suffix = "?pairId=" + encodeURIComponent(pair);
+  try {
+    const { commands = [] } = await chatCloudRequest("/agent/task-history" + suffix);
+    if (!current()) return;
+    for (const command of commands) {
+      if (!agentPendingIds.has(command.id) || !["completed", "error", "denied"].includes(command.status)) continue;
+      if (agentPageOpen()) continue;
+      agentTaskNoticeId = command.id;
+      $("#agentTaskNotice").textContent = agentTaskLabel(command.status);
+      $("#agentTaskNotice").hidden = false;
+      break;
+    }
+    agentPendingIds = new Set(commands.filter((c) => ["queued", "running"].includes(c.status)).map((c) => c.id));
+    if (!agentPageOpen()) return;
+    const list = $("#agentTasks");
+    const focus = list.contains(document.activeElement) ? document.activeElement.dataset.id : null;
+    list.replaceChildren(...commands.map((command) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button"); button.type = "button"; button.dataset.id = command.id;
+      if (command.id === agentTaskSelection) button.setAttribute("aria-current", "true");
+      const title = document.createElement("span"); title.textContent = command.title || "";
+      const detail = document.createElement("small"); detail.textContent = agentTaskLabel(command.status) + " · " + new Date(command.createdAt).toLocaleString();
+      button.append(title, detail);
+      button.addEventListener("click", () => { agentTaskSelection = command.id; $("#agentCommandResult").hidden = true; void refreshAgentTasks(); });
+      item.append(button);
+      return item;
+    }));
+    if (focus) [...list.querySelectorAll("button")].find((b) => b.dataset.id === focus)?.focus({ preventScroll: true });
+    $("#agentTaskHistoryState").textContent = commands.length ? "" : tx("Henüz görev yok.");
+    if (agentTaskSelection) {
+      const { command } = await chatCloudRequest("/agent/commands/" + encodeURIComponent(agentTaskSelection) + suffix);
+      if (!current()) return;
+      $("#agentCommandStatus").textContent = agentTaskLabel(command?.status);
+      const out = command?.result || command?.error || "";
+      $("#agentCommandResult").textContent = out;
+      $("#agentCommandResult").hidden = !out;
+    }
+  } catch {
+    if (current()) $("#agentTaskHistoryState").textContent = tx("Görevler güncellenemedi. Yeniden deneniyor…");
+  } finally {
+    if (current() && !document.hidden && (agentPageOpen() || agentPendingIds.size)) {
+      agentTaskTimer = setTimeout(refreshAgentTasks, agentPendingIds.size ? 2500 : 12000);
+    }
+  }
+}
+$("#agentTaskNotice").addEventListener("click", () => {
+  if (!agentTaskNoticeId) return;
+  agentTaskSelection = agentTaskNoticeId; agentTaskNoticeId = null;
+  $("#agentTaskNotice").hidden = true;
+  $("#agentTaskHistory").open = true;
+  openAccount();
+});
+function setAgentPairUi(connected, status){
+  $("#agentPairStatus").textContent = status;
+  $("#agentPairEntry").hidden = connected;
+  $("#agentPairButton").hidden = connected;
+  $("#agentCommandArea").hidden = !connected;
+  if (!connected || agentTaskAccount !== agentAcct() || agentTaskPair !== activeAgentPairId) clearAgentTasks();
+  if (connected) { agentTaskAccount = agentAcct(); agentTaskPair = activeAgentPairId; void refreshAgentTasks(); }
+}
+async function refreshAgentControl(){
+  const panel = $("#agentControl"); if (!panel) return;
+  const acct = agentAcct();
+  panel.hidden = !acct;
+  if (!acct) { activeAgentPairId = null; clearAgentTasks(); return; }
+  const pairId = LS.get(agentPairKey(), null);
+  activeAgentPairId = pairId;
+  if (agentTaskAccount !== acct || agentTaskPair !== pairId) clearAgentTasks();
+  if (!pairId) { setAgentPairUi(false, tx("Nakata Desktop’ta görünen kodu gir.")); return; }
+  try {
+    const result = await chatCloudRequest("/agent/pairs/" + encodeURIComponent(pairId));
+    if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
+    if (!result.pair || ["revoked", "denied", "expired"].includes(result.pair.status)) throw Object.assign(new Error("pair_not_active"), { status: 403 });
+    if (result.pair.status === "pending") { setAgentPairUi(false, tx("Mac üzerindeki yerel onay bekleniyor…")); return; }
+    setAgentPairUi(true, result.pair.online ? tx("Mac çevrimiçi ve eşleştirilmiş.") : tx("Eşleştirme kayıtlı; Mac şu anda çevrimdışı."));
+  } catch (err) {
+    if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
+    const msg = String(err?.message || "");
+    if (err?.status === 404 || err?.status === 403 || msg.includes("pair_not_active")) {
+      activeAgentPairId = null; LS.set(agentPairKey(), null);
+      setAgentPairUi(false, tx("Eşleştirme sona erdi veya bağlantı kesildi."));
+    } else {
+      setAgentPairUi(false, tx("Mac bağlantısı kontrol edilemedi. Tekrar deneyin."));
+    }
+  }
+}
+$("#agentPairCode").addEventListener("input", (e) => {
+  const v = String(e.target.value || "").toUpperCase().replace(/[^A-F0-9]/g, "").slice(0, 16);
+  e.target.value = v.match(/.{1,4}/g)?.join("-") || "";
+});
+$("#agentPairButton").addEventListener("click", async () => {
+  if (!agentAcct() || agentPairingBusy) return;
+  const code = String($("#agentPairCode").value || "").replace(/[\s-]/g, "").toUpperCase();
+  if (!/^[A-F0-9]{16}$/.test(code)) { setAgentPairUi(false, tx("Nakata Desktop’tan aldığın 16 karakterli kodu gir.")); $("#agentPairCode").focus(); return; }
+  agentPairingBusy = true; $("#agentPairButton").disabled = true;
+  setAgentPairUi(false, tx("Kod doğrulanıyor; Mac onayı bekleniyor…"));
+  try {
+    const claimed = await chatCloudRequest("/agent/pair-codes/claim", { method: "POST", body: JSON.stringify({ code, clientName: "Nakata iOS" }) });
+    const pairId = claimed.pair?.id;
+    if (!pairId) throw new Error(tx("Eşleştirme kodu kullanılamadı."));
+    activeAgentPairId = pairId; LS.set(agentPairKey(), pairId); $("#agentPairCode").value = "";
+    const deadline = Date.now() + 5 * 60_000;
+    while (Date.now() < deadline) {
+      await wait(1800);
+      if (!agentAcct() || activeAgentPairId !== pairId) return;
+      const status = await chatCloudRequest("/agent/pairs/" + encodeURIComponent(pairId));
+      const pair = status.pair;
+      if (pair?.status === "active") { setAgentPairUi(true, tx("Nakata Desktop bağlantısı kuruldu.")); haptic(); return; }
+      if (["denied", "expired", "revoked"].includes(pair?.status)) throw new Error(tx("Eşleştirme Mac üzerinde reddedildi veya zaman aşımına uğradı."));
+    }
+    throw new Error(tx("Eşleştirme isteği zaman aşımına uğradı. Mac’te yeni kod üret."));
+  } catch (err) {
+    activeAgentPairId = null; LS.set(agentPairKey(), null);
+    setAgentPairUi(false, String(err?.message || err));
+  } finally { agentPairingBusy = false; $("#agentPairButton").disabled = false; }
+});
+$("#agentUnpair").addEventListener("click", async () => {
+  if (!activeAgentPairId) return;
+  $("#agentUnpair").disabled = true;
+  try {
+    await chatCloudRequest("/agent/unpair", { method: "POST", body: JSON.stringify({ pairId: activeAgentPairId }) });
+    activeAgentPairId = null; LS.set(agentPairKey(), null);
+    setAgentPairUi(false, tx("Mac bağlantısı kesildi.")); haptic();
+  } catch (err) { $("#agentCommandStatus").textContent = String(err?.message || err); }
+  finally { $("#agentUnpair").disabled = false; }
+});
+$("#agentCommandSend").addEventListener("click", async () => {
+  const prompt = $("#agentCommandPrompt").value.trim();
+  if (!activeAgentPairId || !prompt || agentCommandBusy || prompt.length > 12000) return;
+  agentCommandBusy = true; $("#agentCommandSend").disabled = true; $("#agentCommandResult").hidden = true;
+  $("#agentCommandStatus").textContent = tx("Görev Mac’inize gönderiliyor…");
+  const commandId = crypto.randomUUID().replace(/-/g, "");
+  const pair = activeAgentPairId, acct = agentAcct();
+  try {
+    const res = await chatCloudRequest("/agent/commands", { method: "POST", body: JSON.stringify({ pairId: pair, commandId, prompt }) });
+    if (acct !== agentAcct() || pair !== activeAgentPairId) return;
+    $("#agentCommandPrompt").value = "";
+    agentTaskSelection = res.command?.id || commandId;
+    agentPendingIds.add(agentTaskSelection);
+    $("#agentTaskHistory").open = true;
+    $("#agentCommandStatus").textContent = agentTaskLabel("queued");
+    haptic();
+    void refreshAgentTasks();
+  } catch (err) { $("#agentCommandStatus").textContent = String(err?.message || err); }
+  finally { agentCommandBusy = false; $("#agentCommandSend").disabled = false; }
+});
 $("#accountRow").addEventListener("click", openAccount);
 $("#img-login").addEventListener("click", openAccount);
 function showErr(id, msg){ const n = $(id); n.textContent = msg || ""; n.hidden = !msg; }
@@ -2130,9 +2693,25 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && voi
 /* ---- boot ---- */
 (async () => {
   await loadCfg();                                                  // the key comes from the Keychain, so read it first
+  const isTouch = matchMedia("(pointer:coarse)").matches;
+  let fitH = null;
+  if (window.visualViewport) {
+    fitH = () => {
+      const h = Math.round(window.visualViewport.height);
+      if (h > 120) document.body.style.height = h + "px";
+      if (isTouch) window.scrollTo(0, 0);
+    };
+    window.visualViewport.addEventListener("resize", fitH);
+    window.visualViewport.addEventListener("scroll", fitH);
+    window.addEventListener("orientationchange", fitH);
+    fitH();
+    if (isTouch) {
+      $("#prompt").addEventListener("focus", () => { setTimeout(fitH, 60); setTimeout(fitH, 350); setTimeout(scrollDown, 120); });
+    }
+  }
   try {
     NATIVE.Keyboard?.setAccessoryBarVisible({ isVisible: false });   // no web-style "< > Done" bar
-    NATIVE.Keyboard?.addListener("keyboardDidShow", scrollDown);
+    NATIVE.Keyboard?.addListener("keyboardDidShow", () => { fitH?.(); scrollDown(); });
   } catch {}
   $("#st-lang").value = LANG; $("#st-theme").value = LS.get("nakata_theme", "dark");
   setModelLabel();
@@ -2141,7 +2720,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && voi
   paintAccount();
   i18nApply();
   if (token()) { refreshAccount(); syncChatCloud().catch(() => {}); }
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && token()) syncChatCloud().catch(() => {}); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (token()) syncChatCloud().catch(() => {}); void refreshAgentTasks(); } });
   window.addEventListener("focus", () => { if (token()) syncChatCloud().catch(() => {}); });
   paintModelChip(); loadModels().then(paintModelChip);
   loadCats();

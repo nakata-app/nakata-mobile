@@ -97,11 +97,11 @@ function createOrb({ size = 40, color = "#5b8cff", expression = "neutral", follo
 			</filter>
 		</defs>
 		<ellipse class="orb-shadow" cx="100" cy="190" rx="48" ry="6" fill="#000" opacity="0.18"/>
-		<circle cx="100" cy="98" r="84" fill="url(#${id}b)"/>
-		<circle cx="100" cy="98" r="84" fill="url(#${id}g)"/>
-		<path d="M52,62 C66,30 132,26 152,58 C132,46 76,44 52,62Z" fill="url(#${id}h)" opacity="0.85"/>
+		<path d="M69.1,21.9Q100.0,4.0 130.9,21.9L150.5,33.1Q181.4,51.0 181.4,86.7L181.4,109.3Q181.4,145.0 150.5,162.9L130.9,174.1Q100.0,192.0 69.1,174.1L49.5,162.9Q18.6,145.0 18.6,109.3L18.6,86.7Q18.6,51.0 49.5,33.1Z" fill="url(#${id}b)"/>
+		<path d="M69.1,21.9Q100.0,4.0 130.9,21.9L150.5,33.1Q181.4,51.0 181.4,86.7L181.4,109.3Q181.4,145.0 150.5,162.9L130.9,174.1Q100.0,192.0 69.1,174.1L49.5,162.9Q18.6,145.0 18.6,109.3L18.6,86.7Q18.6,51.0 49.5,33.1Z" fill="url(#${id}g)"/>
+		<path d="M56,60 C70,34 130,30 148,56 C128,46 80,45 56,60Z" fill="url(#${id}h)" opacity="0.85"/>
 		<ellipse cx="64" cy="64" rx="9" ry="5" fill="#fff" opacity="0.55" transform="rotate(-35 64 64)"/>
-		<circle class="orb-rim" cx="100" cy="98" r="83" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="1.5"/>
+		<path class="orb-rim" d="M69.4,22.7Q100.0,5.0 130.6,22.7L149.9,33.8Q180.5,51.5 180.5,86.8L180.5,109.2Q180.5,144.5 149.9,162.2L130.6,173.3Q100.0,191.0 69.4,173.3L50.1,162.2Q19.5,144.5 19.5,109.2L19.5,86.8Q19.5,51.5 50.1,33.8Z" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="1.5"/>
 		<g class="orb-look"><g class="orb-eyes" filter="url(#${id}f)">
 			<path class="orb-eye orb-eye-l"/><path class="orb-eye orb-eye-r"/>
 		</g></g>

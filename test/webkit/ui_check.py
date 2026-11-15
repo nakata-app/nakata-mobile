@@ -24,6 +24,8 @@ REPLY = [
 class H(SimpleHTTPRequestHandler):
     limit = False
     paylimit = False  # free quota used up: only a request that agreed to pay gets a reply
+    custom_events = None
+    served_by = None
     last = path = None
     headers_seen = {}
     gets = []
@@ -47,9 +49,16 @@ class H(SimpleHTTPRequestHandler):
         if H.limit or (H.paylimit and body.get("pay") != "credits"):
             out = json.dumps({"error": {"code": "free_limit", "message": "used up"}}).encode()
             self.send_response(429); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(out); return
-        self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
-        for d in REPLY:
-            self.wfile.write(f"data: {json.dumps({'choices': [{'delta': d}]})}\n\n".encode()); self.wfile.flush(); time.sleep(0.15)
+        self.send_response(200); self.send_header("Content-Type", "text/event-stream")
+        if H.served_by:
+            self.send_header("X-Nakata-Served-By", H.served_by)
+        self.end_headers()
+        if H.custom_events is not None:
+            for ev in H.custom_events:
+                self.wfile.write(f"data: {json.dumps(ev)}\n\n".encode()); self.wfile.flush(); time.sleep(0.18)
+        else:
+            for d in REPLY:
+                self.wfile.write(f"data: {json.dumps({'choices': [{'delta': d}]})}\n\n".encode()); self.wfile.flush(); time.sleep(0.15)
         self.wfile.write(b"data: [DONE]\n\n")
 
 
@@ -203,6 +212,48 @@ with sync_playwright() as p:
     check("reasoning shown", pg.locator(".reason").count() == 1)
     check("request carries model and history", H.last.get("model") == "test-model" and H.last["messages"][-1]["content"] == "üç madde yaz" and H.last.get("stream") is True)
     check("conversation saved", pg.evaluate("Object.values(JSON.parse(localStorage.getItem('nakata_byok_sessions'))).length") == 3)
+
+    # New vNext mobile capabilities: Hex-C mascot, attachments, SSE tool_call/sources, SVG/table markdown, copy, retry
+    pg.click("#newBtn"); pg.wait_for_timeout(150)
+    orb_state = pg.evaluate("({ paths: document.querySelectorAll('#mascot svg path').length, oldCircle: document.querySelectorAll('#mascot svg circle').length })")
+    check("hero mascot uses Hex-C geometry", orb_state["paths"] >= 3 and orb_state["oldCircle"] == 0, str(orb_state))
+
+    import base64
+    png_1x1 = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+    pg.set_input_files("#chatFile", [
+        {"name": "shot.png", "mimeType": "image/png", "buffer": png_1x1},
+        {"name": "note.txt", "mimeType": "text/plain", "buffer": b"galata spec"},
+    ])
+    pg.wait_for_selector("#attachBar:not([hidden]) .attach-thumb", timeout=5000)
+    check("composer attaches image and text file preview", pg.locator("#attachBar .attach-thumb").count() == 1 and pg.locator("#attachBar .attach-fchip").count() == 1)
+
+    H.served_by = "gemma4"
+    H.custom_events = [
+        {"type": "tool_call", "tool": "web_search", "args": {"query": "galata"}},
+        {"type": "tool_result", "tool": "web_search", "sources": [{"title": "Galata Wiki", "url": "https://en.wikipedia.org/wiki/Galata_Tower"}], "images": []},
+        {"choices": [{"delta": {"content": "| Metric | Value |\n| --- | --- |\n| Height | 67m |\n\n> Built 1348\n\n---\n\n```svg\n<svg viewBox=\"0 0 120 40\"><rect width=\"120\" height=\"40\"/><script>window.__xss=1</script></svg>\n```\n\n```py\nprint(1)\n```"}}]},
+    ]
+    pg.fill("#prompt", "Galata info"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("(document.querySelector('.pending')?.textContent || '').includes('Web') || (document.querySelector('.pending')?.textContent || '').includes('Searching')", timeout=5000)
+    pend_txt = pg.inner_text(".pending")
+    check("SSE tool_call shows search status while pending", "Web" in pend_txt or "Searching" in pend_txt, pend_txt)
+    pg.wait_for_selector(".art-frame", timeout=8000)
+    check("multimodal attachment + file sent to API", isinstance(H.last["messages"][-1]["content"], list) and H.last["messages"][-1]["content"][1]["image_url"]["url"].startswith("data:image/jpeg") and "galata spec" in H.last["messages"][-1]["content"][0]["text"])
+    check("user bubble shows thumbnail and file chip", pg.locator(".row.user .msg-shots img").count() == 1 and pg.locator(".row.user .msg-file").count() == 1)
+    check("markdown renders table, blockquote and divider", pg.locator(".md table th").count() == 2 and pg.inner_text(".md blockquote").strip() == "Built 1348" and pg.locator(".md hr").count() == 1)
+    svg_src = pg.get_attribute(".art-svg", "src") or ""
+    svg_loaded = pg.evaluate("(() => { const img = document.querySelector('.art-svg'); return !!img && img.complete && img.naturalWidth > 0; })()")
+    check("SVG diagram rendered safely without scripts", svg_src.startswith("data:image/svg+xml") and "%3Crect" in svg_src and "script" not in svg_src.lower() and svg_loaded, svg_src[:90])
+    pg.click(".art-toggle")
+    check("artifact Source toggle shows code", pg.get_attribute(".art-toggle", "aria-pressed") == "true" and pg.locator(".art-source:not([hidden])").count() == 1)
+    check("sources and X-Nakata-Served-By badge rendered", pg.inner_text(".srcs a em") == "Galata Wiki" and pg.inner_text(".servedby") == "gemma4")
+
+    H.last = None
+    pg.click(".msg-actions .retry")
+    pg.wait_for_function("document.querySelectorAll('#thread .row.user').length === 1 && !document.querySelector('.pending')", timeout=8000)
+    check("retry button re-runs the turn", H.last is not None and isinstance(H.last["messages"][-1]["content"], list))
+    H.custom_events = None; H.served_by = None
+
     shot(pg, "chat.png")
     # The default free base is the real nakata.app; from a localhost test page WebKit
     # blocks that cross-origin call (on the device the origin is capacitor://localhost).

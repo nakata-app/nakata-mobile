@@ -117,6 +117,9 @@ with sync_playwright() as p:
     url_before = pg.url
     pg.click(".md a"); pg.wait_for_timeout(300)
     check("link opens in the in-app browser, app stays", "browser:https://nakata.app/terms" in calls() and pg.url == url_before)
+    pg.focus("#prompt"); pg.wait_for_timeout(400)
+    vp_state = pg.evaluate("({ h: document.body.style.height, sy: window.scrollY })")
+    check("visualViewport pins body height and prevents scroll drift on focus", vp_state["h"].endswith("px") and vp_state["sy"] == 0, str(vp_state))
     errs = [e for e in errs if "access control checks" not in e]   # real nakata.app from a localhost page
     check("no page errors", not errs, "; ".join(errs[:3]))
     b.close()

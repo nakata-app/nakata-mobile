@@ -130,8 +130,61 @@ with sync_playwright() as p:
     check("generated image can be long-pressed to save", pe == "auto" and rule, f"{pe} {rule}")
     pg.evaluate("document.getElementById('f-image').classList.remove('on')")
 
+    # Mac remote control (agent_bridge): pair, send task, background notice, inspect result, disconnect
+    agent_state = {"paired": False, "cmd": None, "status": "queued", "auth": ""}
+    def handle_agent(route):
+        req = route.request
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        agent_state["auth"] = req.headers.get("authorization", "")
+        u = req.url.split("?")[0]
+        def j(status, obj):
+            return route.fulfill(status=status, content_type="application/json", headers=cors, body=json.dumps(obj))
+        if u.endswith("/agent/pair-codes/claim"):
+            agent_state["paired"] = True
+            return j(200, {"ok": True, "pair": {"id": "pair_test_1", "status": "pending"}})
+        if u.endswith("/agent/pairs/pair_test_1"):
+            if not agent_state["paired"]:
+                return j(404, {"error": "pair_not_active"})
+            return j(200, {"ok": True, "pair": {"id": "pair_test_1", "status": "active", "online": True}})
+        if u.endswith("/agent/commands") and req.method == "POST":
+            b = json.loads(req.post_data or "{}")
+            agent_state["cmd"] = {"id": b["commandId"], "prompt": b["prompt"], "createdAt": 1700000000000}
+            agent_state["status"] = "queued"
+            return j(200, {"ok": True, "command": {"id": b["commandId"], "status": "queued"}})
+        if "/agent/task-history" in u:
+            cmds = [{"id": agent_state["cmd"]["id"], "status": agent_state["status"], "title": agent_state["cmd"]["prompt"], "createdAt": agent_state["cmd"]["createdAt"]}] if agent_state["cmd"] else []
+            return j(200, {"ok": True, "commands": cmds})
+        if "/agent/commands/" in u and agent_state["cmd"]:
+            return j(200, {"ok": True, "command": {"id": agent_state["cmd"]["id"], "status": agent_state["status"], "result": "OK 42% used" if agent_state["status"] == "completed" else ""}})
+        if u.endswith("/agent/unpair"):
+            agent_state["paired"] = False; agent_state["cmd"] = None
+            return j(200, {"ok": True})
+        return j(404, {"error": "nf"})
+    pg.route("https://nakata.app/api/chat/agent/**", handle_agent)
+
     # delete account
     pg.click("#menuBtn"); pg.wait_for_timeout(350); pg.click("#accountRow"); pg.wait_for_timeout(500)
+    check("agent control visible when signed in", not pg.locator("#agentControl").get_attribute("hidden") and pg.is_visible("#agentPairCode"))
+    pg.fill("#agentPairCode", "ab12cd34ef567890")
+    check("pair code formats as 4-char groups", pg.input_value("#agentPairCode") == "AB12-CD34-EF56-7890")
+    pg.click("#agentPairButton")
+    pg.wait_for_selector("#agentCommandArea:not([hidden])", timeout=8000)
+    check("Mac pairing authenticates with Bearer token", agent_state["auth"] == "Bearer pst_test" and pg.is_visible("#agentCommandSend"))
+    pg.fill("#agentCommandPrompt", "check disk usage"); pg.click("#agentCommandSend")
+    pg.wait_for_selector("#agentTasks li button", timeout=5000)
+    check("Mac task appears in Recent tasks", "check disk usage" in pg.inner_text("#agentTasks"))
+    pg.click("#f-account .fclose"); pg.wait_for_timeout(300)
+    agent_state["status"] = "completed"
+    pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=8000)
+    pg.click("#agentTaskNotice")
+    pg.wait_for_function("document.getElementById('agentCommandResult').textContent.includes('OK 42% used')", timeout=6000)
+    check("tapping completion badge opens Mac task result", "OK 42% used" in pg.inner_text("#agentCommandResult"))
+    pg.click("#agentUnpair")
+    pg.wait_for_selector("#agentCommandArea", state="hidden", timeout=5000)
+    check("disconnect hides Mac command area", not pg.is_visible("#agentCommandArea"))
+
     pg.click("#acc-delete"); pg.fill("#acc-del-pass", "yanlis"); pg.click("#acc-del-go")
     # the refusal arrives after a network round trip; wait for it rather than a fixed delay
     try: pg.wait_for_function("document.getElementById('acc-del-err').textContent.trim() !== ''", timeout=5000)
