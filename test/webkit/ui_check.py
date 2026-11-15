@@ -39,7 +39,16 @@ class H(SimpleHTTPRequestHandler):
             b = json.dumps({"object": "list", "data": [{"id": "gemma4:31b"}, {"id": "glm-5.3"}, {"id": "kimi-k3"}]}).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
         if self.path.startswith("/api/mobile/models"):
-            b = json.dumps({"models": [{"id": "gemma4", "label": "Gemma 4"}, {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"}], "default": "gemma4", "perDay": 30}).encode()
+            b = json.dumps({
+                "models": [
+                    {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen"},
+                    {"id": "gemma4", "label": "Gemma 4"},
+                    {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"},
+                    {"id": "refuseless/glm-5.3-abliterated", "label": "GLM 5.3 Abliterated", "requiresConsent": True, "credits": 1},
+                ],
+                "default": "gemini-4-hydrogen",
+                "perDay": 30,
+            }).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
         return super().do_GET()
 
@@ -96,8 +105,10 @@ with sync_playwright() as p:
     check("settings: free provider hides key fields", pg.evaluate("[document.getElementById('st-byok').hidden, document.getElementById('st-freehint').hidden]") == [True, False])
     pg.evaluate(f"localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'nakata', base:'{BASE}/api/mobile', model:'x', key:''}})); localStorage.setItem('nakata_profile', JSON.stringify({{name:'Atakan', style:'kısa'}}))")
     pg.reload(); pg.wait_for_timeout(700)
-    check("model chip shows the free default", pg.inner_text("#modelChipName") == "Gemma 4", pg.inner_text("#modelChipName"))
+    check("model chip shows the free default", pg.inner_text("#modelChipName") == "Gemini 4 Hydrogen", pg.inner_text("#modelChipName"))
     pg.click("#modelChip"); pg.wait_for_timeout(400)
+    free_sheet_nms = pg.evaluate("[...document.querySelectorAll('#modelList .nm')].map(n => n.textContent)")
+    check("model sheet shows Main + Free + Abliterated even signed out", "Gemini 4 Hydrogen" in free_sheet_nms and "GLM 5.3 Abliterated" in free_sheet_nms and pg.locator("#modelList .model-tag", has_text="Main").count() == 1, str(free_sheet_nms))
     pg.locator("#modelList .botmain", has_text="Nemotron").click(); pg.wait_for_timeout(300)
     check("picking a free model updates the chip", pg.inner_text("#modelChipName").startswith("Nemotron"))
     pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
@@ -148,7 +159,7 @@ with sync_playwright() as p:
     pg.wait_for_function("() => document.querySelectorAll('#modelList .botmain').length >= 3", timeout=6000)
     ids = pg.evaluate("[...document.querySelectorAll('#modelList .nm')].map(n => n.textContent)")
     get = [g for g in H.gets if g[0].startswith("/api/mobile/ollama/models")]
-    check("ollama: the model list comes from the relay with the key", bool(get) and "Bearer sk-own-key" in get[0][1].get("Authorization", "") and ids == ["gemma4:31b", "glm-5.3", "kimi-k3"], f"{ids} {get[:1]}")
+    check("ollama: the model list comes from the relay with the key and keeps Free + Abliterated visible", bool(get) and "Bearer sk-own-key" in get[0][1].get("Authorization", "") and ids[:3] == ["gemma4:31b", "glm-5.3", "kimi-k3"] and "Gemini 4 Hydrogen" in ids and "GLM 5.3 Abliterated" in ids, f"{ids} {get[:1]}")
     pg.evaluate("document.getElementById('modelSheet').classList.remove('on'); document.getElementById('scrim').classList.remove('on'); document.getElementById('f-settings').classList.remove('on')")
     pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
     pg.wait_for_function("() => document.querySelector('.md') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=10000)

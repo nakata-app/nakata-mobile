@@ -91,9 +91,13 @@ with sync_playwright() as p:
     pg.on("pageerror", lambda e: errs.append(str(e)[:120]))
     pg.goto(BASE + "/index.html"); pg.wait_for_timeout(500)
 
-    # drawer shows the signed-out account row like the desktop sidebar
+    # drawer shows the signed-out account row + Mac Agent prompts sign-in cleanly
     pg.click("#menuBtn"); pg.wait_for_timeout(350)
     check("drawer: signed-out account row", pg.inner_text("#acctName") == "Giriş yap")
+    pg.click("#agentRow"); pg.wait_for_timeout(350)
+    check("Mac Agent shows sign-in prompt when signed out", pg.evaluate("document.getElementById('f-agent').classList.contains('on')") and pg.is_visible("#agentSignedOut") and not pg.is_visible("#agentControl"))
+    pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
+    pg.click("#menuBtn"); pg.wait_for_timeout(300)
     pg.click("#imagesRow"); pg.wait_for_timeout(350)
     check("images ask to sign in first", pg.is_visible("#img-signin") and not pg.is_visible("#img-form"))
     pg.click("#img-login"); pg.wait_for_timeout(350)
@@ -164,27 +168,33 @@ with sync_playwright() as p:
         return j(404, {"error": "nf"})
     pg.route("https://nakata.app/api/chat/agent/**", handle_agent)
 
-    # delete account
-    pg.click("#menuBtn"); pg.wait_for_timeout(350); pg.click("#accountRow"); pg.wait_for_timeout(500)
-    check("agent control visible when signed in", not pg.locator("#agentControl").get_attribute("hidden") and pg.is_visible("#agentPairCode"))
+    # dedicated Mac Agent screen from drawer and account shortcut
+    pg.click("#menuBtn"); pg.wait_for_timeout(350); pg.click("#agentRow"); pg.wait_for_timeout(500)
+    check("agent control visible on Mac Agent page when signed in", pg.evaluate("document.getElementById('f-agent').classList.contains('on')") and not pg.locator("#agentControl").get_attribute("hidden") and not pg.is_visible("#agentSignedOut") and pg.is_visible("#agentPairCode"))
     pg.fill("#agentPairCode", "ab12cd34ef567890")
     check("pair code formats as 4-char groups", pg.input_value("#agentPairCode") == "AB12-CD34-EF56-7890")
     pg.click("#agentPairButton")
     pg.wait_for_selector("#agentCommandArea:not([hidden])", timeout=8000)
     check("Mac pairing authenticates with Bearer token", agent_state["auth"] == "Bearer pst_test" and pg.is_visible("#agentCommandSend"))
+    pg.click("#agentBotChips [data-agent-prefix='@Araştır ']"); pg.wait_for_timeout(150)
+    check("bot chip inserts @Araştır prefix", pg.input_value("#agentCommandPrompt") == "@Araştır ")
     pg.fill("#agentCommandPrompt", "check disk usage"); pg.click("#agentCommandSend")
     pg.wait_for_selector("#agentTasks li button", timeout=5000)
     check("Mac task appears in Recent tasks", "check disk usage" in pg.inner_text("#agentTasks"))
-    pg.click("#f-account .fclose"); pg.wait_for_timeout(300)
+    pg.click("#f-agent .fclose"); pg.wait_for_timeout(300)
     agent_state["status"] = "completed"
     pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=8000)
     pg.click("#agentTaskNotice")
     pg.wait_for_function("document.getElementById('agentCommandResult').textContent.includes('OK 42% used')", timeout=6000)
-    check("tapping completion badge opens Mac task result", "OK 42% used" in pg.inner_text("#agentCommandResult"))
+    check("tapping completion badge opens Mac Agent task result", pg.evaluate("document.getElementById('f-agent').classList.contains('on')") and "OK 42% used" in pg.inner_text("#agentCommandResult") and pg.is_visible("#agentCopyResult"))
     pg.click("#agentUnpair")
     pg.wait_for_selector("#agentCommandArea", state="hidden", timeout=5000)
     check("disconnect hides Mac command area", not pg.is_visible("#agentCommandArea"))
+    pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
 
+    # account page shortcut + delete account
+    pg.click("#menuBtn"); pg.wait_for_timeout(300); pg.click("#accountRow"); pg.wait_for_timeout(350)
+    check("account page links to Mac Agent", pg.is_visible("#acc-agent-btn"))
     pg.click("#acc-delete"); pg.fill("#acc-del-pass", "yanlis"); pg.click("#acc-del-go")
     # the refusal arrives after a network round trip; wait for it rather than a fixed delay
     try: pg.wait_for_function("document.getElementById('acc-del-err').textContent.trim() !== ''", timeout=5000)

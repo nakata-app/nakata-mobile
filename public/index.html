@@ -367,6 +367,21 @@ form.composer textarea{min-width:0}
 #agentTasks button span{font-size:13.5px;overflow-wrap:anywhere}
 #agentTasks button small{color:var(--muted);font-size:12px}
 .agent-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0d0d0c;color:#f5f4ee;font:12px/1.5 var(--mono);margin:0}
+#f-agent .agent-box{margin-top:0;padding-top:0;border-top:0}
+#agentSignedOut{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
+#agentSignedOut[hidden],#agentCommandResultHead[hidden]{display:none}
+.agent-head-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
+.agent-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#ffffff12;color:var(--muted);flex:none}
+.agent-pill.on{color:#6ee7b7;background:#10b98122}
+.agent-pill.pending{color:#fcd34d;background:#f59e0b22}
+.agent-chips{display:flex;gap:6px;flex-wrap:wrap}
+.agent-result-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.agent-copy{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--line);color:var(--side-ink);font-size:12px}
+.agent-refresh{height:36px;padding:0 12px;border-radius:10px;color:var(--accent);font-weight:600;font-size:13px;flex:none}
+#agentPairCode{font-family:var(--mono);letter-spacing:.08em;text-align:center;font-weight:600}
+.model-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;vertical-align:middle;background:var(--accent);color:var(--on-accent)}
+.model-tag.adult{background:#f59e0b26;color:#fcd34d;border:1px solid #f59e0b55}
+.model-tag.free{background:#10b98122;color:#6ee7b7}
 
 </style>
 </head>
@@ -391,7 +406,7 @@ form.composer textarea{min-width:0}
     <input type="file" id="chatFile" accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.yml,.yaml,.log" multiple hidden>
     <form class="composer" id="composer">
       <button type="button" class="attach-btn" id="attachBtn" aria-label="Dosya veya görsel ekle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button type="button" class="mchip" id="modelChip" aria-label="Model seç"><span id="modelChipName">Gemma 4</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      <button type="button" class="mchip" id="modelChip" aria-label="Model seç"><span id="modelChipName">Gemini 4 Hydrogen</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       <textarea id="prompt" rows="1" placeholder="Nakata'ya yaz" enterkeyhint="send"></textarea>
       <button type="button" class="micbtn" id="micBtn" aria-label="Sesli konuş"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" class="send" id="sendBtn" aria-label="Gönder" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
@@ -409,6 +424,7 @@ form.composer textarea{min-width:0}
   </nav>
   <nav class="nav">
     <button id="discoverRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Keşfet</button>
+    <button id="agentRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Mac Agent</button>
     <button id="imagesRow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20 16l-4.5-4.5L7 19.5"/></svg>Görsel</button>
   </nav>
   <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="search" placeholder="Sohbetlerde ara" autocomplete="off"></label>
@@ -558,32 +574,8 @@ form.composer textarea{min-width:0}
     </div>
     <div class="form" id="acc-in" hidden>
       <div class="acc-card"><span class="avatar-n" id="acc-av">N</span><div><b id="acc-name"></b><span class="muted" id="acc-credits"></span></div></div>
+      <button class="ghost" id="acc-agent-btn" type="button">Mac Agent</button>
       <button class="ghost" id="acc-logout">Çıkış yap</button>
-      <div class="agent-box" id="agentControl" hidden>
-        <h3 id="agentControlTitle">Nakata ile Mac’i kontrol et</h3>
-        <div class="hint" id="agentControlDesc">Nakata Desktop → Hesap → Mobil cihazı eşleştir menüsünden tek kullanımlık kod üret. Kodu buraya gir; Mac üzerinde ayrıca onay gerekir.</div>
-        <p class="agent-status" id="agentPairStatus" role="status">Bağlı değil</p>
-        <div id="agentPairEntry">
-          <label for="agentPairCode">Nakata Desktop tek kullanımlık kodu</label>
-          <input id="agentPairCode" class="field" type="text" inputmode="text" autocomplete="one-time-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
-        </div>
-        <button class="primary" id="agentPairButton" type="button">Bu Mac’e bağlan</button>
-        <div id="agentCommandArea" class="agent-cmd" hidden>
-          <label for="agentCommandPrompt">Mac’te çalıştırılacak görev</label>
-          <textarea id="agentCommandPrompt" class="field" rows="3" maxlength="12000" placeholder="Nakata’nın Mac’inde ne yapmasını istediğini yaz"></textarea>
-          <div class="agent-actions">
-            <button class="primary" id="agentCommandSend" type="button">Mac’e gönder</button>
-            <button class="ghost" id="agentUnpair" type="button">Bağlantıyı kes</button>
-          </div>
-          <details id="agentTaskHistory">
-            <summary id="agentTaskHistoryLabel">Son görevler</summary>
-            <p class="agent-status" id="agentTaskHistoryState" role="status"></p>
-            <ul id="agentTasks"></ul>
-          </details>
-          <p class="agent-status" id="agentCommandStatus" role="status"></p>
-          <pre class="agent-result" id="agentCommandResult" hidden></pre>
-        </div>
-      </div>
       <button class="danger" id="acc-delete">Hesabı sil</button>
       <div class="form" id="acc-del-box" hidden style="padding:8px 0 0">
         <div class="hint">Hesabın hemen kapatılır, kalan kredilerin dahil tüm verilerin en geç 8 gün içinde silinir. Fikrini değiştirirsen 7 gün içinde support@nakata.app'e yaz, hesabını geri açarız.</div>
@@ -594,6 +586,60 @@ form.composer textarea{min-width:0}
       </div>
     </div>
   </div>
+</section>
+
+<section class="page" id="f-agent">
+  <header>
+    <button class="icon fclose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="title">Mac Agent</div>
+    <button class="agent-refresh" id="agentRefreshBtn" type="button">Yenile</button>
+  </header>
+  <div class="scroll"><div class="form">
+    <div id="agentSignedOut">
+      <div class="hint" style="font-size:14.5px">Nakata Desktop üzerindeki Mac’ini telefonundan kontrol etmek ve görev sonuçlarını görmek için nakata.app hesabınla giriş yap.</div>
+      <button class="primary" id="agentSignInBtn" type="button">Giriş yap</button>
+    </div>
+    <div class="agent-box" id="agentControl" hidden>
+      <div class="agent-head-card">
+        <div>
+          <h3 id="agentControlTitle">Nakata ile Mac’i kontrol et</h3>
+          <p class="agent-status" id="agentPairStatus" role="status">Bağlı değil</p>
+        </div>
+        <span class="agent-pill" id="agentPairPill">Bağlı değil</span>
+      </div>
+      <div class="hint" id="agentControlDesc">Nakata Desktop → Hesap → Mobil cihazı eşleştir menüsünden tek kullanımlık kod üret. Kodu buraya gir; Mac üzerinde ayrıca onay gerekir.</div>
+      <div id="agentPairEntry">
+        <label for="agentPairCode">Nakata Desktop tek kullanımlık kodu</label>
+        <input id="agentPairCode" class="field" type="text" inputmode="text" autocomplete="one-time-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
+      </div>
+      <button class="primary" id="agentPairButton" type="button">Bu Mac’e bağlan</button>
+      <div id="agentCommandArea" class="agent-cmd" hidden>
+        <label for="agentCommandPrompt">Mac’te çalıştırılacak görev</label>
+        <div class="agent-chips" id="agentBotChips">
+          <button type="button" class="chip" data-agent-prefix="@Araştır ">@Araştır</button>
+          <button type="button" class="chip" data-agent-prefix="@Denetle ">@Denetle</button>
+          <button type="button" class="chip" data-agent-prefix="@Raporla ">@Raporla</button>
+          <button type="button" class="chip" data-agent-prefix="@Kodu incele ">@Kodu incele</button>
+        </div>
+        <textarea id="agentCommandPrompt" class="field" rows="4" maxlength="12000" placeholder="Nakata’nın Mac’inde ne yapmasını istediğini yaz"></textarea>
+        <div class="agent-actions">
+          <button class="primary" id="agentCommandSend" type="button">Mac’e gönder</button>
+          <button class="ghost" id="agentUnpair" type="button">Bağlantıyı kes</button>
+        </div>
+        <details id="agentTaskHistory" open>
+          <summary id="agentTaskHistoryLabel">Son görevler</summary>
+          <p class="agent-status" id="agentTaskHistoryState" role="status"></p>
+          <ul id="agentTasks"></ul>
+        </details>
+        <p class="agent-status" id="agentCommandStatus" role="status"></p>
+        <div class="agent-result-head" id="agentCommandResultHead" hidden>
+          <span class="muted" style="font-size:12px;font-weight:600">Çıktı</span>
+          <button type="button" class="agent-copy" id="agentCopyResult">Kopyala</button>
+        </div>
+        <pre class="agent-result" id="agentCommandResult" hidden></pre>
+      </div>
+    </div>
+  </div></div>
 </section>
 
 <section class="page" id="f-image">
@@ -819,6 +865,21 @@ const EN = {
   "Mac’te reddedildi":"Declined on Mac","Durum bilinmiyor":"Status unknown",
   "Henüz görev yok.":"No tasks yet.",
   "Görevler güncellenemedi. Yeniden deneniyor…":"Could not update tasks. Retrying…",
+  "Mac Agent":"Mac Agent",
+  "Mac Agent (Bilgisayarı kontrol et)":"Mac Agent (Control your computer)",
+  "Nakata Desktop üzerindeki Mac’ini telefonundan kontrol etmek ve görev sonuçlarını görmek için nakata.app hesabınla giriş yap.":"Sign in with your nakata.app account to control your Mac via Nakata Desktop and view task results.",
+  "Yenile":"Refresh",
+  "Çıktı":"Output",
+  "Ücretsiz Modeller · Nakata":"Free Models · Nakata",
+  "Abliterated · 18+":"Abliterated · 18+",
+  "Main":"Main",
+  "Giriş gerekir":"Sign in required",
+  "Dokunarak onayla":"Tap to verify",
+  "18+ aktif":"18+ active",
+  "Sistem onayı bekleniyor":"Awaiting system approval",
+  "Bağlı":"Connected",
+  "Onay bekleniyor":"Awaiting approval",
+  "Çevrimdışı":"Offline",
 };
 // Texts with numbers or names in them.
 const EN_RE = [
@@ -967,7 +1028,7 @@ function md(src){
 /* ---- provider presets ---- */
 const PROVIDERS = {
   // Keyless, served by nakata.app on our key behind daily limits (routes/mobile.js).
-  nakata:{ base:"https://nakata.app/api/mobile", model:"deepseek-v4.1-flash", free:true, keyUrl:"", hint:"" },
+  nakata:{ base:"https://nakata.app/api/mobile", model:"gemini-4-hydrogen", free:true, keyUrl:"", hint:"" },
   openrouter:{ base:"https://openrouter.ai/api/v1", model:"openai/gpt-4o-mini",
                keyUrl:"https://openrouter.ai/keys", hint:"Örnek: openai/gpt-4o-mini, anthropic/claude-sonnet-4, google/gemini-2.5-flash" },
   openai:{ base:"https://api.openai.com/v1", model:"gpt-4o-mini",
@@ -976,37 +1037,67 @@ const PROVIDERS = {
          keyUrl:"https://console.groq.com/keys", hint:"Örnek: llama-3.3-70b-versatile, moonshotai/kimi-k2-instruct" },
   deepseek:{ base:"https://api.deepseek.com/v1", model:"deepseek-chat",
              keyUrl:"https://platform.deepseek.com/api_keys", hint:"Örnek: deepseek-chat, deepseek-reasoner" },
-  gemini:{ base:"https://generativelanguage.googleapis.com/v1beta/openai", model:"gemini-flash-lite-latest",
-           keyUrl:"https://aistudio.google.com/apikey", hint:"Örnek: gemini-flash-lite-latest, gemini-3.5-flash, gemini-pro-latest" },
+  gemini:{ base:"https://generativelanguage.googleapis.com/v1beta/openai", model:"gemini-4-hydrogen",
+           keyUrl:"https://aistudio.google.com/apikey", hint:"Örnek: gemini-4-hydrogen, gemini-3.8-flash, gemini-4-argon, gemini-2.5-pro" },
   // ollama.com sends no CORS headers, so the app reaches it through a fixed-URL relay on nakata.app; the key is not stored there.
   ollama:{ base:"https://nakata.app/api/mobile/ollama", model:"gemma4:31b",
            keyUrl:"https://ollama.com/settings/keys", hint:"Anahtarın nakata.app üzerinden doğrudan Ollama'ya gider, orada saklanmaz. Örnek: gemma4:31b, glm-5.3, kimi-k3" },
   custom:{ base:"", model:"", keyUrl:"", hint:"OpenAI uyumlu herhangi bir adres (…/v1)" },
 };
 const FREE_CFG = { provider:"nakata", base:PROVIDERS.nakata.base, model:PROVIDERS.nakata.model, key:"" };
+const DEFAULT_NAKATA_MODELS = [
+  { id:"gemini-4-hydrogen", label:"Gemini 4 Hydrogen", free:true, main:true },
+  { id:"deepseek-v4.1-flash", label:"DeepSeek V4.1 Flash", free:true },
+  { id:"gemma4", label:"Gemma 4", free:true },
+  { id:"minimax-m2.7", label:"MiniMax M2.7", free:true },
+  { id:"refuseless/glm-5.3-abliterated", label:"GLM 5.3 Abliterated", requiresConsent:true, free:false, credits:1 },
+  { id:"refuseless/glm-5.3-flash-abliterated", label:"GLM 5.3 Flash Abliterated", requiresConsent:true, free:false, credits:1 },
+  { id:"refuseless/deepseek-v4.1-flash-abliterated", label:"DeepSeek V4.1 Flash Abliterated", requiresConsent:true, free:false, credits:1 },
+];
 /* BYOK settings. The API key belongs in the iOS Keychain, not in localStorage: the key is
    read once at boot into cfgCache so the rest of the app keeps working synchronously. */
 const BYOK_KEY = "nakata_byok_cfg";
+const BYOK_SAVED_KEY = "nakata_byok_saved";
 let cfgCache = null;
+let byokSavedCache = null;
 const keychain = () => NATIVE.SecureStorage || null;
 function getCfg(){ const c = cfgCache; return c && (c.provider === "nakata" || c.key) ? c : { ...FREE_CFG }; }
+function getByokCfg(){ const c = getCfg(); if (c.provider !== "nakata" && c.key) return c; return byokSavedCache && byokSavedCache.provider !== "nakata" && byokSavedCache.key ? byokSavedCache : null; }
 function saveCfg(c){
   cfgCache = c;
   const kc = keychain();
   if (kc) kc.set({ key: BYOK_KEY, value: JSON.stringify(c) }).catch(() => {});
   else LS.set(BYOK_KEY, c);
+  if (c && c.provider !== "nakata" && c.key) {
+    byokSavedCache = { provider: c.provider, base: c.base, model: c.model, key: c.key };
+    if (kc) kc.set({ key: BYOK_SAVED_KEY, value: JSON.stringify(byokSavedCache) }).catch(() => {});
+    else LS.set(BYOK_SAVED_KEY, byokSavedCache);
+  }
 }
 async function loadCfg(){
   const kc = keychain();
-  if (!kc) { cfgCache = LS.get(BYOK_KEY, null); return; }
-  let raw = null;
+  if (!kc) {
+    cfgCache = LS.get(BYOK_KEY, null);
+    byokSavedCache = LS.get(BYOK_SAVED_KEY, null);
+    if (!byokSavedCache && cfgCache && cfgCache.provider !== "nakata" && cfgCache.key) byokSavedCache = { ...cfgCache };
+    return;
+  }
+  let raw = null, rawSaved = null;
   try { raw = (await kc.get({ key: BYOK_KEY })).value || null; } catch {}
+  try { rawSaved = (await kc.get({ key: BYOK_SAVED_KEY })).value || null; } catch {}
   const legacy = LS.get(BYOK_KEY, null);
   if (legacy) {                              // a key saved by a build that still used plaintext storage
     if (!raw) { raw = JSON.stringify(legacy); try { await kc.set({ key: BYOK_KEY, value: raw }); } catch {} }
     LS.del(BYOK_KEY);
   }
+  const legacySaved = LS.get(BYOK_SAVED_KEY, null);
+  if (legacySaved) {
+    if (!rawSaved) { rawSaved = JSON.stringify(legacySaved); try { await kc.set({ key: BYOK_SAVED_KEY, value: rawSaved }); } catch {} }
+    LS.del(BYOK_SAVED_KEY);
+  }
   try { cfgCache = raw ? JSON.parse(raw) : null; } catch { cfgCache = null; }
+  try { byokSavedCache = rawSaved ? JSON.parse(rawSaved) : null; } catch { byokSavedCache = null; }
+  if (!byokSavedCache && cfgCache && cfgCache.provider !== "nakata" && cfgCache.key) byokSavedCache = { ...cfgCache };
 }
 function deviceId(){ let d = LS.get("nakata_device", ""); if (!d) { d = crypto.randomUUID(); LS.set("nakata_device", d); } return d; }
 
@@ -1074,7 +1165,7 @@ document.addEventListener("click", (e) => { if (swallowClick) { swallowClick = f
 function fillProviderUI(p){
   const pr = PROVIDERS[p] || PROVIDERS.custom;
   $("#st-byok").hidden = !!pr.free; $("#st-freehint").hidden = !pr.free;
-  $("#st-adult-section").hidden = p !== "nakata";
+  $("#st-adult-section").hidden = false;
   $("#st-base").value = pr.base; $("#st-base").readOnly = (p !== "custom");
   $("#st-model").placeholder = pr.model || "model-adı";
   $("#st-modelhint").textContent = pr.hint || "";
@@ -1133,8 +1224,14 @@ $("#st-provider").addEventListener("change", (e) => {
   fillProviderUI(p);
   // A model name belongs to its provider: switching providers must not keep the
   // previous one (e.g. "openai/gpt-4o-mini" sent to Gemini fails every request).
-  if (p !== "custom") { $("#st-base").value = pr.base; $("#st-model").value = pr.model; }
-  if (pr.free) $("#st-key").value = "";
+  if (byokSavedCache && byokSavedCache.provider === p) {
+    $("#st-base").value = byokSavedCache.base || pr.base;
+    $("#st-key").value = byokSavedCache.key || "";
+    $("#st-model").value = byokSavedCache.model || pr.model;
+  } else {
+    if (p !== "custom") { $("#st-base").value = pr.base; $("#st-model").value = pr.model; }
+    if (pr.free) $("#st-key").value = "";
+  }
 });
 $("#st-eye").addEventListener("click", () => { const f = $("#st-key"); f.type = f.type === "password" ? "text" : "password"; });
 $("#st-save").addEventListener("click", () => {
@@ -1771,7 +1868,7 @@ async function send(text, opts = {}){
         // preflight (403) when they are present, which fails every request.
         ...(!gb && /openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
-      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || undefined) : model), stream: true, messages, ...(gb && payBots ? { pay: "credits" } : {}) }),
+      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || PROVIDERS.nakata.model) : model), stream: true, messages, ...(gb && payBots ? { pay: "credits" } : {}) }),
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
@@ -2072,13 +2169,14 @@ async function refreshAccount(){
   paintAccount();
 }
 function openAccount(){ closeDrawer(); $("#acc-del-box").hidden = true; showPage("#f-account"); refreshAccount(); void refreshAgentControl(); }
+function openAgentPage(){ closeDrawer(); showPage("#f-agent"); if (token()) refreshAccount(); void refreshAgentControl(); }
 
 let activeAgentPairId = null, agentPairingBusy = false, agentCommandBusy = false;
 let agentTaskSelection = null, agentTaskPair = null, agentTaskAccount = null, agentTaskTimer = null;
 let agentTaskGeneration = 0, agentTaskNoticeId = null, agentPendingIds = new Set();
 const agentAcct = () => (token() && account?.name) ? String(account.name).trim().toLowerCase() : (token() ? "_signed_in" : "");
 const agentPairKey = () => "nk_agent_pair:" + agentAcct();
-const agentPageOpen = () => $("#f-account").classList.contains("on");
+const agentPageOpen = () => $("#f-agent").classList.contains("on");
 function agentTaskLabel(status){
   return ({
     queued: tx("Sırada · Mac bekleniyor"),
@@ -2098,6 +2196,7 @@ function clearAgentTasks(){
   $("#agentCommandStatus").textContent = "";
   $("#agentCommandResult").textContent = "";
   $("#agentCommandResult").hidden = true;
+  if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = true;
 }
 async function refreshAgentTasks(){
   clearTimeout(agentTaskTimer);
@@ -2128,7 +2227,7 @@ async function refreshAgentTasks(){
       const title = document.createElement("span"); title.textContent = command.title || "";
       const detail = document.createElement("small"); detail.textContent = agentTaskLabel(command.status) + " · " + new Date(command.createdAt).toLocaleString();
       button.append(title, detail);
-      button.addEventListener("click", () => { agentTaskSelection = command.id; $("#agentCommandResult").hidden = true; void refreshAgentTasks(); });
+      button.addEventListener("click", () => { agentTaskSelection = command.id; $("#agentCommandResult").hidden = true; if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = true; void refreshAgentTasks(); });
       item.append(button);
       return item;
     }));
@@ -2141,6 +2240,7 @@ async function refreshAgentTasks(){
       const out = command?.result || command?.error || "";
       $("#agentCommandResult").textContent = out;
       $("#agentCommandResult").hidden = !out;
+      if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = !out;
     }
   } catch {
     if (current()) $("#agentTaskHistoryState").textContent = tx("Görevler güncellenemedi. Yeniden deneniyor…");
@@ -2155,10 +2255,15 @@ $("#agentTaskNotice").addEventListener("click", () => {
   agentTaskSelection = agentTaskNoticeId; agentTaskNoticeId = null;
   $("#agentTaskNotice").hidden = true;
   $("#agentTaskHistory").open = true;
-  openAccount();
+  openAgentPage();
 });
-function setAgentPairUi(connected, status){
+function setAgentPairUi(connected, status, state = ""){
   $("#agentPairStatus").textContent = status;
+  const pill = $("#agentPairPill");
+  if (pill) {
+    pill.textContent = connected ? (state === "offline" ? tx("Çevrimdışı") : tx("Bağlı")) : state === "pending" ? tx("Onay bekleniyor") : tx("Bağlı değil");
+    pill.className = "agent-pill" + (connected && state !== "offline" ? " on" : state === "pending" ? " pending" : "");
+  }
   $("#agentPairEntry").hidden = connected;
   $("#agentPairButton").hidden = connected;
   $("#agentCommandArea").hidden = !connected;
@@ -2166,9 +2271,10 @@ function setAgentPairUi(connected, status){
   if (connected) { agentTaskAccount = agentAcct(); agentTaskPair = activeAgentPairId; void refreshAgentTasks(); }
 }
 async function refreshAgentControl(){
-  const panel = $("#agentControl"); if (!panel) return;
+  const panel = $("#agentControl"), signedOut = $("#agentSignedOut"); if (!panel) return;
   const acct = agentAcct();
   panel.hidden = !acct;
+  if (signedOut) signedOut.hidden = !!acct;
   if (!acct) { activeAgentPairId = null; clearAgentTasks(); return; }
   const pairId = LS.get(agentPairKey(), null);
   activeAgentPairId = pairId;
@@ -2178,8 +2284,8 @@ async function refreshAgentControl(){
     const result = await chatCloudRequest("/agent/pairs/" + encodeURIComponent(pairId));
     if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
     if (!result.pair || ["revoked", "denied", "expired"].includes(result.pair.status)) throw Object.assign(new Error("pair_not_active"), { status: 403 });
-    if (result.pair.status === "pending") { setAgentPairUi(false, tx("Mac üzerindeki yerel onay bekleniyor…")); return; }
-    setAgentPairUi(true, result.pair.online ? tx("Mac çevrimiçi ve eşleştirilmiş.") : tx("Eşleştirme kayıtlı; Mac şu anda çevrimdışı."));
+    if (result.pair.status === "pending") { setAgentPairUi(false, tx("Mac üzerindeki yerel onay bekleniyor…"), "pending"); return; }
+    setAgentPairUi(true, result.pair.online ? tx("Mac çevrimiçi ve eşleştirilmiş.") : tx("Eşleştirme kayıtlı; Mac şu anda çevrimdışı."), result.pair.online ? "online" : "offline");
   } catch (err) {
     if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
     const msg = String(err?.message || "");
@@ -2234,7 +2340,7 @@ $("#agentUnpair").addEventListener("click", async () => {
 $("#agentCommandSend").addEventListener("click", async () => {
   const prompt = $("#agentCommandPrompt").value.trim();
   if (!activeAgentPairId || !prompt || agentCommandBusy || prompt.length > 12000) return;
-  agentCommandBusy = true; $("#agentCommandSend").disabled = true; $("#agentCommandResult").hidden = true;
+  agentCommandBusy = true; $("#agentCommandSend").disabled = true; $("#agentCommandResult").hidden = true; if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = true;
   $("#agentCommandStatus").textContent = tx("Görev Mac’inize gönderiliyor…");
   const commandId = crypto.randomUUID().replace(/-/g, "");
   const pair = activeAgentPairId, acct = agentAcct();
@@ -2250,6 +2356,24 @@ $("#agentCommandSend").addEventListener("click", async () => {
     void refreshAgentTasks();
   } catch (err) { $("#agentCommandStatus").textContent = String(err?.message || err); }
   finally { agentCommandBusy = false; $("#agentCommandSend").disabled = false; }
+});
+$("#agentRow")?.addEventListener("click", openAgentPage);
+$("#acc-agent-btn")?.addEventListener("click", openAgentPage);
+$("#agentSignInBtn")?.addEventListener("click", openAccount);
+$("#agentRefreshBtn")?.addEventListener("click", () => { void refreshAgentControl(); void refreshAgentTasks(); });
+$("#agentBotChips")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-agent-prefix]");
+  if (!btn) return;
+  const box = $("#agentCommandPrompt"), prefix = btn.dataset.agentPrefix || "";
+  const cur = String(box.value || "").replace(/^@\S+\s*/, "");
+  box.value = prefix + cur;
+  box.focus();
+  haptic();
+});
+$("#agentCopyResult")?.addEventListener("click", async () => {
+  const out = $("#agentCommandResult").textContent || "";
+  if (!out) return;
+  try { await navigator.clipboard.writeText(out); $("#agentCopyResult").textContent = tx("Kopyalandı"); setTimeout(() => { $("#agentCopyResult").textContent = tx("Kopyala"); }, 1400); } catch {}
 });
 $("#accountRow").addEventListener("click", openAccount);
 $("#img-login").addEventListener("click", openAccount);
@@ -2268,6 +2392,7 @@ $("#acc-login").addEventListener("click", async () => {
   await refreshAccount();
   await syncChatCloud().catch(() => {});
   if ($("#f-image").classList.contains("on")) { $("#f-account").classList.remove("on"); loadGallery(); }
+  else if ($("#f-agent").classList.contains("on")) { $("#f-account").classList.remove("on"); void refreshAgentControl(); }
 });
 $("#acc-logout").addEventListener("click", async () => { await api("/logout", { method: "POST", body: {} }); signOutLocal(); haptic(); });
 $("#acc-delete").addEventListener("click", () => { $("#acc-del-box").hidden = false; showErr("#acc-del-err", ""); $("#acc-del-pass").focus(); });
@@ -2383,54 +2508,138 @@ function showWelcome(){
 function finishWelcome(){ LS.set("nakata_welcomed", true); $("#f-welcome").classList.remove("on"); }
 $("#welcomeGo").addEventListener("click", finishWelcome);
 
-/* ---- model picker: the free list from nakata.app, or the provider's own /models ---- */
-let modelCache = {};   // provider -> [{ id, label }]
+/* ---- model picker: always shows Free (Gemini 4 Hydrogen main), Abliterated (18+), and any configured BYOK provider ---- */
+let modelCache = {};   // provider -> [{ id, label, ... }]
 function currentModel(){
   const cfg = getCfg();
-  if (cfg.provider === "nakata") { const id = LS.get("nakata_free_model", ""); const m = (modelCache.nakata || []).find((x) => x.id === id); return { id, label: m ? m.label : (id || LS.get("nakata_free_label", "Gemma 4")) }; }
+  if (cfg.provider === "nakata") {
+    const id = LS.get("nakata_free_model", "") || PROVIDERS.nakata.model;
+    const m = (modelCache.nakata || DEFAULT_NAKATA_MODELS).find((x) => x.id === id);
+    return { id, label: m ? m.label : (LS.get("nakata_free_label", "") || "Gemini 4 Hydrogen") };
+  }
   return { id: cfg.model, label: (cfg.model || "").split("/").pop() };
 }
-function paintModelChip(){ $("#modelChipName").textContent = currentModel().label || "Model"; }
+function paintModelChip(){ $("#modelChipName").textContent = currentModel().label || "Gemini 4 Hydrogen"; }
 async function loadModels(){
-  const cfg = getCfg();
-  if (cfg.provider === "nakata") await refreshAdultConsent();
-  if (modelCache[cfg.provider]) return modelCache[cfg.provider];
-  try {
-    if (cfg.provider === "nakata") {
-      const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models"); const j = await r.json();
-      modelCache.nakata = (j.models || []).filter((m) => !m.requiresConsent || adultConsent);
-      if (!LS.get("nakata_free_model", "")) LS.set("nakata_free_label", (modelCache.nakata.find((m) => m.id === j.default) || {}).label || "");
-    } else {
-      const r = await fetch(cfg.base.replace(/\/+$/, "") + "/models", { headers: { Authorization: "Bearer " + cfg.key } });
+  const cfg = getCfg(), byokCfg = getByokCfg();
+  const nakataBase = (cfg.provider === "nakata" && cfg.base ? cfg.base : PROVIDERS.nakata.base).replace(/\/+$/, "");
+  if (token()) await refreshAdultConsent();
+  if (!modelCache.nakata || !modelCache.nakata.length) {
+    try {
+      const r = await fetch(nakataBase + "/models");
       const j = await r.json();
-      modelCache[cfg.provider] = (j.data || j.models || []).map((m) => ({ id: m.id || m.name, label: m.id || m.name })).filter((m) => m.id).sort((a, b) => a.id.localeCompare(b.id));
+      const raw = Array.isArray(j.models) ? j.models : [];
+      const defId = j.default || PROVIDERS.nakata.model;
+      const byId = new Map();
+      for (const m of DEFAULT_NAKATA_MODELS) byId.set(m.id, { ...m, main: m.id === defId });
+      for (const m of raw) {
+        if (!m || !m.id) continue;
+        byId.set(m.id, { ...(byId.get(m.id) || {}), ...m, main: m.id === defId });
+      }
+      modelCache.nakata = [...byId.values()];
+      const def = modelCache.nakata.find((m) => m.id === defId) || modelCache.nakata[0];
+      if (!LS.get("nakata_free_model", "") && def) LS.set("nakata_free_label", def.label || "Gemini 4 Hydrogen");
+    } catch {
+      modelCache.nakata = DEFAULT_NAKATA_MODELS.map((m) => ({ ...m }));
     }
-  } catch { modelCache[cfg.provider] = []; }
-  return modelCache[cfg.provider];
+  }
+  if (byokCfg && byokCfg.key && !modelCache[byokCfg.provider]) {
+    try {
+      const r = await fetch(byokCfg.base.replace(/\/+$/, "") + "/models", { headers: { Authorization: "Bearer " + byokCfg.key } });
+      const j = await r.json();
+      modelCache[byokCfg.provider] = (j.data || j.models || []).map((m) => ({ id: m.id || m.name, label: m.id || m.name })).filter((m) => m.id).sort((a, b) => a.id.localeCompare(b.id));
+    } catch { modelCache[byokCfg.provider] = []; }
+  }
+  return cfg.provider === "nakata" ? modelCache.nakata : (modelCache[cfg.provider] || modelCache.nakata);
 }
 async function openModelSheet(){
   closeDrawer(); $("#scrim").classList.add("on"); $("#modelSheet").classList.add("on");
   const list = $("#modelList"); list.replaceChildren(el("div", "note", "Yükleniyor…"));
-  const models = await loadModels(), cfg = getCfg();
-  $("#modelSheetTitle").textContent = cfg.provider === "nakata" ? (adultConsent ? "Model (ücretsiz + 18+)" : "Model (ücretsiz)") : "Model";
-  $("#modelSearchRow").hidden = models.length < 12; $("#modelSearch").value = "";
+  await loadModels();
+  const cfg = getCfg(), byokCfg = getByokCfg();
+  const nakataModels = modelCache.nakata || DEFAULT_NAKATA_MODELS;
+  const freeModels = nakataModels.filter((m) => !m.requiresConsent);
+  const adultModels = nakataModels.filter((m) => m.requiresConsent);
+  const byokModels = (byokCfg && Array.isArray(modelCache[byokCfg.provider])) ? modelCache[byokCfg.provider] : [];
+  $("#modelSheetTitle").textContent = tx("Model seç");
+  $("#modelSearchRow").hidden = (freeModels.length + adultModels.length + byokModels.length) < 10;
+  $("#modelSearch").value = "";
+
+  const makeRow = (m, isCurrent, onPick) => {
+    const row = el("div", "botopt" + (isCurrent ? " on" : ""));
+    const main = el("button", "botmain"); const meta = el("div", "meta");
+    const head = el("div"); head.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap";
+    head.append(el("div", "nm", m.label));
+    if (m.main) head.append(el("span", "model-tag", tx("Main")));
+    else if (m.requiresConsent) head.append(el("span", "model-tag adult", "18+"));
+    meta.append(head);
+    if (m.requiresConsent) {
+      const stateHint = !token() ? tx("Giriş gerekir")
+        : !adultFeatureEnabled ? tx("Sistem onayı bekleniyor")
+        : adultConsent ? tx("18+ aktif")
+        : tx("Dokunarak onayla");
+      meta.append(el("div", "hint", tx(`18+ · ${m.credits || 1} kredi/mesaj`) + " · " + stateHint));
+    }
+    const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
+    main.append(meta, chk.firstChild);
+    main.onclick = onPick;
+    row.append(main);
+    return row;
+  };
+
+  const pickNakataModel = async (m) => {
+    if (m.requiresConsent) {
+      if (!token()) { closeSheet(); openAccount(); return; }
+      if (!adultConsent) {
+        await refreshAdultConsent();
+        if (!adultFeatureEnabled) { closeSheet(); addNote(tx("Sansürsüz modeller şu anda kapalı."), true); return; }
+        if (!adultConsent) {
+          if (!confirm(tx("Bu mod yalnızca 18 yaş ve üzeri yetişkinler içindir. 18 yaşından küçükleri içeren cinsel içerik, gerçek kişilere yönelik cinsel içerik veya zarar, kitle imha silahları ve zararlı yazılım kesinlikle yasaktır. Devam ederek 18 yaşından büyük olduğunu ve koşulları kabul ettiğini onaylıyor musun?"))) return;
+          const r = await api("/uncensored-consent", { method: "POST", body: { on: true } });
+          if (!r.ok) { addNote(tx("18+ onayı kaydedilemedi. Tekrar dene."), true); return; }
+          adultConsent = true; paintAdultConsent();
+        }
+      }
+    }
+    if (getCfg().provider !== "nakata") saveCfg({ ...FREE_CFG });
+    LS.set("nakata_free_model", m.id);
+    LS.set("nakata_free_label", m.label);
+    paintModelChip(); closeSheet(); haptic();
+  };
+
   const paint = (q = "") => {
     list.replaceChildren();
-    const cur = currentModel().id;
-    const shown = models.filter((m) => !q || m.label.toLowerCase().includes(q.toLowerCase())).slice(0, 200);
-    if (!shown.length) { list.append(el("div", "note", models.length ? "Eşleşme yok" : "Model listesi alınamadı; Ayarlar'dan model adını yazabilirsin.")); return; }
-    for (const m of shown) {
-      const row = el("div", "botopt" + (m.id === cur || (!cur && cfg.provider === "nakata" && m.label === currentModel().label) ? " on" : ""));
-      const main = el("button", "botmain"); const meta = el("div", "meta"); meta.append(el("div", "nm", m.label));
-      if (m.requiresConsent) meta.append(el("div", "hint", tx(`18+ · ${m.credits || 1} kredi/mesaj`)));
-      const chk = el("span"); chk.innerHTML = ICON_CHECK; chk.firstChild.classList.add("chk");
-      main.append(meta, chk.firstChild);
-      main.onclick = () => {
-        if (cfg.provider === "nakata") { LS.set("nakata_free_model", m.id); LS.set("nakata_free_label", m.label); }
-        else saveCfg({ ...cfg, model: m.id });
-        paintModelChip(); closeSheet(); haptic();
-      };
-      row.append(main); list.append(row);
+    const curCfg = getCfg(), curId = currentModel().id;
+    const ql = q.toLowerCase();
+    const matches = (m) => !ql || String(m.label || m.id).toLowerCase().includes(ql) || String(m.id).toLowerCase().includes(ql);
+    const showByok = byokModels.filter(matches).slice(0, 150);
+    const showFree = freeModels.filter(matches);
+    const showAdult = adultModels.filter(matches);
+
+    if (!showByok.length && !showFree.length && !showAdult.length) {
+      list.append(el("div", "note", tx("Eşleşme yok")));
+      return;
+    }
+    if (showByok.length && byokCfg) {
+      list.append(el("div", "sheet-sec", byokCfg.provider.toUpperCase()));
+      for (const m of showByok) {
+        list.append(makeRow(m, curCfg.provider !== "nakata" && m.id === curId, () => {
+          saveCfg({ ...byokCfg, model: m.id });
+          paintModelChip(); closeSheet(); haptic();
+        }));
+      }
+    }
+    if (showFree.length) {
+      list.append(el("div", "sheet-sec", tx("Ücretsiz Modeller · Nakata")));
+      for (const m of showFree) {
+        list.append(makeRow(m, curCfg.provider === "nakata" && m.id === curId, () => { void pickNakataModel(m); }));
+      }
+    }
+    if (showAdult.length) {
+      list.append(el("div", "sheet-sec", tx("Abliterated · 18+")));
+      for (const m of showAdult) {
+        list.append(makeRow(m, curCfg.provider === "nakata" && m.id === curId, () => { void pickNakataModel(m); }));
+      }
     }
   };
   paint();
