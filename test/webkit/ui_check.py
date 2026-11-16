@@ -257,12 +257,53 @@ with sync_playwright() as p:
     check("SVG diagram rendered safely without scripts", svg_src.startswith("data:image/svg+xml") and "%3Crect" in svg_src and "script" not in svg_src.lower() and svg_loaded, svg_src[:90])
     pg.click(".art-toggle")
     check("artifact Source toggle shows code", pg.get_attribute(".art-toggle", "aria-pressed") == "true" and pg.locator(".art-source:not([hidden])").count() == 1)
-    check("sources and X-Nakata-Served-By badge rendered", pg.inner_text(".srcs a em") == "Galata Wiki" and pg.inner_text(".servedby") == "gemma4")
+    check("sources and X-Nakata-Served-By badge rendered", pg.inner_text(".srcs a em") == "Galata Wiki" and pg.inner_text(".servedby") == "Yedek: Gemma 4", pg.inner_text(".servedby"))
 
     H.last = None
     pg.click(".msg-actions .retry")
     pg.wait_for_function("document.querySelectorAll('#thread .row.user').length === 1 && !document.querySelector('.pending')", timeout=8000)
     check("retry button re-runs the turn", H.last is not None and isinstance(H.last["messages"][-1]["content"], list))
+
+    # ChatGPT-style two-row composer geometry & alignment check (iPhone 14 width 390px)
+    comp = pg.evaluate("""(() => {
+      const box = document.getElementById('composer').getBoundingClientRect();
+      const ta = document.getElementById('prompt').getBoundingClientRect();
+      const plus = document.getElementById('attachBtn').getBoundingClientRect();
+      const chip = document.getElementById('modelChip').getBoundingClientRect();
+      const mic = document.getElementById('micBtn').getBoundingClientRect();
+      const send = document.getElementById('sendBtn').getBoundingClientRect();
+      const cy = (r) => r.top + r.height / 2;
+      const centers = [cy(plus), cy(chip), cy(mic), cy(send)];
+      return {
+        taW: ta.width, boxW: box.width,
+        taAbove: ta.bottom <= chip.top + 2,
+        spread: Math.max(...centers) - Math.min(...centers),
+        noOverlap: plus.right <= chip.left + 1 && chip.right <= mic.left + 1 && mic.right <= send.left + 1,
+      };
+    })()""")
+    check("composer textarea is wide and toolbar items align symmetrically", comp["taW"] >= comp["boxW"] * 0.85 and comp["taW"] >= 300 and comp["taAbove"] and comp["spread"] <= 2 and comp["noOverlap"], str(comp))
+
+    # In-chat image generation CTA (signed out -> membership/login prompt) and inline generated image
+    H.served_by = None
+    H.custom_events = [
+        {"type": "tool_call", "tool": "generate_image", "args": {"prompt": "cat", "aspect": "3:4"}},
+        {"type": "tool_result", "tool": "generate_image", "sources": [], "images": [], "action": {"type": "image_membership", "reason": "auth_required", "plansUrl": "https://nakata.app/plans?from=ios"}},
+        {"choices": [{"delta": {"content": "Görsel üretmek için giriş yapmalısın."}}]},
+    ]
+    pg.evaluate("localStorage.setItem('nakata_byok_cfg', JSON.stringify({provider:'nakata', base:'" + BASE + "/api/mobile', model:'gemini-4-hydrogen', key:''})); loadCfg();")
+    pg.fill("#prompt", "Bir kedi görseli üret"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_selector(".chat-cta", timeout=8000)
+    cta_txt = pg.inner_text(".chat-cta")
+    check("in-chat image request without auth shows login & membership CTAs", "Giriş yap" in cta_txt and "Üyelik / Kredi al" in cta_txt, cta_txt)
+
+    H.custom_events = [
+        {"type": "tool_call", "tool": "generate_image", "args": {"prompt": "cat", "aspect": "3:4"}},
+        {"type": "tool_result", "tool": "generate_image", "sources": [], "images": [], "imageTask": {"imageUrl": "/mark.svg", "prompt": "cat", "aspect": "3:4"}},
+        {"choices": [{"delta": {"content": "İşte görsel:"}}]},
+    ]
+    pg.fill("#prompt", "Kedi çiz"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_selector(".chat-gen-card img", timeout=8000)
+    check("in-chat image generation renders generated image inline", pg.locator(".chat-gen-card img.md-chat-image").count() == 1)
     H.custom_events = None; H.served_by = None
 
     shot(pg, "chat.png")

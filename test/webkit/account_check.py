@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 pub = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "..", "public")
-S = {"calls": [], "token_ok": True}
+S = {"calls": [], "token_ok": True, "credits": 120, "force_402": False}
 
 
 class H(SimpleHTTPRequestHandler):
@@ -32,7 +32,7 @@ class H(SimpleHTTPRequestHandler):
         if not self.authed():
             return self.reply(401, {"error": "Unauthorized"})
         if p.startswith("/api/mobile/credits"):
-            return self.reply(200, {"credits": 120, "image_credit_costs": {"gpt-image-2-5-flare-text-to-image": {"2K": 13, "4K": 21}, "gpt-image-2-5-flare-image-to-image": {"2K": 13, "4K": 21}, "nano-banana-2-1": {"2K": 14, "4K": 20}, "nano-banana-pro": {"2K": 24, "4K": 32}}})
+            return self.reply(200, {"credits": S["credits"], "image_credit_costs": {"gpt-image-2-5-flare-text-to-image": {"2K": 13, "4K": 21}, "gpt-image-2-5-flare-image-to-image": {"2K": 13, "4K": 21}, "nano-banana-2-1": {"2K": 14, "4K": 20}, "nano-banana-pro": {"2K": 24, "4K": 32}}})
         if p.startswith("/api/mobile/gallery"):
             return self.reply(200, {"items": [{"url": "/mark.svg"}, {"url": "/clip.mp4"}], "total": 2})
         self.reply(404, {"error": "nf"})
@@ -53,6 +53,8 @@ class H(SimpleHTTPRequestHandler):
         if p == "/api/mobile/upload":
             return self.reply(200, {"data": {"url": "https://refs.nakata.app/pst/r.jpg"}})
         if p == "/api/mobile/generate":
+            if S["force_402"]:
+                return self.reply(402, {"error": "Yetersiz kredi", "code": "insufficient_credits", "cost": 20})
             return self.reply(200, {"data": {"taskId": "t1"}})
         if p == "/api/mobile/task":
             return self.reply(200, {"status": "completed", "imageUrl": "/mark.svg"})
@@ -99,7 +101,7 @@ with sync_playwright() as p:
     pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
     pg.click("#menuBtn"); pg.wait_for_timeout(300)
     pg.click("#imagesRow"); pg.wait_for_timeout(350)
-    check("images ask to sign in first", pg.is_visible("#img-signin") and not pg.is_visible("#img-form"))
+    check("images ask to sign in first and show membership button", pg.is_visible("#img-signin") and pg.is_visible("#img-plans-out") and not pg.is_visible("#img-form"))
     pg.click("#img-login"); pg.wait_for_timeout(350)
 
     pg.fill("#acc-email", "ayse"); pg.fill("#acc-pass", "yanlis"); pg.click("#acc-login"); pg.wait_for_timeout(400)
@@ -132,6 +134,14 @@ with sync_playwright() as p:
     pe = pg.evaluate("getComputedStyle(document.querySelector('#img-results .gen img')).pointerEvents")
     rule = pg.evaluate("/\\.gen img\\{[^}]*-webkit-touch-callout:default/.test(document.querySelector('style').textContent)")
     check("generated image can be long-pressed to save", pe == "auto" and rule, f"{pe} {rule}")
+    S["credits"] = 0; S["force_402"] = True
+    pg.evaluate("refreshAccount()")
+    pg.wait_for_selector("#img-credits-cta:not([hidden])", timeout=4000)
+    check("zero credits shows membership/credits CTA in Image Studio", pg.is_visible("#img-buy-btn") and "0 kredi" in pg.inner_text("#img-credits-cta-text"), pg.inner_text("#img-credits-cta-text"))
+    pg.fill("#img-prompt", "test"); pg.click("#img-go")
+    pg.wait_for_function("() => document.getElementById('img-status').textContent.includes('Üyelik')", timeout=4000)
+    check("402 on generate reveals membership CTA and message", pg.is_visible("#img-credits-cta") and "Üyelik" in pg.inner_text("#img-status"))
+    S["credits"] = 120; S["force_402"] = False
     pg.evaluate("document.getElementById('f-image').classList.remove('on')")
 
     # Mac remote control (agent_bridge): pair, send task, background notice, inspect result, disconnect
