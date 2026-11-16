@@ -304,6 +304,16 @@ with sync_playwright() as p:
     pg.fill("#prompt", "Kedi çiz"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
     pg.wait_for_selector(".chat-gen-card img", timeout=8000)
     check("in-chat image generation renders generated image inline", pg.locator(".chat-gen-card img.md-chat-image").count() == 1)
+
+    H.custom_events = [
+        {"type": "tool_call", "tool": "generate_image", "args": {"prompt": "cat", "aspect": "3:4"}},
+        {"type": "tool_result", "tool": "generate_image", "sources": [], "images": [], "imageTask": {"imageUrl": "/mark.svg", "prompt": "cat", "aspect": "3:4"}},
+    ]
+    pg.fill("#prompt", "Sadece görsel üret"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("document.querySelectorAll('.chat-gen-card img.md-chat-image').length === 2", timeout=8000)
+    pg.evaluate("const id = curId; newChat(); openConvo(id);")
+    pg.wait_for_function("document.querySelectorAll('.chat-gen-card img.md-chat-image').length === 2", timeout=5000)
+    check("reopening session keeps tool-only generated images visible", pg.locator(".chat-gen-card img.md-chat-image").count() == 2)
     H.custom_events = None; H.served_by = None
 
     shot(pg, "chat.png")

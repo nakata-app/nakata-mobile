@@ -1889,13 +1889,14 @@ function renderConvo(){
   $("#thread").replaceChildren();
   for (const m of convo) {
     if (m.role === "user") addUser(m.content, m.images || [], m.files || []);
-    else if (m.role === "assistant" && m.content.trim()) {
-      const node = addAsst(); node.innerHTML = md(m.content);
+    else if (m.role === "assistant" && (m.content?.trim() || m.generatedImages?.length || m.cta || m.sources?.length)) {
+      const node = addAsst();
+      if (m.content?.trim()) node.innerHTML = md(m.content);
       const row = node.parentElement?.parentElement;
       renderSources(row, m.sources);
       renderChatGeneratedImages(row, m.generatedImages);
       renderChatCta(row, m.cta);
-      addReportAction(row, m.content);
+      addReportAction(row, m.content || "");
     }
   }
   markLastReply();
