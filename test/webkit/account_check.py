@@ -255,6 +255,85 @@ with sync_playwright() as p:
     c2 = chat_posts[-1]["body"] if len(chat_posts) > 1 else {}
     check("re-enabling memory sends memory:true with same conversationId", c2.get("conversationId") == c1.get("conversationId") and c2.get("memory") is True, str(c2))
 
+    # voice selection + background continuity during live voice call
+    voice_calls = {"sessions": [], "pings": 0, "ends": 0}
+    def handle_voice(route):
+        req = route.request
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        path = req.url.split("?")[0]
+        body = json.loads(req.post_data or "{}") if req.method == "POST" and req.post_data else {}
+        if path.endswith("/voice/status"):
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
+                "enabled": True, "signedIn": True, "freeLeftSec": 900, "creditsPerMin": 13, "defaultVoice": "marin",
+                "voices": [{"id": "marin", "label": "Marin", "hint": "Doğal"}, {"id": "cedar", "label": "Cedar", "hint": "Sıcak"}, {"id": "vesper", "label": "Vesper", "hint": "İngiliz vurgulu"}],
+            }))
+        if path.endswith("/voice/session"):
+            voice_calls["sessions"].append(body)
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
+                "sessionId": f"vs_{len(voice_calls['sessions'])}", "sdp": "v=0\r\n", "freeLeftSec": 885, "pingEverySec": 20, "maxSessionSec": 600, "creditsPerMin": 13, "voice": body.get("voice", "marin"),
+            }))
+        if path.endswith("/voice/ping"):
+            voice_calls["pings"] += 1
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "stop": False, "freeLeftSec": 880}))
+        if path.endswith("/voice/end"):
+            voice_calls["ends"] += 1
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "stop": True}))
+        return route.fulfill(status=404, content_type="application/json", headers=cors, body="{}")
+    pg.route("**/api/mobile/voice/*", handle_voice)
+    pg.evaluate("""(() => {
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        value: { getUserMedia: async () => ({ getTracks: () => [{ stop(){} }] }) },
+      });
+      window.RTCPeerConnection = function(){
+        const pc = {
+          iceGatheringState: "complete", connectionState: "connected",
+          localDescription: { sdp: "v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n" },
+          addTrack(){}, close(){},
+          createDataChannel(){
+            const dc = {
+              readyState: "open",
+              send(raw){
+                try { if (JSON.parse(raw).type === "session.close") setTimeout(() => dc.onmessage && dc.onmessage({ data: JSON.stringify({ type: "session.closed" }) }), 10); } catch {}
+              },
+              close(){},
+            };
+            setTimeout(() => dc.onmessage && dc.onmessage({ data: JSON.stringify({ type: "session.started" }) }), 20);
+            return dc;
+          },
+          async createOffer(){ return { type: "offer", sdp: this.localDescription.sdp }; },
+          async setLocalDescription(d){ this.localDescription = d; },
+          async setRemoteDescription(){},
+        };
+        return pc;
+      };
+    })()""")
+    pg.click("#menuBtn"); pg.wait_for_timeout(200); pg.click("#settingsRow"); pg.wait_for_timeout(200)
+    pg.select_option("#st-voice", "cedar"); pg.click("#st-save"); pg.wait_for_timeout(200)
+    check("Settings persists chosen assistant voice", pg.evaluate("JSON.parse(localStorage.getItem('nakata_voice'))") == "cedar")
+    pg.click("#micBtn")
+    pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
+    check("voice call starts with chosen voice in session request", len(voice_calls["sessions"]) == 1 and voice_calls["sessions"][0].get("voice") == "cedar" and "Cedar" in pg.inner_text("#voicePick"), str(voice_calls))
+    pg.evaluate("""(() => {
+      let h = true;
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+      document.dispatchEvent(new Event('visibilitychange'));
+      h = false;
+    })()""")
+    pg.wait_for_timeout(250)
+    check("backgrounding app keeps active voice call alive and sends heartbeat", pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] == 0 and voice_calls["pings"] >= 1, str(voice_calls))
+    pg.evaluate("delete document.hidden")
+    pg.click("#voicePick")
+    pg.wait_for_selector("#voiceSheet.on", timeout=3000)
+    z_ok = pg.evaluate("Number(getComputedStyle(document.getElementById('voiceSheet')).zIndex) > Number(getComputedStyle(document.getElementById('f-voice')).zIndex)")
+    pg.locator("#voiceList .botmain", has_text="Vesper").click()
+    pg.wait_for_function("document.getElementById('voicePick').textContent.includes('Vesper') && document.getElementById('voiceState').textContent === 'Dinliyorum'", timeout=5000)
+    check("voice picker sheet renders above call screen and reconnects with new voice", z_ok and len(voice_calls["sessions"]) >= 2 and voice_calls["sessions"][-1].get("voice") == "vesper" and voice_calls["ends"] >= 1, str(voice_calls))
+    pg.click("#voiceEnd"); pg.wait_for_timeout(300)
+    check("ending call closes voice screen", not pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] >= 2)
+
     # account page shortcut + delete account
     pg.click("#menuBtn"); pg.wait_for_timeout(300); pg.click("#accountRow"); pg.wait_for_timeout(350)
     check("account page links to Mac Agent", pg.is_visible("#acc-agent-btn"))

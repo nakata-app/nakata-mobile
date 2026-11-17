@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import Capacitor
 
@@ -6,8 +7,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    private func configureAudioSession() {
+        let session = AVAudioSession.sharedInstance()
+        #if compiler(>=6.2)
+        let bluetooth: AVAudioSession.CategoryOptions = .allowBluetoothHFP
+        #else
+        let bluetooth: AVAudioSession.CategoryOptions = .allowBluetooth
+        #endif
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.mixWithOthers, .defaultToSpeaker, bluetooth])
+    }
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        configureAudioSession()
         return true
     }
 

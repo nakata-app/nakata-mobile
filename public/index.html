@@ -154,7 +154,10 @@ form.composer textarea::placeholder{color:var(--muted)}
 #f-voice{align-items:center;justify-content:center;text-align:center;gap:14px;padding:24px}
 #f-voice .vstate{color:var(--muted);font-size:15px;min-height:22px}
 #f-voice .vtimer{font-variant-numeric:tabular-nums;color:var(--side-ink);font-size:14px}
-#f-voice .vend{margin-top:18px;background:var(--err);color:#fff;border-radius:999px;padding:14px 34px;font-weight:600}
+#f-voice .vvoice{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#ffffff0d;color:var(--ink);font-size:13.5px;font-weight:500}
+#f-voice .vvoice:active{background:#ffffff1a}
+:root[data-theme="light"] #f-voice .vvoice{background:#00000008}
+#f-voice .vend{margin-top:14px;background:var(--err);color:#fff;border-radius:999px;padding:14px 34px;font-weight:600}
 #f-voice .vclose{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:6px}
 .send{grid-row:2;grid-column:4;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;background:var(--accent);color:var(--on-accent);padding:0}
 .send svg{width:18px;height:18px}
@@ -487,6 +490,12 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   <div class="sheet-list" id="modelList"></div>
 </div>
 
+<div class="sheet" id="voiceSheet">
+  <div class="grip"></div>
+  <h2>Asistan sesi</h2>
+  <div class="sheet-list" id="voiceList"></div>
+</div>
+
 <section class="page" id="f-voice">
   <button class="icon fclose vclose" id="voiceClose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
   <div class="nk-mascot" id="voiceOrb"></div>
@@ -494,6 +503,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   <div class="vtimer" id="voiceTimer"></div>
   <div class="vtranscript" id="voiceTranscript" hidden></div>
   <div class="hint" id="voiceFree" style="max-width:300px"></div>
+  <button type="button" class="vvoice" id="voicePick" aria-label="Asistan sesi">Ses: Marin ▾</button>
   <button class="vend" id="voiceEnd">Görüşmeyi bitir</button>
 </section>
 
@@ -757,6 +767,9 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <div class="hint" id="st-modelhint"></div>
     </div>
     <div class="hint" id="st-freehint" hidden>Günde 500 bin tokena kadar ücretsiz. Daha fazlası için kendi anahtarınla bir sağlayıcı seç.</div>
+    <label for="st-voice">Asistan sesi</label>
+    <select id="st-voice" class="field"></select>
+    <div class="hint" id="st-voice-hint">Sesli görüşmede kullanılır.</div>
     <div id="st-adult-section">
       <h3 class="sect">Sansürsüz mod (18+)</h3>
       <label for="st-adult">18+ onayı</label>
@@ -981,6 +994,31 @@ const EN = {
   "Bildirildi · inceleme kuyruğuna alındı":"Reported · queued for review",
   "SVG hazırlanıyor…":"Preparing SVG…",
   "HTML önizleme hazırlanıyor…":"Preparing HTML preview…",
+  "Asistan sesi":"Assistant voice",
+  "Sesli görüşmede kullanılır.":"Used during voice calls.",
+  "Ses değiştiriliyor…":"Switching voice…",
+  "Doğal ve dengeli (varsayılan)":"Natural & balanced (default)",
+  "Sıcak ve net":"Warm & clear",
+  "Nötr ve dengeli":"Neutral & balanced",
+  "Canlı ve samimi":"Bright & expressive",
+  "Tok ve net":"Clear & crisp",
+  "Sakin ve derin":"Calm & deep",
+  "Akıcı ve sıcak":"Smooth & warm",
+  "Yumuşak ve bilge":"Gentle & thoughtful",
+  "Hafif ve berrak":"Light & bright",
+  "İfadeli ve doğal":"Expressive & natural",
+  "İngiliz vurgulu":"British accent",
+  "İrlanda kadın":"Irish feminine",
+  "İrlanda erkek":"Irish masculine",
+  "Kuzey Amerika kadın":"North American feminine",
+  "Kuzey Amerika erkek":"North American masculine",
+  "Avustralya kadın":"Australian feminine",
+  "Avustralya erkek":"Australian masculine",
+  "Melodik":"Melodic",
+  "Ritmik":"Rhythmic",
+  "Net ve enerjik":"Clear & energetic",
+  "Güney ABD erkek":"Southern US masculine",
+  "Güney ABD kadın":"Southern US feminine",
 };
 // Texts with numbers or names in them.
 const EN_RE = [
@@ -991,6 +1029,8 @@ const EN_RE = [
   [/^(Yayında|İncelemede|Bildirildi|Reddedildi) · (\d+) sohbet · (\d+) ♥(.*)$/, (m, s, c, l, r) => `${EN[s] || s} · ${c} chats · ${l} ♥${r}`],
   [/^Kullanıcıya "(.*)" diye hitap et\.$/, 'Address the user as "$1".'], [/^Kullanıcı hakkında: (.*)$/, "About the user: $1"], [/^Cevap biçimi: (.*)$/, "Answer style: $1"],
   [/^Örnek: (.*)$/, "Example: $1"],
+  [/^Ses: (.*)$/, "Voice: $1"],
+  [/^([A-Za-z]+) — (.*)$/, (_, n, h) => `${n} — ${tx(h)}`],
   [/^18\+ · (\d+) kredi\/mesaj$/, "18+ · $1 credits/message"],
   [/^Bugün (\d+) dk ücretsiz kaldı\. Sonrası (\d+) kredi\/dk\.$/, "$1 free minutes left today. After that $2 credits/min."], [/^Ücretsiz süre bitti: (\d+) kredi\/dk\.$/, "Free time is used up: $1 credits/min."], [/^Almak için: (.*)$/, "Get one: $1"],
   [/^Yedek: (.*)$/, "Fallback: $1"],
@@ -1241,10 +1281,10 @@ function deviceId(){ let d = LS.get("nakata_device", ""); if (!d) { d = crypto.r
 
 /* ---- drawer, sheet, pages ---- */
 function openDrawer(){ renderSessions($("#search").value); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); }
-function closeDrawer(){ $("#drawer").classList.remove("on"); if (!$("#botSheet").classList.contains("on")) $("#scrim").classList.remove("on"); }
-function closeSheet(){ for (const sh of document.querySelectorAll(".sheet.on")) sh.classList.remove("on"); if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
+function closeDrawer(){ $("#drawer").classList.remove("on"); if (!document.querySelector(".sheet.on")) { $("#scrim").style.zIndex = ""; $("#scrim").classList.remove("on"); } }
+function closeSheet(){ for (const sh of document.querySelectorAll(".sheet.on")) { sh.classList.remove("on"); sh.style.zIndex = ""; } $("#scrim").style.zIndex = ""; if (!$("#drawer").classList.contains("on")) $("#scrim").classList.remove("on"); }
 $("#menuBtn").addEventListener("click", openDrawer);
-$("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); for (const sh of document.querySelectorAll(".sheet.on")) sh.classList.remove("on"); $("#scrim").classList.remove("on"); });
+$("#scrim").addEventListener("click", () => { $("#drawer").classList.remove("on"); closeSheet(); });
 for (const b of document.querySelectorAll(".fclose")) b.addEventListener("click", () => b.closest(".page").classList.remove("on"));
 // Pages stack: the one opened last is drawn on top (they share one z-index otherwise
 // and DOM order decided, so Account opened from Images hid underneath it).
@@ -1261,8 +1301,8 @@ document.addEventListener("pointerdown", (e) => {
   const drawer = $("#drawer"), page = topPage();
   let kind = null;
   const sheet = document.querySelector(".sheet.on");
-  if (page) { if (e.clientX <= EDGE) kind = "page"; }
-  else if (sheet) { const list = e.target.closest(".sheet-list"); if (e.target.closest(".sheet") === sheet && !(list && list.scrollTop > 0) && !e.target.closest("input")) kind = "sheet"; }
+  if (sheet) { const list = e.target.closest(".sheet-list"); if (e.target.closest(".sheet") === sheet && !(list && list.scrollTop > 0) && !e.target.closest("input")) kind = "sheet"; }
+  else if (page) { if (e.clientX <= EDGE) kind = "page"; }
   else if (drawer.classList.contains("on")) { if (e.target.closest("#drawer,#scrim")) kind = "close"; }
   else if (e.clientX <= EDGE) kind = "open";
   if (kind) drag = { kind, el: kind === "page" ? page : kind === "sheet" ? sheet : drawer, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, live: false, id: e.pointerId };
@@ -1352,11 +1392,13 @@ function openSettings(){
   $("#st-base").value = c.base || (PROVIDERS[c.provider]||{}).base || "";
   $("#st-key").value = c.key || ""; $("#st-model").value = c.model || "";
   const pf = LS.get("nakata_profile", {}); $("#pf-name").value = pf.name || ""; $("#pf-about").value = pf.about || ""; $("#pf-style").value = pf.style || "";
+  paintVoiceControls();
   paintMemorySetting();
   closeDrawer(); showPage("#f-settings");
   void refreshAdultConsent();
 }
 $("#settingsRow").addEventListener("click", openSettings);
+$("#st-voice")?.addEventListener("change", (e) => { setVoiceChoice(e.target.value); haptic(); });
 $("#st-memory")?.addEventListener("change", (e) => {
   LS.set("nakata_memory_off", e.target.value !== "on");
   paintMemorySetting();
@@ -1411,6 +1453,7 @@ $("#st-provider").addEventListener("change", (e) => {
 $("#st-eye").addEventListener("click", () => { const f = $("#st-key"); f.type = f.type === "password" ? "text" : "password"; });
 $("#st-save").addEventListener("click", () => {
   const provider = $("#st-provider").value;
+  if ($("#st-voice")?.value) setVoiceChoice($("#st-voice").value);
   LS.set("nakata_profile", { name: $("#pf-name").value.trim(), about: $("#pf-about").value.trim(), style: $("#pf-style").value.trim() });
   modelCache = {};
   if (PROVIDERS[provider]?.free) { saveCfg({ ...FREE_CFG }); setModelLabel(); $("#f-settings").classList.remove("on"); return; }
@@ -1425,7 +1468,7 @@ $("#st-save").addEventListener("click", () => {
   $("#f-settings").classList.remove("on");
 });
 
-$("#st-lang").addEventListener("change", (e) => { LANG = e.target.value === "tr" ? "tr" : "en"; LS.set("nakata_lang", LANG); i18nApply(); haptic(); });
+$("#st-lang").addEventListener("change", (e) => { LANG = e.target.value === "tr" ? "tr" : "en"; LS.set("nakata_lang", LANG); i18nApply(); paintVoiceControls(); haptic(); });
 $("#st-theme").addEventListener("change", (e) => { applyTheme(e.target.value); haptic(); });
 
 /* ---- bots (local personas) ---- */
@@ -2711,13 +2754,13 @@ async function syncChatCloud({ uploadOnly = false } = {}) {
   } finally { chatCloudBusy = false; }
 }
 function signOutLocal(){ clearAgentTasks(); LS.set("nakata_token", ""); LS.set("nakata_account", null); account = null; adultConsent = false; adultFeatureEnabled = false; modelCache = {}; paintAdultConsent(); paintAccount(); }
-async function api(path, { method = "GET", body, form } = {}) {
+async function api(path, { method = "GET", body, form, keepalive = false } = {}) {
   const headers = {}, t = token();
   if (t) headers.Authorization = "Bearer " + t;
   let payload = form;
   if (!form && body !== undefined) { headers["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
   let res;
-  try { res = await fetch(API + path, { method, headers, body: payload }); }
+  try { res = await fetch(API + path, { method, headers, body: payload, keepalive: !!keepalive }); }
   catch { return { ok: false, status: 0, j: { error: "Bağlantı yok" } }; }
   let j = {}; try { j = await res.json(); } catch {}
   if (res.status === 401 && t && path !== "/login") signOutLocal();
@@ -3465,7 +3508,92 @@ const VOICE_MSG = {
   unauthorized: "Sesli konuşmak için giriş yap.",
   upstream: "Sesli görüşme başlatılamadı. Tekrar dene.",
 };
-let voice = null;   // { pc, dc, stream, audio, id, ping, tick, t0, ending }
+let voice = null;   // { pc, dc, stream, audio, id, ping, tick, t0, ending, pingNow, discT }
+const DEFAULT_VOICES = [
+  { id: "marin", label: "Marin", hint: "Doğal ve dengeli (varsayılan)" },
+  { id: "cedar", label: "Cedar", hint: "Sıcak ve net" },
+  { id: "alloy", label: "Alloy", hint: "Nötr ve dengeli" },
+  { id: "coral", label: "Coral", hint: "Canlı ve samimi" },
+  { id: "echo", label: "Echo", hint: "Tok ve net" },
+  { id: "ash", label: "Ash", hint: "Sakin ve derin" },
+  { id: "ballad", label: "Ballad", hint: "Akıcı ve sıcak" },
+  { id: "sage", label: "Sage", hint: "Yumuşak ve bilge" },
+  { id: "shimmer", label: "Shimmer", hint: "Hafif ve berrak" },
+  { id: "verse", label: "Verse", hint: "İfadeli ve doğal" },
+  { id: "vesper", label: "Vesper", hint: "İngiliz vurgulu" },
+  { id: "willow", label: "Willow", hint: "İrlanda kadın" },
+  { id: "stone", label: "Stone", hint: "İrlanda erkek" },
+  { id: "gleam", label: "Gleam", hint: "Kuzey Amerika kadın" },
+  { id: "meridian", label: "Meridian", hint: "Kuzey Amerika erkek" },
+  { id: "quartz", label: "Quartz", hint: "Avustralya kadın" },
+  { id: "ripple", label: "Ripple", hint: "Avustralya erkek" },
+  { id: "bossa", label: "Bossa", hint: "Melodik" },
+  { id: "tempo", label: "Tempo", hint: "Ritmik" },
+  { id: "beacon", label: "Beacon", hint: "Net ve enerjik" },
+  { id: "delta", label: "Delta", hint: "Güney ABD erkek" },
+  { id: "cinder", label: "Cinder", hint: "Güney ABD kadın" },
+];
+let voiceCatalog = DEFAULT_VOICES;
+let defaultVoiceId = "marin";
+let voiceGen = 0;
+function voiceMeta(id){ return voiceCatalog.find((x) => x.id === id) || voiceCatalog.find((x) => x.id === defaultVoiceId) || voiceCatalog[0]; }
+function selectedVoice(){ return voiceMeta(LS.get("nakata_voice", defaultVoiceId)).id; }
+function paintVoiceControls(){
+  const cur = voiceMeta(selectedVoice());
+  const pick = $("#voicePick");
+  if (pick) pick.textContent = tx(`Ses: ${cur.label} ▾`);
+  const sel = $("#st-voice");
+  if (sel) {
+    sel.innerHTML = "";
+    for (const item of voiceCatalog) {
+      const opt = el("option");
+      opt.value = item.id;
+      opt.textContent = `${item.label} — ${tx(item.hint)}`;
+      sel.append(opt);
+    }
+    sel.value = cur.id;
+  }
+}
+async function setVoiceChoice(id, { restart = false } = {}){
+  const next = voiceMeta(id).id;
+  const changed = next !== selectedVoice();
+  LS.set("nakata_voice", next);
+  paintVoiceControls();
+  if (restart && changed && voice && !voice.ending) {
+    const gen = ++voiceGen;
+    voiceSay(tx("Ses değiştiriliyor…"), "thinking");
+    await endVoice(null, { keepOpen: true });
+    if (voiceGen !== gen) return;
+    await startVoice();
+  }
+}
+function openVoiceSheet(){
+  const list = $("#voiceList"), sheet = $("#voiceSheet"), scrim = $("#scrim");
+  if (!list || !sheet || !scrim) return;
+  const cur = selectedVoice();
+  list.innerHTML = "";
+  for (const item of voiceCatalog) {
+    const row = el("div", "botopt" + (item.id === cur ? " on" : ""));
+    const main = el("button", "botmain");
+    const meta = el("div", "meta");
+    meta.append(el("div", "nm", item.label), el("div", "ds", tx(item.hint)));
+    main.append(meta);
+    const chk = el("span", "chk");
+    chk.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+    main.append(chk);
+    main.addEventListener("click", () => { closeSheet(); haptic(); void setVoiceChoice(item.id, { restart: true }); });
+    row.append(main);
+    list.append(row);
+  }
+  const topZ = Number($("#f-voice").style.zIndex || pageZ || 70);
+  scrim.style.zIndex = String(topZ + 1);
+  sheet.style.zIndex = String(topZ + 2);
+  scrim.classList.add("on");
+  sheet.classList.add("on");
+  list.scrollTop = 0;
+  list.classList.toggle("scrolls", list.scrollHeight > list.clientHeight + 2);
+}
+
 const voiceOrb = orb({ size: 120, color: NAKATA_ORB_COLOR, expression: "neutral" });
 $("#voiceOrb").append(voiceOrb.el);
 function voiceSay(state, face){ $("#voiceState").textContent = state; if (face) voiceOrb.set(face); }
@@ -3475,12 +3603,19 @@ async function startVoice(){
   if (voice) return;
   if (!token()) { openAccount(); return; }
   showPage("#f-voice"); haptic();
+  paintVoiceControls();
   voiceOrb.setColor(orbColor()); $("#voiceTimer").textContent = ""; $("#voiceFree").textContent = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
   voiceSay("Bağlanıyor…", "thinking");
-  const v = voice = { ending: false, id: null, raf: 0, ac: null, caption: "" };
+  const v = voice = { ending: false, id: null, raf: 0, ac: null, caption: "", discT: 0, pingBusy: false };
   try {
+    try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
     const st = await api("/voice/status");
+    if (st.ok && Array.isArray(st.j.voices) && st.j.voices.length) {
+      voiceCatalog = st.j.voices;
+      if (st.j.defaultVoice) defaultVoiceId = st.j.defaultVoice;
+      paintVoiceControls();
+    }
     if (st.ok && st.j.enabled === false) throw new Error(VOICE_MSG.voice_closed);
     if (st.ok && st.j.freeLeftSec != null) $("#voiceFree").textContent = st.j.freeLeftSec > 0 ? `Bugün ${Math.floor(st.j.freeLeftSec / 60)} dk ücretsiz kaldı. Sonrası ${st.j.creditsPerMin} kredi/dk.` : `Ücretsiz süre bitti: ${st.j.creditsPerMin} kredi/dk.`;
     v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
@@ -3519,7 +3654,7 @@ async function startVoice(){
         v.inp = ((v.inp || "") + (ev.delta || "")).slice(-1200);
       }
       else if (ev.type === "session.delegation.created" && v.id) {
-        // Thinking is delegated to the client: ask nakata.app (Evren DeepSeek), GPT-Live speaks the answer.
+        // Thinking is delegated to the client: ask nakata.app (Evren Gemma 4), GPT-Live speaks the answer.
         voiceSay("Düşünüyor…", "thinking");
         const prompt = (v.inp || "").slice(-1000); v.inp = "";
         if (prompt.trim()) (async () => {
@@ -3533,48 +3668,81 @@ async function startVoice(){
       }
       else if (ev.type === "session.closed") v.closed?.();
     };
-    pc.onconnectionstatechange = () => { if (["failed", "disconnected", "closed"].includes(pc.connectionState) && !v.ending) endVoice("Bağlantı koptu."); };
+    pc.onconnectionstatechange = () => {
+      if (v.ending || voice !== v) return;
+      if (pc.connectionState === "failed" || pc.connectionState === "closed") endVoice("Bağlantı koptu.");
+      else if (pc.connectionState === "disconnected") {
+        clearTimeout(v.discT);
+        v.discT = setTimeout(() => { if (voice === v && !v.ending && pc.connectionState === "disconnected") endVoice("Bağlantı koptu."); }, 4500);
+      } else if (pc.connectionState === "connected") {
+        clearTimeout(v.discT);
+      }
+    };
     await pc.setLocalDescription(await pc.createOffer());
     await new Promise((res) => { if (pc.iceGatheringState === "complete") return res(); const t = setTimeout(res, 10000); pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") { clearTimeout(t); res(); } }; });
-    const r = await api("/voice/session", { method: "POST", body: { sdp: pc.localDescription.sdp, bot: galleryBot?.id || undefined } });
+    const r = await api("/voice/session", { method: "POST", body: { sdp: pc.localDescription.sdp, voice: selectedVoice(), bot: galleryBot?.id || undefined } });
     if (!r.ok) throw new Error(VOICE_MSG[r.j?.error?.code] || r.j?.error?.message || "Sesli görüşme başlatılamadı.");
     v.id = r.j.sessionId;
     await pc.setRemoteDescription({ type: "answer", sdp: r.j.sdp });
-    v.ping = setInterval(async () => {
-      const p = await api("/voice/ping", { method: "POST", body: { sessionId: v.id } });
-      if (p.ok && p.j.stop) endVoice(p.j.freeLeftSec > 0 ? "Görüşme süresi doldu." : "Kredin bitti, görüşme sonlandı.");
-    }, (r.j.pingEverySec || 20) * 1000);
+    v.pingNow = async (keepalive = false) => {
+      if (!voice || v.ending || !v.id || v.pingBusy) return;
+      v.pingBusy = true;
+      try {
+        const p = await api("/voice/ping", { method: "POST", body: { sessionId: v.id }, keepalive });
+        if (p.ok && p.j.stop && voice === v && !v.ending) endVoice(p.j.freeLeftSec > 0 ? "Görüşme süresi doldu." : "Kredin bitti, görüşme sonlandı.");
+      } finally {
+        v.pingBusy = false;
+      }
+    };
+    v.ping = setInterval(() => { void v.pingNow(false); }, Math.min(r.j.pingEverySec || 20, 15) * 1000);
   } catch (e) {
     hapticError();
     await endVoice(e.name === "NotAllowedError" ? "Mikrofon izni verilmedi. Ayarlar'dan izin verebilirsin." : (e.message || "Sesli görüşme başlatılamadı."));
   }
 }
 
-async function endVoice(note){
-  const v = voice; if (!v || v.ending) return;
+async function endVoice(note, { keepOpen = false } = {}){
+  if (!keepOpen) voiceGen++;
+  const v = voice;
+  if (!v || v.ending) { if (!keepOpen) $("#f-voice").classList.remove("on"); return; }
   v.ending = true; voice = null;
-  clearInterval(v.ping); clearInterval(v.tick);
+  clearInterval(v.ping); clearInterval(v.tick); clearTimeout(v.discT);
   cancelAnimationFrame(v.raf);
+  if ($("#voiceSheet")?.classList.contains("on")) closeSheet();
   try { await v.ac?.close(); } catch {}
   voiceOrb.el.style.transform = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
   try {
-    if (v.dc?.readyState === "open") { v.dc.send(JSON.stringify({ type: "session.close" })); await Promise.race([new Promise((res) => { v.closed = res; }), wait(3000)]); }
+    if (v.dc?.readyState === "open") { v.dc.send(JSON.stringify({ type: "session.close" })); await Promise.race([new Promise((res) => { v.closed = res; }), wait(keepOpen ? 800 : 3000)]); }
   } catch {}
-  if (v.id) api("/voice/end", { method: "POST", body: { sessionId: v.id } });
+  if (v.id) {
+    const endReq = api("/voice/end", { method: "POST", body: { sessionId: v.id }, keepalive: true });
+    if (keepOpen) await endReq;
+  }
   try { v.dc?.close(); v.pc?.close(); } catch {}
   for (const t of v.stream?.getTracks?.() || []) t.stop();
   if (v.audio) { v.audio.srcObject = null; }
+  try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
   voiceOrb.set("neutral");
-  $("#f-voice").classList.remove("on");
+  if (!keepOpen) $("#f-voice").classList.remove("on");
   if (note) addNote(note, true);
 }
 $("#micBtn").addEventListener("click", startVoice);
+$("#voicePick")?.addEventListener("click", openVoiceSheet);
 $("#voiceEnd").addEventListener("click", () => endVoice());
 $("#voiceClose").addEventListener("click", () => endVoice());
 // leaving the page any other way (edge swipe) also ends the call
 new MutationObserver(() => { if (voice && !$("#f-voice").classList.contains("on")) endVoice(); }).observe($("#f-voice"), { attributes: true, attributeFilter: ["class"] });
-document.addEventListener("visibilitychange", () => { if (document.hidden && voice) endVoice("Uygulamadan çıkınca görüşme biter."); });
+// Keep active voice calls alive in the background; keep heartbeat fresh & resume audio when returning.
+document.addEventListener("visibilitychange", () => {
+  if (!voice || voice.ending) return;
+  if (document.hidden) { voice.pingNow?.(true); }
+  else {
+    try { voice.ac?.resume?.().catch?.(() => {}); } catch {}
+    if (voice.audio?.paused && voice.audio.srcObject) voice.audio.play().catch(() => {});
+    voice.pingNow?.(false);
+  }
+});
 
 /* ---- boot ---- */
 (async () => {
@@ -3600,6 +3768,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && voi
     NATIVE.Keyboard?.addListener("keyboardDidShow", () => { fitH?.(); scrollDown(); });
   } catch {}
   $("#st-lang").value = LANG; $("#st-theme").value = LS.get("nakata_theme", "dark");
+  paintVoiceControls();
   setModelLabel();
   renderSessions();
   grow();
