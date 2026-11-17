@@ -394,6 +394,15 @@ with sync_playwright() as p:
     check("offline math renders inline and block formulas", pg.locator(".math-inline").count() == 1 and pg.locator(".math-block").count() == 1 and "α + β = γ" in pg.inner_text(".math-block"))
     check("fallback OpenRouter model uses clean human label", pg.inner_text(".servedby") == "Yedek: Gemma 4 31B", pg.inner_text(".servedby"))
     check("substantive reply shows follow-up chips and edit button on user message", pg.locator(".followups .followup-chip").count() == 3 and pg.locator(".row.user .edit-msg").count() == 1)
+    rep_geo = pg.evaluate("""(() => {
+      const bars = document.querySelectorAll('#thread .msg-actions');
+      const bar = bars[bars.length - 1]?.getBoundingClientRect();
+      const copy = document.querySelector('#thread .msg-actions .copy')?.getBoundingClientRect();
+      const rep = document.querySelector('#thread .msg-actions .report')?.getBoundingClientRect();
+      const bd = [...document.querySelectorAll('.bd-actions button')].map(b => ({ id: b.id, r: b.getBoundingClientRect() }));
+      return { bars: bars.length, standalone: document.querySelectorAll('#thread .msg-actions.report-actions').length, bar, copy, rep, bdIds: bd.map(x => x.id) };
+    })()""")
+    check("report button sits unobtrusively at right end of single action bar", rep_geo["standalone"] == 0 and rep_geo["copy"] and rep_geo["rep"] and abs(rep_geo["rep"]["top"] - rep_geo["copy"]["top"]) <= 6 and rep_geo["rep"]["left"] > rep_geo["copy"]["right"] and rep_geo["rep"]["right"] >= rep_geo["bar"]["right"] - 4 and rep_geo["bdIds"] == ["bd-like", "bd-block", "bd-report"], str(rep_geo))
     pg.evaluate("localStorage.setItem('nakata_token', JSON.stringify('tok_test'));")
     pg.click(".msg-actions .report"); pg.wait_for_selector(".report-picker", timeout=2000)
     check("tapping Report opens category picker", pg.locator(".report-picker button").count() == 4)

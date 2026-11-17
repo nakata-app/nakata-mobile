@@ -128,12 +128,17 @@ button.title:active{opacity:.6}
 .nk-mascot{display:flex;justify-content:center}
 .nk-mascot .bot-orb{filter:drop-shadow(0 16px 28px rgba(91,140,255,.28))}
 .pending{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
-.msg-actions{display:flex;align-items:center;gap:4px;margin-top:10px}
-.msg-actions .copy{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
-.msg-actions .copy svg{width:15px;height:15px}
-.msg-actions .report{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
+.msg-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px}
+.msg-actions .copy{height:30px;padding:0 9px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:12.5px}
+.msg-actions .copy svg{width:14px;height:14px}
+.msg-actions .report{height:30px;min-width:30px;padding:0 6px;margin-left:auto;border-radius:8px;color:var(--muted);opacity:.55;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:12px}
+.msg-actions .report:active{opacity:1;color:var(--ink)}
+.msg-actions .report.has-msg{padding:0 8px;opacity:.9}
+.msg-actions .report .rep-lbl:empty{display:none}
 .msg-actions .report:disabled{opacity:.65;cursor:default}
-.msg-actions .report svg{width:15px;height:15px}
+.msg-actions .report svg{width:14px;height:14px}
+.msg-actions.report-actions{justify-content:flex-end;margin-top:0}
+.msg-actions.report-actions .report{margin-left:0;height:26px;min-width:26px;opacity:.4}
 .reply-orb:is([data-expression="happy"],[data-expression="excited"],[data-expression="surprised"],[data-expression="angry"],[data-expression="unsure"],[data-expression="wink"]){animation:orb-pop .5s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes orb-pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.bot-orb *,.reply-orb{animation:none!important;transition:none!important}}
@@ -312,6 +317,7 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .bd-actions{display:flex;gap:10px;max-width:640px;margin:0 auto;padding:0 18px;width:100%}
 .bd-actions .pillbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--side-ink);font-weight:600;font-size:14px}
 .bd-actions .pillbtn svg{width:17px;height:17px}
+.bd-actions .pillbtn.bd-icon-btn{flex:0 0 46px;padding:12px 0;color:var(--muted)}
 .bd-actions .pillbtn.on{color:var(--accent);border-color:var(--accent)}
 .bd-by{color:var(--muted);font-size:12.5px;text-align:center;padding:8px 0 2px}
 .earn-row{display:flex;justify-content:space-between;padding:12px 2px;border-bottom:1px solid var(--line);color:var(--side-ink);font-size:14px}
@@ -345,9 +351,8 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .msg-shots img{width:88px;height:88px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in}
 .msg-files{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
 .msg-file{font:12px/1.3 var(--mono);padding:4px 8px;border-radius:8px;background:var(--raised);border:1px solid var(--line);color:var(--muted)}
-.msg-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px}
-.msg-actions .retry{height:32px;padding:0 10px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:6px;font-size:13px}
-.servedby{font-size:11px;color:var(--muted);margin-left:auto;padding:0 4px}
+.msg-actions .retry{height:30px;padding:0 9px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:12.5px}
+.servedby{font-size:11px;color:var(--muted);opacity:.82;margin-top:2px;padding:0 2px}
 .attach-btn{grid-row:2;grid-column:1;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--muted);padding:0}
 .attach-btn:active{background:#ffffff12;color:var(--ink)}
 .attach-btn:disabled{opacity:.35}
@@ -413,7 +418,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .followups{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .followup-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink);font-size:12.5px;line-height:1.25}
 .followup-chip:active{border-color:var(--accent);color:var(--ink)}
-.report-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.report-picker{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:6px}
 .report-picker button{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink);font-size:12px}
 .report-picker button:active{border-color:var(--accent);color:var(--ink)}
 .math-inline{font-family:Georgia,"Times New Roman",serif;font-style:italic;padding:0 2px}
@@ -572,8 +577,8 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <div class="bd-stats"><span><b id="bd-chats">0</b> sohbet</span><span><b id="bd-likes">0</b> beğeni</span><span id="bd-rarity"></span></div>
     <div class="bd-actions">
       <button class="pillbtn" id="bd-like"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span>Beğen</span></button>
-      <button class="pillbtn" id="bd-report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4h13l-2 4 2 4H4"/></svg><span>Bildir</span></button>
       <button class="pillbtn" id="bd-block"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg><span>Engelle</span></button>
+      <button class="pillbtn bd-icon-btn" id="bd-report" aria-label="Bildir" title="Bildir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4h13l-2 4 2 4H4"/></svg></button>
     </div>
     <div class="bd-by" id="bd-by"></div>
     <div style="max-width:640px;margin:0 auto;padding:4px 18px;width:100%"><button class="primary" id="bd-open">Sohbete başla</button></div>
@@ -1946,27 +1951,47 @@ function reportModel(){
   const bot = activeBot ? allBots()[activeBot] : null;
   return bot?.model || getCfg().model || "unknown";
 }
-function addReportAction(row, text){
-  if (!row || row.querySelector(".report")) return;
+function addReportAction(row, text, targetBar = null){
+  if (!row) return;
+  const existing = row.querySelector(".report");
+  if (existing) {
+    if (targetBar && existing.parentElement !== targetBar) {
+      const oldBar = existing.parentElement;
+      targetBar.append(existing);
+      if (oldBar?.classList.contains("report-actions") && !oldBar.children.length) oldBar.remove();
+    }
+    return;
+  }
   const button = el("button", "report");
-  button.type = "button"; button.setAttribute("aria-label", "Bu AI yanıtını bildir");
-  button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5m0 0c5-4 10 4 16 0v11c-6 4-11-4-16 0"/></svg><span>Bildir</span>';
-  const bar = el("div", "msg-actions"); bar.classList.add("report-actions"); bar.append(button);
+  button.type = "button";
+  button.setAttribute("aria-label", "Bildir");
+  button.setAttribute("title", "Bildir");
+  button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5m0 0c5-4 10 4 16 0v11c-6 4-11-4-16 0"/></svg><span class="rep-lbl"></span>';
+  const lbl = button.querySelector(".rep-lbl");
+  const setMsg = (m) => { lbl.textContent = m ? tx(m) : ""; button.classList.toggle("has-msg", !!m); };
+  const hostBar = targetBar || el("div", "msg-actions");
+  if (!targetBar) { hostBar.classList.add("report-actions"); row.append(hostBar); }
+  hostBar.append(button);
   let picker = null;
   const submitReport = async (reason) => {
     picker?.remove(); picker = null;
-    const original = button.lastChild.textContent; button.disabled = true; button.lastChild.textContent = tx("Gönderiliyor…");
+    button.disabled = true; setMsg("Gönderiliyor…");
     const result = await api("/safety-report", { method: "POST", body: { content: String(text || "").slice(0, 12000), model: reportModel(), reason } });
     if (result.ok) {
-      const savedLabel = result.j?.evidenceEncrypted ? tx("Bildirildi · inceleme kuyruğuna alındı") : tx("Kaydedildi · metin şifrelenmedi");
-      button.lastChild.textContent = savedLabel; haptic();
+      setMsg(result.j?.evidenceEncrypted ? "Bildirildi · inceleme kuyruğuna alındı" : "Kaydedildi · metin şifrelenmedi");
+      haptic();
     } else {
-      button.disabled = false; button.lastChild.textContent = result.j?.error?.message || (result.status === 401 ? tx("Giriş gerekli") : tx("Tekrar dene"));
-      if (result.status === 401) setTimeout(() => { if (button.isConnected) button.lastChild.textContent = original; }, 2200);
+      button.disabled = false;
+      setMsg(result.j?.error?.message || (result.status === 401 ? "Giriş gerekli" : "Tekrar dene"));
+      if (result.status === 401) setTimeout(() => { if (button.isConnected && !button.disabled) setMsg(""); }, 2200);
     }
   };
   button.addEventListener("click", () => {
-    if (!token()) { button.lastChild.textContent = tx("Giriş gerekli"); return; }
+    if (!token()) {
+      setMsg("Giriş gerekli");
+      setTimeout(() => { if (button.isConnected && !button.disabled) setMsg(""); }, 2200);
+      return;
+    }
     if (picker) { picker.remove(); picker = null; return; }
     picker = el("div", "report-picker");
     for (const [label, code] of [["Yanlış bilgi", "inaccurate"], ["Zararlı içerik", "unsafe_content"], ["Diğer", "other"]]) {
@@ -1977,9 +2002,8 @@ function addReportAction(row, text){
     const cancel = el("button", "", tx("Vazgeç")); cancel.type = "button";
     cancel.addEventListener("click", () => { picker?.remove(); picker = null; });
     picker.append(cancel);
-    bar.after(picker);
+    (button.closest(".msg-actions") || button.parentElement || row).after(picker);
   });
-  row.append(bar);
 }
 function editLastTurn(){
   if (controller) return;
@@ -2012,7 +2036,17 @@ function stopSpeak(){
 }
 function markLastReply(){
   stopSpeak();
-  for (const bar of document.querySelectorAll("#thread .msg-actions:not(.report-actions), #thread .followups, #thread .edit-msg")) bar.remove();
+  const rows = document.querySelectorAll("#thread .row:not(.user)");
+  const last = rows[rows.length - 1];
+  for (const oldBar of document.querySelectorAll("#thread .msg-actions:not(.report-actions)")) {
+    const row = oldBar.parentElement;
+    const rep = oldBar.querySelector(".report");
+    if (rep && row && row !== last) {
+      const wrap = el("div", "msg-actions"); wrap.classList.add("report-actions"); wrap.append(rep);
+      oldBar.replaceWith(wrap);
+    } else oldBar.remove();
+  }
+  for (const x of document.querySelectorAll("#thread .followups, #thread .edit-msg, #thread .servedby, #thread .report-picker")) x.remove();
   const userRows = document.querySelectorAll("#thread .row.user");
   const lastUserRow = userRows[userRows.length - 1];
   const lastUserMsg = convo.filter((m) => m.role === "user").at(-1);
@@ -2021,8 +2055,6 @@ function markLastReply(){
     ed.addEventListener("click", editLastTurn);
     lastUserRow.append(ed);
   }
-  const rows = document.querySelectorAll("#thread .row:not(.user)");
-  const last = rows[rows.length - 1];
   const lastMsg = convo.filter((m) => m.role === "assistant").at(-1);
   const text = lastMsg?.content;
   if (!last || !text) return;
@@ -2054,9 +2086,9 @@ function markLastReply(){
     });
     bar.append(spk);
   }
-  if (lastMsg?.servedBy) bar.append(el("span", "servedby", tx("Yedek: " + modelDisplayName(lastMsg.servedBy))));
   last.append(bar);
-  addReportAction(last, text);
+  addReportAction(last, text, bar);
+  if (lastMsg?.servedBy) last.append(el("div", "servedby", tx("Yedek: " + modelDisplayName(lastMsg.servedBy))));
   if (text.trim().length >= 220 && !lastMsg?.cta && !lastMsg?.generatedImages?.length && !galleryBot) {
     const fup = el("div", "followups");
     for (const label of ["Daha detaylı anlat", "Kısa özetle", "Örnekle açıkla"]) {
