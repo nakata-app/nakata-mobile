@@ -24,6 +24,7 @@ REPLY = [
 class H(SimpleHTTPRequestHandler):
     limit = False
     paylimit = False  # free quota used up: only a request that agreed to pay gets a reply
+    models_unavailable = False
     custom_events = None
     served_by = None
     last = path = None
@@ -41,12 +42,14 @@ class H(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/mobile/models"):
             b = json.dumps({
                 "models": [
-                    {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen", **({"unavailable": True} if H.models_unavailable else {})},
+                    {"id": "deepseek-v4.1-flash", "label": "DeepSeek V4.1 Flash", "main": True},
+                    {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen", "fallback": True, **({"unavailable": True} if H.models_unavailable else {})},
                     {"id": "gemma4", "label": "Gemma 4"},
                     {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"},
                     {"id": "refuseless/glm-5.3-abliterated", "label": "GLM 5.3 Abliterated", "requiresConsent": True, "credits": 1},
                 ],
-                "default": "gemma4" if H.models_unavailable else "gemini-4-hydrogen",
+                "default": "deepseek-v4.1-flash",
+                "fallbackModel": "gemini-4-hydrogen",
                 "perDay": 30,
             }).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
@@ -105,10 +108,10 @@ with sync_playwright() as p:
     check("settings: free provider hides key fields", pg.evaluate("[document.getElementById('st-byok').hidden, document.getElementById('st-freehint').hidden]") == [True, False])
     pg.evaluate(f"localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'nakata', base:'{BASE}/api/mobile', model:'x', key:''}})); localStorage.setItem('nakata_profile', JSON.stringify({{name:'Atakan', style:'kısa'}}))")
     pg.reload(); pg.wait_for_timeout(700)
-    check("model chip shows the free default", pg.inner_text("#modelChipName") == "Gemini 4 Hydrogen", pg.inner_text("#modelChipName"))
+    check("model chip shows the free default", pg.inner_text("#modelChipName") == "DeepSeek V4.1 Flash", pg.inner_text("#modelChipName"))
     pg.click("#modelChip"); pg.wait_for_timeout(400)
     free_sheet_nms = pg.evaluate("[...document.querySelectorAll('#modelList .nm')].map(n => n.textContent)")
-    check("model sheet shows Main + Free + Abliterated even signed out", "Gemini 4 Hydrogen" in free_sheet_nms and "GLM 5.3 Abliterated" in free_sheet_nms and pg.locator("#modelList .model-tag", has_text="Main").count() == 1, str(free_sheet_nms))
+    check("model sheet shows Main + Fallback + Free + Abliterated even signed out", "DeepSeek V4.1 Flash" in free_sheet_nms and "Gemini 4 Hydrogen" in free_sheet_nms and "GLM 5.3 Abliterated" in free_sheet_nms and pg.locator("#modelList .model-tag", has_text="Main").count() == 1 and pg.locator("#modelList .model-tag", has_text="Yedek").count() == 1, str(free_sheet_nms))
     pg.locator("#modelList .botmain", has_text="Nemotron").click(); pg.wait_for_timeout(300)
     check("picking a free model updates the chip", pg.inner_text("#modelChipName").startswith("Nemotron"))
     pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
@@ -357,6 +360,49 @@ with sync_playwright() as p:
     pg.evaluate("localStorage.removeItem('nakata_token');")
     pg.unroute("https://nakata.app/api/chat/conversations/art_test_chat/**")
     H.custom_events = None; H.served_by = None
+
+    # Bug fixes & UX upgrades verification:
+    # 1. Deleting active session keeps drawer open and keeps X visible on remaining chats
+    pg.evaluate("openConvo(Object.keys(allSessions())[0])"); pg.wait_for_timeout(150)
+    pg.click("#menuBtn"); pg.wait_for_timeout(300)
+    before_count = pg.locator(".sitem").count()
+    pg.locator(".sitem.on .x").click(); pg.wait_for_timeout(250)
+    x_vis = pg.evaluate("(() => { const xs = [...document.querySelectorAll('.sitem .x')]; return { drawerOpen: document.getElementById('drawer').classList.contains('on'), count: xs.length, minOpacity: xs.length ? Math.min(...xs.map(x => parseFloat(getComputedStyle(x).opacity))) : 1, widths: xs.map(x => Math.round(x.getBoundingClientRect().width)) }; })()")
+    check("deleting active session keeps drawer open and X buttons visible", x_vis["drawerOpen"] and x_vis["count"] == before_count - 1 and x_vis["minOpacity"] >= 0.6 and all(w >= 34 for w in x_vis["widths"]), str(x_vis))
+    pg.locator(".sitem .x").first.click(); pg.wait_for_timeout(200)
+    check("remaining chat can be deleted via its visible X button", pg.locator(".sitem").count() == before_count - 2)
+    pg.click("#scrim", position={"x": 370, "y": 400}); pg.wait_for_timeout(250)
+
+    # 2. Live hero mascot reaction + wow popup + math rendering + followups + report picker
+    pg.click("#newBtn"); pg.wait_for_timeout(200)
+    pg.fill("#prompt", "wow harika"); pg.dispatch_event("#prompt", "input"); pg.wait_for_timeout(180)
+    check("typing wow updates hero mascot expression to surprised", pg.evaluate("document.querySelector('#mascot svg').dataset.expression") == "surprised")
+    H.served_by = "google/gemma-4-31b-it:free"
+    long_reply = "İşte formül: $E = mc^2$ ve blok:\n\n$$\n\\alpha + \\beta = \\gamma\n$$\n\n" + ("Detaylı açıklama metni. " * 14)
+    H.custom_events = [
+        {"type": "tool_call", "tool": "fetch_url", "args": {"url": "https://example.com"}},
+        {"type": "tool_result", "tool": "fetch_url", "sources": [{"title": "Example Guide", "url": "https://example.com/guide"}], "images": []},
+        {"choices": [{"delta": {"content": long_reply}}]},
+    ]
+    pg.evaluate("window.__mascotReact?.reset()")
+    pg.click("#sendBtn")
+    pg.wait_for_selector(".mr-pop[data-tone='wow']", timeout=4000)
+    check("submitting wow pops the reactive mascot with sparkle badge", pg.inner_text(".mr-pop .mr-badge") == "✨")
+    pg.wait_for_function("() => document.querySelector('.followups .followup-chip') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
+    check("offline math renders inline and block formulas", pg.locator(".math-inline").count() == 1 and pg.locator(".math-block").count() == 1 and "α + β = γ" in pg.inner_text(".math-block"))
+    check("fallback OpenRouter model uses clean human label", pg.inner_text(".servedby") == "Yedek: Gemma 4 31B", pg.inner_text(".servedby"))
+    check("substantive reply shows follow-up chips and edit button on user message", pg.locator(".followups .followup-chip").count() == 3 and pg.locator(".row.user .edit-msg").count() == 1)
+    pg.evaluate("localStorage.setItem('nakata_token', JSON.stringify('tok_test'));")
+    pg.click(".msg-actions .report"); pg.wait_for_selector(".report-picker", timeout=2000)
+    check("tapping Report opens category picker", pg.locator(".report-picker button").count() == 4)
+    pg.evaluate("localStorage.removeItem('nakata_token');")
+
+    # 3. Unavailable primary model shows 'Yedek aktif' tag instead of misleading 'Geçici yedek'
+    H.models_unavailable = True
+    pg.evaluate("modelCacheTs.nakata = 0; openModelSheet();")
+    pg.wait_for_selector("#modelList .model-tag.warn", timeout=4000)
+    check("unavailable model shows Yedek aktif tag", pg.inner_text("#modelList .model-tag.warn") == "Yedek aktif")
+    H.models_unavailable = False; H.custom_events = None; H.served_by = None
 
     shot(pg, "chat.png")
     # The default free base is the real nakata.app; from a localhost test page WebKit
