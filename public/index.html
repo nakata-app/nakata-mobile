@@ -3515,6 +3515,22 @@ async function startVoice(){
       }
       else if (ev.type === "response.done") { v.caption = ""; voiceSay("Dinliyorum", "attentive"); }
       else if (ev.type === "input_audio_buffer.speech_started") { v.caption = ""; voiceSay("Dinliyorum", "curious"); }
+      else if (ev.type === "session.input_transcript.delta" || ev.type === "conversation.item.input_audio_transcription.delta") {
+        v.inp = ((v.inp || "") + (ev.delta || "")).slice(-1200);
+      }
+      else if (ev.type === "session.delegation.created" && v.id) {
+        // Thinking is delegated to the client: ask nakata.app (Evren DeepSeek), GPT-Live speaks the answer.
+        voiceSay("Düşünüyor…", "thinking");
+        const prompt = (v.inp || "").slice(-1000); v.inp = "";
+        if (prompt.trim()) (async () => {
+          try {
+            const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: prompt } });
+            if (!voice || v.ending) return;
+            if (d.ok && d.j.answer && v.dc?.readyState === "open")
+              v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: ev.delegation?.id, content: d.j.answer }));
+          } catch {}
+        })();
+      }
       else if (ev.type === "session.closed") v.closed?.();
     };
     pc.onconnectionstatechange = () => { if (["failed", "disconnected", "closed"].includes(pc.connectionState) && !v.ending) endVoice("Bağlantı koptu."); };
