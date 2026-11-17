@@ -407,6 +407,19 @@ with sync_playwright() as p:
     pg.click(".msg-actions .report"); pg.wait_for_selector(".report-picker", timeout=2000)
     check("tapping Report opens category picker", pg.locator(".report-picker button").count() == 4)
     pg.evaluate("localStorage.removeItem('nakata_token');")
+    # 2b. Mascot keeps reacting live across ongoing turns (#thread replyOrb + onReply tone)
+    pg.fill("#prompt", "harika!"); pg.dispatch_event("#prompt", "input"); pg.wait_for_timeout(180)
+    mid_face = pg.evaluate("document.querySelector('#thread .msg-actions .reply-orb')?.dataset.expression")
+    check("typing mid-chat updates visible replyOrb expression live", mid_face == "excited", str(mid_face))
+    pg.fill("#prompt", ""); pg.dispatch_event("#prompt", "input"); pg.wait_for_timeout(180)
+    H.custom_events = [{"choices": [{"delta": {"content": "Harika, bunu başardık!"}}]}]
+    pg.evaluate("window.__mascotReact?.reset()")
+    pg.fill("#prompt", "devam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_selector(".mr-pop[data-tone='celebrate'].in, .mr-pop[data-tone='praise'].in", timeout=5000)
+    pg.wait_for_function("() => !document.querySelector('.pending') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=5000)
+    pg.wait_for_timeout(200)
+    reply_face = pg.evaluate("document.querySelector('#thread .msg-actions .reply-orb')?.dataset.expression")
+    check("ongoing chat replies drive both replyOrb and popup mascot tone", reply_face == "excited", str(reply_face))
 
     # 3. Unavailable primary model shows 'Yedek aktif' tag instead of misleading 'Geçici yedek'
     H.models_unavailable = True

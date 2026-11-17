@@ -1,13 +1,34 @@
 import AVFoundation
 import UIKit
+import WebKit
 import Capacitor
+
+private final class WeakAudioMessageHandler: NSObject, WKScriptMessageHandler {
+    weak var owner: AppDelegate?
+
+    init(_ owner: AppDelegate) {
+        self.owner = owner
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        let dict = message.body as? [String: Any]
+        let active = (dict?["active"] as? Bool) ?? false
+        DispatchQueue.main.async { [weak owner = self.owner] in
+            owner?.setVoiceCallActive(active)
+        }
+    }
+}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private var voiceCallActive = false
+    private var observersInstalled = false
+    private var bgTask: UIBackgroundTaskIdentifier = .invalid
+    private weak var attachedWebView: WKWebView?
 
-    private func configureAudioSession() {
+    private func configureAudioSession(active: Bool) {
         let session = AVAudioSession.sharedInstance()
         #if compiler(>=6.2)
         let bluetooth: AVAudioSession.CategoryOptions = .allowBluetoothHFP
@@ -15,30 +36,105 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let bluetooth: AVAudioSession.CategoryOptions = .allowBluetooth
         #endif
         try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.mixWithOthers, .defaultToSpeaker, bluetooth])
+        if active {
+            try? session.setActive(true, options: [])
+        }
+    }
+
+    private func endVoiceBackgroundTask() {
+        if bgTask != .invalid {
+            UIApplication.shared.endBackgroundTask(bgTask)
+            bgTask = .invalid
+        }
+    }
+
+    private func installAudioObserversIfNeeded() {
+        guard !observersInstalled else { return }
+        observersInstalled = true
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(handleAudioInterruption(_:)), name: AVAudioSession.interruptionNotification, object: nil)
+        nc.addObserver(self, selector: #selector(handleAudioRouteOrReset(_:)), name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        nc.addObserver(self, selector: #selector(handleAudioRouteOrReset(_:)), name: AVAudioSession.routeChangeNotification, object: nil)
+    }
+
+    private func attachAudioBridgeIfNeeded() {
+        guard let vc = window?.rootViewController as? CAPBridgeViewController,
+              let webView = vc.bridge?.webView,
+              attachedWebView !== webView else { return }
+        attachedWebView = webView
+        let ucc = webView.configuration.userContentController
+        ucc.removeScriptMessageHandler(forName: "nakataAudio")
+        ucc.add(WeakAudioMessageHandler(self), name: "nakataAudio")
+    }
+
+    func setVoiceCallActive(_ active: Bool) {
+        voiceCallActive = active
+        if active {
+            configureAudioSession(active: true)
+        } else {
+            endVoiceBackgroundTask()
+            try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        }
+    }
+
+    @objc private func handleAudioInterruption(_ notification: Notification) {
+        guard voiceCallActive,
+              let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let kind = AVAudioSession.InterruptionType(rawValue: raw),
+              kind == .ended else { return }
+        configureAudioSession(active: true)
+        attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
+    }
+
+    @objc private func handleAudioRouteOrReset(_ notification: Notification) {
+        guard voiceCallActive else { return }
+        configureAudioSession(active: true)
+        attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
     }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        configureAudioSession()
+        configureAudioSession(active: false)
+        installAudioObserversIfNeeded()
+        DispatchQueue.main.async { [weak self] in
+            self?.attachAudioBridgeIfNeeded()
+        }
         return true
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+        if voiceCallActive {
+            configureAudioSession(active: true)
+        }
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        guard voiceCallActive else { return }
+        configureAudioSession(active: true)
+        endVoiceBackgroundTask()
+        bgTask = application.beginBackgroundTask(withName: "nakata-voice-transition") {
+            DispatchQueue.main.async { [weak self] in
+                self?.endVoiceBackgroundTask()
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.endVoiceBackgroundTask()
+        }
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+        endVoiceBackgroundTask()
+        if voiceCallActive {
+            configureAudioSession(active: true)
+        }
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        attachAudioBridgeIfNeeded()
+        if voiceCallActive {
+            configureAudioSession(active: true)
+            attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
+        }
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

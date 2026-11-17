@@ -112,6 +112,7 @@ function createOrb({ size = 40, color = "#5b8cff", expression = "neutral", follo
 	const right = svg.querySelector(".orb-eye-r");
 	const zz = svg.querySelector(".orb-z");
 	let current = null;
+	let swapTimer = null;
 
 	function paint(expr) {
 		const [l, r, stroke] = (SHAPES[expr] || SHAPES.neutral)();
@@ -135,11 +136,17 @@ function createOrb({ size = 40, color = "#5b8cff", expression = "neutral", follo
 		if (!SHAPES[expr] || expr === current) return;
 		const first = current === null;
 		current = expr;
-		if (first || !svg.isConnected) return paint(expr);
+		clearTimeout(swapTimer);
+		swapTimer = null;
+		if (first || !svg.isConnected) {
+			eyes.classList.remove("orb-squint");
+			return paint(expr);
+		}
 		// A quick squint hides the shape swap — reads as a deliberate glance.
 		eyes.classList.add("orb-squint");
-		setTimeout(() => {
-			paint(expr);
+		swapTimer = setTimeout(() => {
+			swapTimer = null;
+			paint(current);
 			eyes.classList.remove("orb-squint");
 		}, 110);
 	}
@@ -182,6 +189,7 @@ function createOrb({ size = 40, color = "#5b8cff", expression = "neutral", follo
 		},
 		destroy() {
 			clearTimeout(blinkTimer);
+			clearTimeout(swapTimer);
 			if (onMove) window.removeEventListener("pointermove", onMove);
 			svg.remove();
 		},

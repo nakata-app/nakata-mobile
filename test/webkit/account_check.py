@@ -283,6 +283,8 @@ with sync_playwright() as p:
         return route.fulfill(status=404, content_type="application/json", headers=cors, body="{}")
     pg.route("**/api/mobile/voice/*", handle_voice)
     pg.evaluate("""(() => {
+      window.__nativeAudio = [];
+      window.webkit = { messageHandlers: { nakataAudio: { postMessage: (m) => window.__nativeAudio.push(m) } } };
       Object.defineProperty(navigator, "mediaDevices", {
         configurable: true,
         value: { getUserMedia: async () => ({ getTracks: () => [{ stop(){} }] }) },
@@ -300,6 +302,7 @@ with sync_playwright() as p:
               },
               close(){},
             };
+            window.__voiceDc = dc;
             setTimeout(() => dc.onmessage && dc.onmessage({ data: JSON.stringify({ type: "session.started" }) }), 20);
             return dc;
           },
@@ -311,16 +314,23 @@ with sync_playwright() as p:
       };
     })()""")
     pg.click("#menuBtn"); pg.wait_for_timeout(200); pg.click("#settingsRow"); pg.wait_for_timeout(200)
-    pg.select_option("#st-voice", "cedar"); pg.click("#st-save"); pg.wait_for_timeout(200)
+    pg.fill("#pf-name", "Atakan"); pg.fill("#pf-about", "Nakata geliştiricisi"); pg.select_option("#st-voice", "cedar"); pg.click("#st-save"); pg.wait_for_timeout(200)
     check("Settings persists chosen assistant voice", pg.evaluate("JSON.parse(localStorage.getItem('nakata_voice'))") == "cedar")
     pg.click("#micBtn")
     pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
-    check("voice call starts with chosen voice in session request", len(voice_calls["sessions"]) == 1 and voice_calls["sessions"][0].get("voice") == "cedar" and "Cedar" in pg.inner_text("#voicePick"), str(voice_calls))
+    sess0 = voice_calls["sessions"][0] if voice_calls["sessions"] else {}
+    native_audio = pg.evaluate("window.__nativeAudio")
+    check("voice call sends profile name, memory flag, voice choice and activates native audio", len(voice_calls["sessions"]) == 1 and sess0.get("voice") == "cedar" and sess0.get("memory") is True and sess0.get("profile", {}).get("name") == "Atakan" and any(x.get("active") is True for x in native_audio) and "Cedar" in pg.inner_text("#voicePick"), str((sess0, native_audio)))
+    pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: 'Harika, hoş geldin Atakan!' }) })""")
+    pg.wait_for_timeout(120)
+    v_face = pg.evaluate("document.querySelector('#voiceOrb svg.bot-orb')?.dataset.expression")
+    check("voice orb expression reacts dynamically to spoken transcript tone", v_face == "excited", str(v_face))
     pg.evaluate("""(() => {
       let h = true;
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
       document.dispatchEvent(new Event('visibilitychange'));
       h = false;
+      window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));
     })()""")
     pg.wait_for_timeout(250)
     check("backgrounding app keeps active voice call alive and sends heartbeat", pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] == 0 and voice_calls["pings"] >= 1, str(voice_calls))
@@ -332,7 +342,8 @@ with sync_playwright() as p:
     pg.wait_for_function("document.getElementById('voicePick').textContent.includes('Vesper') && document.getElementById('voiceState').textContent === 'Dinliyorum'", timeout=5000)
     check("voice picker sheet renders above call screen and reconnects with new voice", z_ok and len(voice_calls["sessions"]) >= 2 and voice_calls["sessions"][-1].get("voice") == "vesper" and voice_calls["ends"] >= 1, str(voice_calls))
     pg.click("#voiceEnd"); pg.wait_for_timeout(300)
-    check("ending call closes voice screen", not pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] >= 2)
+    native_audio_end = pg.evaluate("window.__nativeAudio")
+    check("ending call closes voice screen and deactivates native audio", not pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] >= 2 and native_audio_end[-1].get("active") is False, str(native_audio_end))
 
     # account page shortcut + delete account
     pg.click("#menuBtn"); pg.wait_for_timeout(300); pg.click("#accountRow"); pg.wait_for_timeout(350)

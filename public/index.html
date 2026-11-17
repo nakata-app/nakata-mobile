@@ -71,10 +71,15 @@ button.title:active{opacity:.6}
 .scroll-down-btn svg{width:18px;height:18px}
 
 /* empty chat */
-.hero{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:24px 20px 40px;max-width:640px;margin:0 auto}
+.hero{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:22px;padding:24px 20px 32px;max-width:640px;margin:0 auto}
 .hero[hidden]{display:none}
-.hero .brand{display:flex;flex-direction:column;align-items:center;gap:20px}
+.hero .brand{display:flex;flex-direction:column;align-items:center;gap:14px}
 .hero h1{margin:0;font-size:27px;line-height:1.2;font-weight:700;letter-spacing:-.02em;text-align:center}
+.hero-desc{margin:0;color:var(--muted);font-size:14px;line-height:1.45;text-align:center;max-width:440px}
+.hero-desc[hidden],.hero-starters[hidden],.agent-starters[hidden]{display:none}
+.hero-starters{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:520px;margin-top:4px}
+.hero-starter{padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:var(--raised);color:var(--side-ink);font-size:13.5px;line-height:1.25;text-align:left}
+.hero-starter:active{border-color:var(--accent);color:var(--ink)}
 
 /* thread */
 #thread{max-width:780px;width:100%;margin:0 auto;padding:10px 16px 16px;display:flex;flex-direction:column;gap:20px}
@@ -404,7 +409,12 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .agent-pill.on{color:#6ee7b7;background:#10b98122}
 .agent-pill.pending{color:#fcd34d;background:#f59e0b22}
 .agent-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip.agent-bot-chip{display:inline-flex;align-items:center;gap:6px}
+.agent-bot-dot{width:8px;height:8px;border-radius:50%;background:var(--dot,var(--accent));flex:none}
+.agent-starters{display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
+.agent-starters .chip{font-size:12.5px;padding:6px 11px;background:var(--raised)}
 .agent-result-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.agent-result-btns{display:flex;align-items:center;gap:6px}
 .agent-copy{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--line);color:var(--side-ink);font-size:12px}
 .agent-refresh{height:36px;padding:0 12px;border-radius:10px;color:var(--accent);font-weight:600;font-size:13px;flex:none}
 #agentPairCode{font-family:var(--mono);letter-spacing:.08em;text-align:center;font-weight:600}
@@ -444,7 +454,12 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 <main class="view" id="chatView">
   <div class="scroll" id="chatScroll">
     <section class="hero" id="hero">
-      <div class="brand"><div class="nk-mascot" id="mascot"></div><h1>Nasıl yardımcı olabilirim?</h1></div>
+      <div class="brand">
+        <div class="nk-mascot" id="mascot"></div>
+        <h1 id="heroTitle">Nasıl yardımcı olabilirim?</h1>
+        <p class="hero-desc" id="heroDesc" hidden></p>
+        <div class="hero-starters" id="heroStarters" hidden></div>
+      </div>
     </section>
     <div id="thread" hidden></div>
   </div>
@@ -540,7 +555,9 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <label for="bf-model">Model <span class="muted">(boşsa varsayılan)</span></label>
     <input id="bf-model" class="field" placeholder="örn. anthropic/claude-sonnet-4" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="bf-persona">Talimat</label>
-    <textarea id="bf-persona" class="field" rows="8" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
+    <textarea id="bf-persona" class="field" rows="7" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
+    <label for="bf-starters">Başlangıç örnekleri <span class="muted">(satır başı 1 öneri, en fazla 4)</span></label>
+    <textarea id="bf-starters" class="field" rows="3" style="min-height:86px" placeholder="Önemli noktaları özetle&#10;Adım adım plan çıkar"></textarea>
     <div id="bf-publish" style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <b style="font-size:15px">Galeride yayınla</b>
@@ -678,6 +695,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
           <button type="button" class="chip" data-agent-prefix="@Raporla ">@Raporla</button>
           <button type="button" class="chip" data-agent-prefix="@Kodu incele ">@Kodu incele</button>
         </div>
+        <div class="agent-starters" id="agentBotStarters" hidden></div>
         <textarea id="agentCommandPrompt" class="field" rows="4" maxlength="12000" placeholder="Nakata’nın Mac’inde ne yapmasını istediğini yaz"></textarea>
         <div class="agent-actions">
           <button class="primary" id="agentCommandSend" type="button">Mac’e gönder</button>
@@ -691,7 +709,10 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
         <p class="agent-status" id="agentCommandStatus" role="status"></p>
         <div class="agent-result-head" id="agentCommandResultHead" hidden>
           <span class="muted" style="font-size:12px;font-weight:600">Çıktı</span>
-          <button type="button" class="agent-copy" id="agentCopyResult">Kopyala</button>
+          <div class="agent-result-btns">
+            <button type="button" class="agent-copy" id="agentRetryResult">Tekrar dene</button>
+            <button type="button" class="agent-copy" id="agentCopyResult">Kopyala</button>
+          </div>
         </div>
         <pre class="agent-result" id="agentCommandResult" hidden></pre>
       </div>
@@ -1019,6 +1040,11 @@ const EN = {
   "Net ve enerjik":"Clear & energetic",
   "Güney ABD erkek":"Southern US masculine",
   "Güney ABD kadın":"Southern US feminine",
+  "Başlangıç örnekleri":"Starter prompts",
+  "(satır başı 1 öneri, en fazla 4)":"(1 per line, max 4)",
+  "Önemli noktaları özetle":"Summarize key takeaways",
+  "Adım adım plan çıkar":"Build a step-by-step plan",
+  "Tekrar dene":"Retry",
 };
 // Texts with numbers or names in them.
 const EN_RE = [
@@ -1474,18 +1500,21 @@ $("#st-theme").addEventListener("change", (e) => { applyTheme(e.target.value); h
 /* ---- bots (local personas) ---- */
 // Ready-made bots (Atakan: sample bots in onboarding and the picker).
 const BOT_TEMPLATES = [
-  { name: "Video Editor", desc: "Cuts, pacing, captions, shot lists", persona: "You are a senior video editor. Help the user turn raw footage or an idea into a tight video: propose the structure, a shot list, cut points and pacing, caption and sound choices, and the exact edit steps in their tool (CapCut, Premiere, DaVinci, Final Cut). Ask what the platform and length are if unknown. Be concrete: timestamps, durations, transitions. Answer in the user's language." },
-  { name: "Coding Agent", desc: "Writes, reviews and debugs code", persona: "You are an experienced software engineer. Give short, correct answers. Always put code in working code blocks. When debugging, name the likely cause first, then show the fix. Point out security and edge-case risks you notice. Answer in the user's language." },
-  { name: "Startup Co-founder", desc: "Pressure-tests ideas, plans and pitches", persona: "You are a pragmatic startup co-founder. Challenge the user's idea like an investor would: who pays, why now, how it grows, what could kill it. Then help turn it into a one-page plan with a first week of concrete actions. Be direct, no hype. Answer in the user's language." },
-  { name: "Image Prompt Artist", desc: "Turns ideas into image prompts", persona: "You write prompts for AI image models. From the user's idea, produce three prompt variants (clean, cinematic, stylized) that state subject, setting, lighting, lens or medium, mood and aspect ratio. Keep each prompt under 80 words. Ask one question if the idea is too vague. Answer in the user's language." },
-  { name: "Product Designer", desc: "UX flows, screens and critique", persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
-  { name: "Research Analyst", desc: "Structured research and summaries", persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
-  { name: "Social Media Manager", desc: "Posts, hooks and content calendars", persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
-  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Always answer in the traveller's language. Be specific, practical, visually descriptive and candid. Never give a generic list when the user asks for a trip plan.\n\nDISCOVERY: Reuse everything already in the conversation. Never stall with a questionnaire before providing value. If dates, budget, or group size are missing for a flight, hotel, or booking request, briefly note in ONE sentence that you cannot complete checkout or reservations on their behalf, and IMMEDIATELY invoke live search/research tools with sensible transparent defaults (e.g., upcoming 3 nights, 2 adults, central stay) so the first reply delivers real current hotel/flight options and price ranges; ask briefly at the end for exact dates/origin to tailor. Establish departure city, destination, exact dates/year, group size, total budget/currency and travel style without repeating already stated details. Clarify a missing year when ambiguous.\n\nRESEARCH: Use the supplied research extracts and available web tools before recommending places. Verify that every named attraction, neighbourhood, restaurant, bar, club and transport operator exists in the stated city. Prefer official attraction, transport, airport and venue pages. Cite important claims with exact source links. Check dates. If supplied research is background-only, do not describe it as live verification or use it to assert current opening hours, prices, schedules, events, availability, weather or entry rules. If no live sources are available, say so and label current details unverified. Never invent places, sources, prices or timetables.\n\nITINERARY: Give an overall recommendation and route overview, then one section for each calendar day. Use morning, lunch, afternoon, dinner and evening blocks. Group nearby stops together; provide visit duration and realistic transfer time. Explain why each stop is worth visiting. Include named food and nightlife choices, not just generic streets. Keep each day realistic with breaks, 3-5 main stops maximum, and a lighter arrival/departure day. Include indoor alternatives for winter or rain. Preserve original local place names when useful.\n\nVISUALS: Use supplied real image references to enrich the trip and retain their captions, credits and licence details. Never invent image links or claim a photo depicts a specific venue unless verified.\n\nBUDGET: Break down accommodation, intercity transport, local transit, meals, activities, connectivity, insurance and contingency. Separate checked prices from estimates, state currency, search date and assumptions. Do not present estimates as quotes. Compare transport and hotels by time, location, total cost, taxes and cancellation terms. For entry rules, verify official sources and clarify nationality and transit details when relevant. Consider solo safety, late arrivals, accessibility and dietary needs without exaggeration.\n\nOUTPUT: Quick trip read; neighbourhood route overview; detailed day-by-day schedule; food and nightlife shortlist; getting around; itemised estimated budget; reservations and practical tips; linked sources. Use local time and exact dates. Mark each detail CONFIRMED, ESTIMATED or TO VERIFY. Maintain a compact trip summary across follow-ups and update only what changed." },
-  { name: "Writing Editor", desc: "Sharpens text and keeps your voice", persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
+  { name: "Video Editor", desc: "Cuts, pacing, captions, shot lists", starters: ["Make a 30s Reels cut plan", "Write punchy captions for this clip", "Fix pacing in my script"], persona: "You are a senior video editor. Help the user turn raw footage or an idea into a tight video: propose the structure, a shot list, cut points and pacing, caption and sound choices, and the exact edit steps in their tool (CapCut, Premiere, DaVinci, Final Cut). Ask what the platform and length are if unknown. Be concrete: timestamps, durations, transitions. Answer in the user's language." },
+  { name: "Coding Agent", desc: "Writes, reviews and debugs code", starters: ["Debug this error step by step", "Review this function for bugs", "Refactor cleanly with tests"], persona: "You are an experienced software engineer. Give short, correct answers. Always put code in working code blocks. When debugging, name the likely cause first, then show the fix. Point out security and edge-case risks you notice. Answer in the user's language." },
+  { name: "Startup Co-founder", desc: "Pressure-tests ideas, plans and pitches", starters: ["Stress-test my startup idea", "Draft a 1-week validation plan", "Sharpen my 3-sentence pitch"], persona: "You are a pragmatic startup co-founder. Challenge the user's idea like an investor would: who pays, why now, how it grows, what could kill it. Then help turn it into a one-page plan with a first week of concrete actions. Be direct, no hype. Answer in the user's language." },
+  { name: "Image Prompt Artist", desc: "Turns ideas into image prompts", starters: ["3 lighting variants for my concept", "Minimalist product studio shot prompt", "Cinematic portrait prompt"], persona: "You write prompts for AI image models. From the user's idea, produce three prompt variants (clean, cinematic, stylized) that state subject, setting, lighting, lens or medium, mood and aspect ratio. Keep each prompt under 80 words. Ask one question if the idea is too vague. Answer in the user's language." },
+  { name: "Product Designer", desc: "UX flows, screens and critique", starters: ["Critique this onboarding flow", "Fix hierarchy and empty states", "Simplify this form layout"], persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
+  { name: "Research Analyst", desc: "Structured research and summaries", starters: ["Compare options with pros and cons", "Summarize key evidence first", "List what is verified vs unsure"], persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
+  { name: "Social Media Manager", desc: "Posts, hooks and content calendars", starters: ["Write 3 viral opening hooks", "Turn this update into an X + IG post", "Plan a 5-day content schedule"], persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
+  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", starters: ["Plan a 3-day budget city trip", "Compare neighborhoods to stay in", "Check entry rules & airport transit"], persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Always answer in the traveller's language. Be specific, practical, visually descriptive and candid. Never give a generic list when the user asks for a trip plan.\n\nDISCOVERY: Reuse everything already in the conversation. Never stall with a questionnaire before providing value. If dates, budget, or group size are missing for a flight, hotel, or booking request, briefly note in ONE sentence that you cannot complete checkout or reservations on their behalf, and IMMEDIATELY invoke live search/research tools with sensible transparent defaults (e.g., upcoming 3 nights, 2 adults, central stay) so the first reply delivers real current hotel/flight options and price ranges; ask briefly at the end for exact dates/origin to tailor. Establish departure city, destination, exact dates/year, group size, total budget/currency and travel style without repeating already stated details. Clarify a missing year when ambiguous.\n\nRESEARCH: Use the supplied research extracts and available web tools before recommending places. Verify that every named attraction, neighbourhood, restaurant, bar, club and transport operator exists in the stated city. Prefer official attraction, transport, airport and venue pages. Cite important claims with exact source links. Check dates. If supplied research is background-only, do not describe it as live verification or use it to assert current opening hours, prices, schedules, events, availability, weather or entry rules. If no live sources are available, say so and label current details unverified. Never invent places, sources, prices or timetables.\n\nITINERARY: Give an overall recommendation and route overview, then one section for each calendar day. Use morning, lunch, afternoon, dinner and evening blocks. Group nearby stops together; provide visit duration and realistic transfer time. Explain why each stop is worth visiting. Include named food and nightlife choices, not just generic streets. Keep each day realistic with breaks, 3-5 main stops maximum, and a lighter arrival/departure day. Include indoor alternatives for winter or rain. Preserve original local place names when useful.\n\nVISUALS: Use supplied real image references to enrich the trip and retain their captions, credits and licence details. Never invent image links or claim a photo depicts a specific venue unless verified.\n\nBUDGET: Break down accommodation, intercity transport, local transit, meals, activities, connectivity, insurance and contingency. Separate checked prices from estimates, state currency, search date and assumptions. Do not present estimates as quotes. Compare transport and hotels by time, location, total cost, taxes and cancellation terms. For entry rules, verify official sources and clarify nationality and transit details when relevant. Consider solo safety, late arrivals, accessibility and dietary needs without exaggeration.\n\nOUTPUT: Quick trip read; neighbourhood route overview; detailed day-by-day schedule; food and nightlife shortlist; getting around; itemised estimated budget; reservations and practical tips; linked sources. Use local time and exact dates. Mark each detail CONFIRMED, ESTIMATED or TO VERIFY. Maintain a compact trip summary across follow-ups and update only what changed." },
+  { name: "Writing Editor", desc: "Sharpens text and keeps your voice", starters: ["Tighten this email cleanly", "Fix grammar while keeping my tone", "Shorten by 40% without losing meaning"], persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
+  { name: "Lex", desc: "Reads contracts & explains applicable law", starters: ["Review this contract for risky clauses", "Explain notice periods in plain words", "What clauses are missing here?"], persona: "You research legal questions and read legal documents. Reply in the user's language. You are not a lawyer: say so in one line when the user asks about their own situation, and suggest a lawyer when real money or rights are at stake. Cite exact laws, articles or official sources when known, and never invent article numbers. For a contract: list risky clauses, missing clauses and a plain-language summary." },
 ];
 function useTemplate(t){
-  const bots = allBots(); bots[t.name] = { persona: t.persona, description: t.desc }; saveBots(bots);
+  const bots = allBots();
+  bots[t.name] = { persona: t.persona, description: t.desc, starters: Array.isArray(t.starters) ? t.starters.slice(0, 4) : [] };
+  saveBots(bots);
   galleryBot = null; activeBot = t.name; setModelLabel(); haptic();
 }
 function allBots(){ return LS.get("nakata_byok_bots", {}); }
@@ -1493,7 +1522,33 @@ function saveBots(b){ LS.set("nakata_byok_bots", b); }
 let activeBot = null;
 let galleryBot = null;   // a published bot opened from Keşfet: { id, name, persona, mascot }
 let payBots = false;     // agreed this session to pay credits for gallery-bot messages past the free quota
-function setModelLabel(){ $("#modelName").textContent = galleryBot ? galleryBot.name : (activeBot || "Nakata"); mascot?.setColor(orbColor()); paintModelChip(); }
+function paintHero(){
+  const titleEl = $("#heroTitle"), descEl = $("#heroDesc"), stEl = $("#heroStarters");
+  if (!titleEl || !descEl || !stEl) return;
+  const gb = galleryBot;
+  const bot = !gb && activeBot ? allBots()[activeBot] : null;
+  const tpl = !gb && activeBot ? BOT_TEMPLATES.find((t) => t.name === activeBot) : null;
+  if (!gb && !activeBot) {
+    titleEl.textContent = tx("Nasıl yardımcı olabilirim?");
+    descEl.textContent = ""; descEl.hidden = true;
+    stEl.replaceChildren(); stEl.hidden = true;
+    return;
+  }
+  const name = gb ? gb.name : activeBot;
+  const desc = gb ? (gb.tagline || gb.description || "") : (bot?.description || bot?.tagline || tpl?.desc || "");
+  const starters = (gb ? gb.starters : (bot?.starters?.length ? bot.starters : tpl?.starters)) || [];
+  titleEl.textContent = name;
+  descEl.textContent = desc; descEl.hidden = !desc;
+  stEl.replaceChildren();
+  for (const s of starters.slice(0, 4)) {
+    const b = el("button", "hero-starter", s);
+    b.type = "button";
+    b.addEventListener("click", () => { void send(s); });
+    stEl.append(b);
+  }
+  stEl.hidden = stEl.children.length === 0;
+}
+function setModelLabel(){ $("#modelName").textContent = galleryBot ? galleryBot.name : (activeBot || "Nakata"); mascot?.setColor(orbColor()); paintModelChip(); paintHero(); }
 function openBotSheet(){
   $("#drawer").classList.remove("on");
   $("#scrim").classList.add("on"); $("#botSheet").classList.add("on");
@@ -1550,6 +1605,7 @@ function openBotForm(name){
   $("#bf-tagline").value = bot?.tagline || bot?.description || "";
   $("#bf-category").value = bot?.category || "Diğer";
   $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
+  if ($("#bf-starters")) $("#bf-starters").value = (bot?.starters || []).join("\n");
   $("#bf-del").hidden = !bot;
   showErr("#bf-puberr", ""); setPubStatus(bot?.publishedStatus || "");
   closeSheet(); showPage("#f-botform");
@@ -1563,9 +1619,12 @@ $("#botSave").addEventListener("click", () => {
   if (!persona.trim()) return $("#bf-persona").focus();
   const bots = allBots();
   const key = editingBot || name;
+  const starters = ($("#bf-starters")?.value || "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 4);
   bots[key] = { ...(bots[key] || {}), persona, model: $("#bf-model").value.trim() || undefined,
-    tagline: $("#bf-tagline").value.trim() || undefined, description: $("#bf-tagline").value.trim() || undefined, category: $("#bf-category").value };
+    tagline: $("#bf-tagline").value.trim() || undefined, description: $("#bf-tagline").value.trim() || undefined,
+    category: $("#bf-category").value, starters };
   saveBots(bots);
+  if (activeBot === key) setModelLabel();
   $("#f-botform").classList.remove("on"); openBotSheet();
 });
 $("#bf-pub").addEventListener("click", async () => {
@@ -1678,22 +1737,32 @@ $("#mascot").append(mascot.el);
   window.addEventListener("pointerdown", wake, { passive: true });
   window.addEventListener("pointermove", wake, { passive: true });
   window.addEventListener("keydown", wake);
-  // Typing a first message: it perks up and reacts live to tones/questions.
+  // Typing a message: mascot perks up and reacts live across both hero and active chat.
   $("#prompt").addEventListener("input", () => {
     const val = $("#prompt").value.trim();
-    if (!val) { if (!asleep) mascot.set("neutral"); return; }
-    if (asleep) return;
-    const tone = window.__mascotReact?.toneOf?.(val);
-    if (tone) mascot.set(tone.face);
-    else if (/\?\s*$/.test(val)) mascot.set("curious");
-    else mascot.set("attentive");
+    const tone = val ? window.__mascotReact?.toneOf?.(val) : null;
+    const face = !val ? "neutral" : (tone ? tone.face : (/\?\s*$/.test(val) ? "curious" : "attentive"));
+    if (!asleep) mascot.set(face);
+    if (replyOrb?.el.isConnected && !controller) {
+      if (val) replyOrb.set(face);
+      else {
+        const lastAssistant = convo.filter((m) => m.role === "assistant").at(-1);
+        replyOrb.set(lastAssistant?.content ? turnFace(lastAssistant.content) : "happy");
+      }
+    }
   });
-  // Idle life: now and then a small glance, wink or smile.
+  // Idle life: now and then a small glance, wink or smile on whichever mascot is on screen.
   const glance = () => setTimeout(() => {
+    const picks = ["curious", "wink", "happy", "attentive", "excited"];
+    const pick = picks[Math.floor(Math.random() * picks.length)];
     if (!asleep && !$("#hero").hidden && mascot.expression === "neutral") {
-      const pick = ["curious", "wink", "happy", "attentive", "excited"][Math.floor(Math.random() * 5)];
       mascot.set(pick);
       setTimeout(() => mascot.expression === pick && mascot.set("neutral"), 1300);
+    } else if ($("#hero").hidden && replyOrb?.el.isConnected && !controller && !$("#prompt").value.trim()) {
+      const before = replyOrb.expression;
+      const alt = pick === before ? "wink" : pick;
+      replyOrb.set(alt);
+      setTimeout(() => replyOrb?.el.isConnected && replyOrb.expression === alt && replyOrb.set(before), 1100);
     }
     glance();
   }, 9000 + Math.random() * 12000);
@@ -1987,6 +2056,8 @@ let replyOrb = null;
 function turnFace(text){
   const t = String(text || "").trim();
   if (/\?\s*$/.test(t) || /\b(hangisini|hangisi|ister misin|which one|should i|do you want)\b/i.test(t.slice(-240))) return "unsure";
+  const tone = window.__mascotReact?.toneOf?.(t);
+  if (tone && ["sad", "wink", "surprised", "excited"].includes(tone.face)) return tone.face;
   return "happy";
 }
 function reportModel(){
@@ -2106,7 +2177,7 @@ function markLastReply(){
   const copy = el("button", "copy"); copy.innerHTML = ICON_COPY + "<span>" + esc(tx("Kopyala")) + "</span>";
   copy.addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(text); } catch { return; }
-    haptic(); copy.lastChild.textContent = tx("Kopyalandı");
+    haptic(); flashReply("wink"); copy.lastChild.textContent = tx("Kopyalandı");
     setTimeout(() => { copy.lastChild.textContent = tx("Kopyala"); }, 1400);
   });
   const redo = el("button", "retry"); redo.type = "button";
@@ -2246,7 +2317,7 @@ function newChat(opts = {}){
   if (controller) controller.abort();
   stopSpeak();
   pendingAttachments = []; renderAttachBar(); updateSendBtn();
-  convo = []; curId = null; autoFollow = true; showHero(true); $("#thread").replaceChildren(); updateScrollBtn();
+  convo = []; curId = null; autoFollow = true; showHero(true); $("#thread").replaceChildren(); updateScrollBtn(); paintHero();
   if (!opts?.keepDrawer) closeDrawer();
   renderSessions($("#search").value);
 }
@@ -2394,6 +2465,14 @@ async function send(text, opts = {}){
     if (bubble && shownLen < acc.length) { shownLen = acc.length; renderShown(shownLen); }
   };
   const turnRetry = { text, images, files };
+  const selectedFreeModel = free
+    ? (() => {
+        const wanted = bot?.model?.trim();
+        const catalog = modelCache.nakata || DEFAULT_NAKATA_MODELS;
+        const hit = wanted ? catalog.find((m) => m.id === wanted && !m.unavailable && (!m.requiresConsent || adultConsent)) : null;
+        return hit ? hit.id : (LS.get("nakata_free_model", "") || nakataDefaultModel);
+      })()
+    : model;
   try {
     const base = cfg.base.replace(/\/+$/, "");
     const endpoint = gb ? `${base}/bots/${gb.id}/chat` : base + (free ? "/chat" : "/chat/completions");
@@ -2407,7 +2486,7 @@ async function send(text, opts = {}){
         ...(!gb && /openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
       body: JSON.stringify({
-        model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || nakataDefaultModel) : model),
+        model: gb ? undefined : selectedFreeModel,
         stream: true,
         messages,
         ...((free || gb) ? { conversationId: curId, memory: isMemoryEnabled() } : {}),
@@ -2446,6 +2525,7 @@ async function send(text, opts = {}){
           else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
           else if (tc.name === "generate_image") setPendingStatus("Görsel hazırlanıyor…");
           else setPendingStatus("Araç çalıştırılıyor…");
+          pendingOrb?.set(tc.name === "generate_image" ? "excited" : "curious");
           window.__mascotReact?.onTool?.(tc.name, tc.args);
         }
         const srcs = ev.type === "tool_result" ? ev.sources : d.sources;
@@ -2799,6 +2879,52 @@ function openAgentPage(){ closeDrawer(); showPage("#f-agent"); if (token()) refr
 let activeAgentPairId = null, agentPairingBusy = false, agentCommandBusy = false;
 let agentTaskSelection = null, agentTaskPair = null, agentTaskAccount = null, agentTaskTimer = null;
 let agentTaskGeneration = 0, agentTaskNoticeId = null, agentPendingIds = new Set();
+let agentPairedBots = [], lastSelectedAgentPrompt = "";
+const AGENT_PRESET_PREFIXES = ["@Araştır ", "@Denetle ", "@Raporla ", "@Kodu incele "];
+function renderAgentBotStarters(bot){
+  const box = $("#agentBotStarters"); if (!box) return;
+  box.replaceChildren();
+  const starters = Array.isArray(bot?.starters) ? bot.starters.slice(0, 4) : [];
+  for (const s of starters) {
+    const b = el("button", "chip", s);
+    b.type = "button";
+    b.addEventListener("click", () => {
+      const promptBox = $("#agentCommandPrompt");
+      promptBox.value = `@${bot.name} ${s}`;
+      promptBox.focus(); haptic();
+    });
+    box.append(b);
+  }
+  box.hidden = starters.length === 0;
+}
+function renderAgentBotChips(bots){
+  agentPairedBots = Array.isArray(bots) ? bots.filter((b) => b && typeof b.name === "string" && b.name.trim()) : [];
+  const host = $("#agentBotChips"); if (!host) return;
+  host.replaceChildren();
+  for (const b of agentPairedBots) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip agent-bot-chip";
+    btn.dataset.agentPrefix = `@${b.name} `;
+    btn.dataset.agentBot = b.name;
+    if (b.description) btn.title = b.description;
+    const dot = el("span", "agent-bot-dot");
+    if (b.color) dot.style.setProperty("--dot", b.color);
+    btn.append(dot, document.createTextNode(`@${b.name}`));
+    host.append(btn);
+  }
+  const taken = new Set(agentPairedBots.map((b) => `@${b.name.toLowerCase()} `));
+  for (const prefix of AGENT_PRESET_PREFIXES) {
+    if (taken.has(prefix.toLowerCase())) continue;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip";
+    btn.dataset.agentPrefix = prefix;
+    btn.textContent = prefix.trim();
+    host.append(btn);
+  }
+  renderAgentBotStarters(null);
+}
 const agentAcct = () => (token() && account?.name) ? String(account.name).trim().toLowerCase() : (token() ? "_signed_in" : "");
 const agentPairKey = () => "nk_agent_pair:" + agentAcct();
 const agentPageOpen = () => $("#f-agent").classList.contains("on");
@@ -2814,7 +2940,7 @@ function agentTaskLabel(status){
 function clearAgentTasks(){
   agentTaskGeneration++; clearTimeout(agentTaskTimer); agentTaskTimer = null;
   agentTaskAccount = null; agentTaskPair = null; agentTaskSelection = null; agentTaskNoticeId = null;
-  agentPendingIds.clear();
+  agentPendingIds.clear(); lastSelectedAgentPrompt = "";
   $("#agentTaskNotice").hidden = true;
   $("#agentTasks").replaceChildren();
   $("#agentTaskHistoryState").textContent = "";
@@ -2822,6 +2948,7 @@ function clearAgentTasks(){
   $("#agentCommandResult").textContent = "";
   $("#agentCommandResult").hidden = true;
   if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = true;
+  if ($("#agentRetryResult")) $("#agentRetryResult").hidden = true;
 }
 async function refreshAgentTasks(){
   clearTimeout(agentTaskTimer);
@@ -2862,10 +2989,12 @@ async function refreshAgentTasks(){
       const { command } = await chatCloudRequest("/agent/commands/" + encodeURIComponent(agentTaskSelection) + suffix);
       if (!current()) return;
       $("#agentCommandStatus").textContent = agentTaskLabel(command?.status);
+      lastSelectedAgentPrompt = typeof command?.prompt === "string" ? command.prompt : "";
       const out = command?.result || command?.error || "";
       $("#agentCommandResult").textContent = out;
       $("#agentCommandResult").hidden = !out;
       if ($("#agentCommandResultHead")) $("#agentCommandResultHead").hidden = !out;
+      if ($("#agentRetryResult")) $("#agentRetryResult").hidden = !lastSelectedAgentPrompt;
     }
   } catch {
     if (current()) $("#agentTaskHistoryState").textContent = tx("Görevler güncellenemedi. Yeniden deneniyor…");
@@ -2909,13 +3038,15 @@ async function refreshAgentControl(){
     const result = await chatCloudRequest("/agent/pairs/" + encodeURIComponent(pairId));
     if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
     if (!result.pair || ["revoked", "denied", "expired"].includes(result.pair.status)) throw Object.assign(new Error("pair_not_active"), { status: 403 });
-    if (result.pair.status === "pending") { setAgentPairUi(false, tx("Mac üzerindeki yerel onay bekleniyor…"), "pending"); return; }
+    if (result.pair.status === "pending") { renderAgentBotChips([]); setAgentPairUi(false, tx("Mac üzerindeki yerel onay bekleniyor…"), "pending"); return; }
+    renderAgentBotChips(result.pair.bots || []);
     setAgentPairUi(true, result.pair.online ? tx("Mac çevrimiçi ve eşleştirilmiş.") : tx("Eşleştirme kayıtlı; Mac şu anda çevrimdışı."), result.pair.online ? "online" : "offline");
   } catch (err) {
     if (acct !== agentAcct() || pairId !== activeAgentPairId) return;
     const msg = String(err?.message || "");
     if (err?.status === 404 || err?.status === 403 || msg.includes("pair_not_active")) {
       activeAgentPairId = null; LS.set(agentPairKey(), null);
+      renderAgentBotChips([]);
       setAgentPairUi(false, tx("Eşleştirme sona erdi veya bağlantı kesildi."));
     } else {
       setAgentPairUi(false, tx("Mac bağlantısı kontrol edilemedi. Tekrar deneyin."));
@@ -2943,7 +3074,7 @@ $("#agentPairButton").addEventListener("click", async () => {
       if (!agentAcct() || activeAgentPairId !== pairId) return;
       const status = await chatCloudRequest("/agent/pairs/" + encodeURIComponent(pairId));
       const pair = status.pair;
-      if (pair?.status === "active") { setAgentPairUi(true, tx("Nakata Desktop bağlantısı kuruldu.")); haptic(); return; }
+      if (pair?.status === "active") { renderAgentBotChips(pair.bots || []); setAgentPairUi(true, tx("Nakata Desktop bağlantısı kuruldu.")); haptic(); return; }
       if (["denied", "expired", "revoked"].includes(pair?.status)) throw new Error(tx("Eşleştirme Mac üzerinde reddedildi veya zaman aşımına uğradı."));
     }
     throw new Error(tx("Eşleştirme isteği zaman aşımına uğradı. Mac’te yeni kod üret."));
@@ -2958,6 +3089,7 @@ $("#agentUnpair").addEventListener("click", async () => {
   try {
     await chatCloudRequest("/agent/unpair", { method: "POST", body: JSON.stringify({ pairId: activeAgentPairId }) });
     activeAgentPairId = null; LS.set(agentPairKey(), null);
+    renderAgentBotChips([]);
     setAgentPairUi(false, tx("Mac bağlantısı kesildi.")); haptic();
   } catch (err) { $("#agentCommandStatus").textContent = String(err?.message || err); }
   finally { $("#agentUnpair").disabled = false; }
@@ -2990,8 +3122,17 @@ $("#agentBotChips")?.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-agent-prefix]");
   if (!btn) return;
   const box = $("#agentCommandPrompt"), prefix = btn.dataset.agentPrefix || "";
-  const cur = String(box.value || "").replace(/^@\S+\s*/, "");
+  const cur = String(box.value || "").replace(/^@(?:Kodu\s+incele|\S+)\s*/i, "");
   box.value = prefix + cur;
+  const matched = btn.dataset.agentBot ? agentPairedBots.find((b) => b.name === btn.dataset.agentBot) : null;
+  renderAgentBotStarters(matched || null);
+  box.focus();
+  haptic();
+});
+$("#agentRetryResult")?.addEventListener("click", () => {
+  if (!lastSelectedAgentPrompt) return;
+  const box = $("#agentCommandPrompt");
+  box.value = lastSelectedAgentPrompt;
   box.focus();
   haptic();
 });
@@ -3597,7 +3738,40 @@ function openVoiceSheet(){
 const voiceOrb = orb({ size: 120, color: NAKATA_ORB_COLOR, expression: "neutral" });
 $("#voiceOrb").append(voiceOrb.el);
 function voiceSay(state, face){ $("#voiceState").textContent = state; if (face) voiceOrb.set(face); }
+function voiceFaceFrom(text, fallback = "happy"){
+  const t = String(text || "").trim();
+  const tone = t ? window.__mascotReact?.toneOf?.(t) : null;
+  if (tone) return tone.face;
+  if (/\?\s*$/.test(t)) return "curious";
+  return fallback;
+}
 function fmtTime(sec){ return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; }
+
+function notifyNativeVoiceAudio(active){
+  try { window.webkit?.messageHandlers?.nakataAudio?.postMessage({ active: !!active }); } catch {}
+}
+function activeVoiceChatContext(){
+  if (!isMemoryEnabled()) return "";
+  const parts = [];
+  const sessTitle = curId ? allSessions()[curId]?.title : "";
+  if (sessTitle) parts.push(`Sohbet: ${sessTitle}`);
+  const recentUsers = (Array.isArray(convo) ? convo : [])
+    .filter((m) => m?.role === "user" && typeof m.content === "string")
+    .slice(-2)
+    .map((m) => m.content.trim().slice(0, 120))
+    .filter(Boolean);
+  if (recentUsers.length) parts.push(recentUsers.join(" | "));
+  if (!parts.length) {
+    const localSummary = Object.values(allSessions())
+      .sort((a, b) => (b.ts || 0) - (a.ts || 0))
+      .slice(0, 3)
+      .map((s) => (s.title || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+    if (localSummary) parts.push(`Son sohbetler: ${localSummary}`);
+  }
+  return parts.join(" — ").slice(0, 320);
+}
 
 async function startVoice(){
   if (voice) return;
@@ -3607,8 +3781,18 @@ async function startVoice(){
   voiceOrb.setColor(orbColor()); $("#voiceTimer").textContent = ""; $("#voiceFree").textContent = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
   voiceSay("Bağlanıyor…", "thinking");
-  const v = voice = { ending: false, id: null, raf: 0, ac: null, caption: "", discT: 0, pingBusy: false };
+  const v = voice = { ending: false, id: null, raf: 0, ac: null, caption: "", discT: 0, faceT: 0, lastFaceAt: 0, pingBusy: false };
+  const setVoiceMood = (face, minGapMs = 650) => {
+    if (!voice || v.ending || !face) return;
+    const now = Date.now();
+    if (face !== voiceOrb.expression && (now - v.lastFaceAt >= minGapMs || minGapMs === 0)) {
+      clearTimeout(v.faceT);
+      v.lastFaceAt = now;
+      voiceOrb.set(face);
+    }
+  };
   try {
+    notifyNativeVoiceAudio(true);
     try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
     const st = await api("/voice/status");
     if (st.ok && Array.isArray(st.j.voices) && st.j.voices.length) {
@@ -3644,25 +3828,48 @@ async function startVoice(){
     const dc = v.dc = pc.createDataChannel("oai-events");
     dc.onmessage = (m) => {
       let ev; try { ev = JSON.parse(m.data); } catch { return; }
-      if (ev.type === "session.started") { v.t0 = Date.now(); voiceSay("Dinliyorum", "attentive"); v.tick = setInterval(() => { $("#voiceTimer").textContent = fmtTime(Math.round((Date.now() - v.t0) / 1000)); }, 1000); }
+      if (ev.type === "session.started") { clearTimeout(v.faceT); v.t0 = Date.now(); voiceSay("Dinliyorum", "attentive"); v.tick = setInterval(() => { $("#voiceTimer").textContent = fmtTime(Math.round((Date.now() - v.t0) / 1000)); }, 1000); }
       else if (ev.type === "response.audio_transcript.delta" || ev.type === "response.output_audio_transcript.delta") {
-        if (ev.delta && vt) { v.caption = (v.caption + ev.delta).slice(-320); vt.textContent = v.caption; vt.hidden = false; voiceOrb.set("happy"); }
+        if (ev.delta && vt) {
+          v.caption = (v.caption + ev.delta).slice(-320);
+          vt.textContent = v.caption;
+          vt.hidden = false;
+          setVoiceMood(voiceFaceFrom(v.caption, "happy"), 650);
+        }
       }
-      else if (ev.type === "response.done") { v.caption = ""; voiceSay("Dinliyorum", "attentive"); }
-      else if (ev.type === "input_audio_buffer.speech_started") { v.caption = ""; voiceSay("Dinliyorum", "curious"); }
+      else if (ev.type === "response.done") {
+        const finalMood = v.caption ? voiceFaceFrom(v.caption, "happy") : "attentive";
+        v.caption = "";
+        $("#voiceState").textContent = "Dinliyorum";
+        if (finalMood !== "attentive") {
+          setVoiceMood(finalMood, 0);
+          clearTimeout(v.faceT);
+          v.faceT = setTimeout(() => { if (voice === v && !v.ending) voiceOrb.set("attentive"); }, 850);
+        } else {
+          voiceOrb.set("attentive");
+        }
+      }
+      else if (ev.type === "input_audio_buffer.speech_started") { clearTimeout(v.faceT); v.caption = ""; voiceSay("Dinliyorum", "curious"); }
       else if (ev.type === "session.input_transcript.delta" || ev.type === "conversation.item.input_audio_transcription.delta") {
         v.inp = ((v.inp || "") + (ev.delta || "")).slice(-1200);
+        const inpMood = voiceFaceFrom(v.inp, "curious");
+        if (inpMood !== "curious") setVoiceMood(inpMood, 600);
       }
       else if (ev.type === "session.delegation.created" && v.id) {
         // Thinking is delegated to the client: ask nakata.app (Evren Gemma 4), GPT-Live speaks the answer.
+        clearTimeout(v.faceT);
         voiceSay("Düşünüyor…", "thinking");
         const prompt = (v.inp || "").slice(-1000); v.inp = "";
         if (prompt.trim()) (async () => {
           try {
             const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: prompt } });
             if (!voice || v.ending) return;
-            if (d.ok && d.j.answer && v.dc?.readyState === "open")
-              v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: ev.delegation?.id, content: d.j.answer }));
+            if (d.ok && d.j.answer) {
+              const ansMood = voiceFaceFrom(d.j.answer, "happy");
+              if (ansMood !== "happy") setVoiceMood(ansMood, 0);
+              if (v.dc?.readyState === "open")
+                v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: ev.delegation?.id, content: d.j.answer }));
+            }
           } catch {}
         })();
       }
@@ -3673,14 +3880,33 @@ async function startVoice(){
       if (pc.connectionState === "failed" || pc.connectionState === "closed") endVoice("Bağlantı koptu.");
       else if (pc.connectionState === "disconnected") {
         clearTimeout(v.discT);
-        v.discT = setTimeout(() => { if (voice === v && !v.ending && pc.connectionState === "disconnected") endVoice("Bağlantı koptu."); }, 4500);
+        const graceMs = document.hidden ? 12000 : 8000;
+        v.discT = setTimeout(() => { if (voice === v && !v.ending && pc.connectionState === "disconnected") endVoice("Bağlantı koptu."); }, graceMs);
       } else if (pc.connectionState === "connected") {
         clearTimeout(v.discT);
       }
     };
     await pc.setLocalDescription(await pc.createOffer());
     await new Promise((res) => { if (pc.iceGatheringState === "complete") return res(); const t = setTimeout(res, 10000); pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") { clearTimeout(t); res(); } }; });
-    const r = await api("/voice/session", { method: "POST", body: { sdp: pc.localDescription.sdp, voice: selectedVoice(), bot: galleryBot?.id || undefined } });
+    const pf = LS.get("nakata_profile", {});
+    const memOn = isMemoryEnabled();
+    const activeChat = memOn ? activeVoiceChatContext() : "";
+    const voiceProfile = {
+      name: pf?.name || undefined,
+      about: pf?.about || undefined,
+      style: pf?.style || undefined,
+      activeChat: activeChat || undefined,
+    };
+    const r = await api("/voice/session", {
+      method: "POST",
+      body: {
+        sdp: pc.localDescription.sdp,
+        voice: selectedVoice(),
+        bot: galleryBot?.id || undefined,
+        memory: memOn,
+        profile: voiceProfile,
+      },
+    });
     if (!r.ok) throw new Error(VOICE_MSG[r.j?.error?.code] || r.j?.error?.message || "Sesli görüşme başlatılamadı.");
     v.id = r.j.sessionId;
     await pc.setRemoteDescription({ type: "answer", sdp: r.j.sdp });
@@ -3694,7 +3920,7 @@ async function startVoice(){
         v.pingBusy = false;
       }
     };
-    v.ping = setInterval(() => { void v.pingNow(false); }, Math.min(r.j.pingEverySec || 20, 15) * 1000);
+    v.ping = setInterval(() => { void v.pingNow(false); }, Math.min(r.j.pingEverySec || 20, 12) * 1000);
   } catch (e) {
     hapticError();
     await endVoice(e.name === "NotAllowedError" ? "Mikrofon izni verilmedi. Ayarlar'dan izin verebilirsin." : (e.message || "Sesli görüşme başlatılamadı."));
@@ -3704,9 +3930,9 @@ async function startVoice(){
 async function endVoice(note, { keepOpen = false } = {}){
   if (!keepOpen) voiceGen++;
   const v = voice;
-  if (!v || v.ending) { if (!keepOpen) $("#f-voice").classList.remove("on"); return; }
+  if (!v || v.ending) { if (!keepOpen) { $("#f-voice").classList.remove("on"); notifyNativeVoiceAudio(false); } return; }
   v.ending = true; voice = null;
-  clearInterval(v.ping); clearInterval(v.tick); clearTimeout(v.discT);
+  clearInterval(v.ping); clearInterval(v.tick); clearTimeout(v.discT); clearTimeout(v.faceT);
   cancelAnimationFrame(v.raf);
   if ($("#voiceSheet")?.classList.contains("on")) closeSheet();
   try { await v.ac?.close(); } catch {}
@@ -3722,7 +3948,10 @@ async function endVoice(note, { keepOpen = false } = {}){
   try { v.dc?.close(); v.pc?.close(); } catch {}
   for (const t of v.stream?.getTracks?.() || []) t.stop();
   if (v.audio) { v.audio.srcObject = null; }
-  try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
+  if (!keepOpen) {
+    notifyNativeVoiceAudio(false);
+    try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
+  }
   voiceOrb.set("neutral");
   if (!keepOpen) $("#f-voice").classList.remove("on");
   if (note) addNote(note, true);
@@ -3733,16 +3962,19 @@ $("#voiceEnd").addEventListener("click", () => endVoice());
 $("#voiceClose").addEventListener("click", () => endVoice());
 // leaving the page any other way (edge swipe) also ends the call
 new MutationObserver(() => { if (voice && !$("#f-voice").classList.contains("on")) endVoice(); }).observe($("#f-voice"), { attributes: true, attributeFilter: ["class"] });
+function resumeVoiceAudio(){
+  if (!voice || voice.ending) return;
+  try { voice.ac?.resume?.().catch?.(() => {}); } catch {}
+  if (voice.audio?.srcObject && voice.audio.paused) voice.audio.play().catch(() => {});
+  voice.pingNow?.(false);
+}
 // Keep active voice calls alive in the background; keep heartbeat fresh & resume audio when returning.
 document.addEventListener("visibilitychange", () => {
   if (!voice || voice.ending) return;
   if (document.hidden) { voice.pingNow?.(true); }
-  else {
-    try { voice.ac?.resume?.().catch?.(() => {}); } catch {}
-    if (voice.audio?.paused && voice.audio.srcObject) voice.audio.play().catch(() => {});
-    voice.pingNow?.(false);
-  }
+  else { resumeVoiceAudio(); }
 });
+window.addEventListener("nakata:audio-resumed", resumeVoiceAudio);
 
 /* ---- boot ---- */
 (async () => {

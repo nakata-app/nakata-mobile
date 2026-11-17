@@ -3,39 +3,39 @@
 // haptic, $). Everything here is decoration; any failure is swallowed.
 (() => {
   "use strict";
-  const SHOW_MS = 2800;      // how long the mascot stays
-  const COOLDOWN_MS = 4500;  // responsive across turns without spamming
+  const SHOW_MS = 2600;      // how long the mascot stays
+  const COOLDOWN_MS = 2200;  // responsive across conversation flow without spamming
 
   // Tone → orb face + a small badge (the badge is what an image mascot shows).
   // Order matters: frustration before praise ("hiç harika değil"), laughs before thanks.
   const TONES = [
     { id: "upset", face: "sad", badge: "🫶",
-      re: /(saçma|berbat|rezalet|olmadı|olmuyor|çalışmıyor|yanlış|hatalı|aptal|salak|sinir|bıktım|nefret|useless|terrible|wrong|doesn'?t work|not working|stupid|\bwtf\b|annoying|\bhate\b)|[😡🤬😤👎]/iu },
+      re: /(?:^|[^\p{L}])(?:saçma\p{L}*|berbat\p{L}*|rezalet\p{L}*|olmadı|olmuyor|çalışmıyor|yanlış\p{L}*|hatalı\p{L}*|aptal\p{L}*|salak\p{L}*|sinir(?:li|im|lend\p{L}*)?|bıktım|nefret|useless|terrible|wrong|doesn'?t work|not working|stupid|wtf|annoying|hate)(?=$|[^\p{L}])|[😡🤬😤👎]/iu },
     { id: "sad", face: "sad", badge: "🤍",
-      re: /(üzgün|üzüldüm|moralim|kötü hissed|ağla|yalnızım|\bsad\b|depressed|lonely|crying)|[😢😭😞💔]/iu },
+      re: /(?:^|[^\p{L}])(?:üzgün\p{L}*|üzüldüm|moralim|kötü hissed\p{L}*|ağl(?:ıyorum|ıyor|adım|adı|ama\p{L}*)|yalnızım|yoruldum|stresli\p{L}*|sad|depressed|lonely|crying|sorry to hear)(?=$|[^\p{L}])|[😢😭😞💔]/iu },
     { id: "laugh", face: "wink", badge: "😄",
-      re: /(haha|hehe|ahah|jsjs|asdf|kahkaha|komik|\blol\b|\blmao\b|\brofl\b|funny)|[😂🤣😆😹]/iu },
+      re: /(?:^|[^\p{L}])(?:haha\p{L}*|hehe\p{L}*|ahah\p{L}*|jsjs\p{L}*|asdf\p{L}*|kahkaha\p{L}*|komik\p{L}*|espri\p{L}*|lol|lmao|rofl|funny)(?=$|[^\p{L}])|[😂🤣😆😹]/iu },
     { id: "wow", face: "surprised", badge: "✨",
-      re: /(vay|inanılmaz|şaşırdım|\boha\b|hayret|\bwow\b|whoa|\bomg\b|no way|unbelievable)|[😮😲😱🤯]/iu },
+      re: /(?:^|[^\p{L}])(?:vay\p{L}*|inanılmaz\p{L}*|şaşırdım|oha|hayret|wow|whoa|omg|no way|unbelievable)(?=$|[^\p{L}])|[😮😲😱🤯]/iu },
     { id: "celebrate", face: "excited", badge: "🎉",
-      re: /(başardım|çalıştı|yayınladım|yaptım|kazandım|tamamdır|\bshipped\b|\bdeployed\b|\bfixed\b|\bnailed\b)|[🎉🥳🏆🚀]/iu },
+      re: /(?:^|[^\p{L}])(?:başardım|başardık|çalıştı|yayınladım|yaptım|kazandım|tamamdır|shipped|deployed|fixed|nailed)(?=$|[^\p{L}])|[🎉🥳🏆🚀]/iu },
     { id: "love", face: "excited", badge: "🩷",
-      re: /(tatlı|seviyorum|canım|bayıldım|\bcute\b|\badorable\b|\blove you\b|\bbestie\b)|[🥰🥹🩷💖]/iu },
+      re: /(?:^|[^\p{L}])(?:tatlı\p{L}*|seviyorum|canım|bayıldım|cute|adorable|love you|bestie)(?=$|[^\p{L}])|[🥰🥹🩷💖]/iu },
     { id: "praise", face: "excited", badge: "🔥",
-      re: /(harika|süper|mükemmel|muhteşem|efsane|çok iyi|aferin|bravo|helal|great|awesome|amazing|perfect|brilliant|excellent|love it)|[👏🔥🤩💯🙌]/iu },
+      re: /(?:^|[^\p{L}])(?:harika\p{L}*|süper\p{L}*|mükemmel\p{L}*|muhteşem\p{L}*|efsane\p{L}*|çok iyi|aferin|bravo|helal|great|awesome|amazing|perfect|brilliant|excellent|love it)(?=$|[^\p{L}])|[👏🔥🤩💯🙌]/iu },
     { id: "thanks", face: "happy", badge: "❤️",
-      re: /(teşekkür|tesekkur|sağ ?ol|sagol|eyvallah|minnettar|thanks|thank you|\bthx\b|(?:^|\s)ty\b|appreciate)|[🙏❤♥😊🫶]/iu },
+      re: /(?:^|[^\p{L}])(?:teşekkür\p{L}*|tesekkur\p{L}*|sağ ?ol\p{L}*|sagol\p{L}*|eyvallah|minnettar\p{L}*|rica ederim|thanks|thank you|thx|ty|appreciate\p{L}*|you'?re welcome)(?=$|[^\p{L}])|[🙏❤♥😊🫶]/iu },
     { id: "greeting", face: "happy", badge: "👋",
-      re: /(^(?:merhaba|selam|slm|günaydın|iyi akşamlar|iyi geceler|naber|nasılsın|hello|hey|hi)\b)|[👋]/iu },
+      re: /^(?:merhaba|selam|slm|günaydın|iyi akşamlar|iyi geceler|naber|nasılsın|hello|hey|hi)(?=$|[^\p{L}])|[👋]/iu },
     { id: "code", face: "curious", badge: "💻",
-      re: /(hata|debug|\bbug\b|\bscript\b|\bpython\b|\bswift\b|\btypescript\b|\breact\b|\bsql\b|\bdocker\b|\bkod\b|\bapi\b|terminal)/iu },
+      re: /(?:^|[^\p{L}])(?:hata\p{L}*|debug|bug|script|python|swift|typescript|react|sql|docker|kod\p{L}*|api|terminal)(?=$|[^\p{L}])|[💻]/iu },
     { id: "idea", face: "curious", badge: "💡",
-      re: /(fikir|nasıl|neden|tasarla|strateji|brainstorm|anlat|öğret|özetle|karşılaştır|\bexplain\b|\bcompare\b|\bhow\b|\bwhy\b)|[💡🤔]/iu },
+      re: /(?:^|[^\p{L}])(?:fikir\p{L}*|nasıl|neden|tasarla\p{L}*|strateji\p{L}*|brainstorm|anlat\p{L}*|öğret\p{L}*|özetle\p{L}*|karşılaştır\p{L}*|explain|compare|how|why)(?=$|[^\p{L}])|[💡🤔]/iu },
   ];
 
   function toneOf(text) {
     const t = String(text || "").trim();
-    if (!t || t.length > 1400) return null;
+    if (!t) return null;
     const sample = t.length > 480 ? (t.slice(0, 240) + " " + t.slice(-240)) : t;
     for (const tone of TONES) if (tone.re.test(sample)) return tone;
     return null;
@@ -137,12 +137,16 @@
     return tone ? pop(tone, { ms: 2000 }) : false;
   }
 
-  function onReply({ hasArt = false, hasImage = false, hasCode = false, error = false } = {}) {
+  function onReply({ text = "", hasArt = false, hasImage = false, hasCode = false, error = false } = {}) {
     if (error) return pop({ id: "err", face: "unsure", badge: "🩹" }, { force: true, ms: 2400 });
     if (Date.now() < holdUserUntil) return false;
     if (hasImage) return pop({ id: "art_img", face: "excited", badge: "🖼️" }, { force: true, ms: 2600 });
     if (hasArt) return pop({ id: "art_svg", face: "excited", badge: "✨" }, { ms: 2500 });
     if (hasCode) return pop({ id: "reply_code", face: "wink", badge: "⚡" }, { ms: 2200 });
+    const trimmed = String(text || "").trim();
+    const tone = toneOf(trimmed);
+    if (tone) return pop(tone, { ms: 2200 });
+    if (/\?\s*$/.test(trimmed)) return pop({ id: "reply_ask", face: "curious", badge: "💬" }, { ms: 2000 });
     return false;
   }
 
@@ -152,8 +156,8 @@
     const box = document.getElementById("prompt");
     const tone = toneOf(box && box.value);
     if (tone) {
-      holdUserUntil = Date.now() + 2400;
-      setTimeout(() => pop(tone), 160);
+      holdUserUntil = Date.now() + 1500;
+      setTimeout(() => pop(tone), 140);
     }
   }, true);
 
