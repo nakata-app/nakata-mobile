@@ -1166,7 +1166,7 @@ function md(src, { streaming = false } = {}){
 /* ---- provider presets ---- */
 const PROVIDERS = {
   // Keyless, served by nakata.app on our key behind daily limits (routes/mobile.js).
-  nakata:{ base:"https://nakata.app/api/mobile", model:"deepseek-v4.1-flash", free:true, keyUrl:"", hint:"" },
+  nakata:{ base:"https://nakata.app/api/mobile", model:"gemma4", free:true, keyUrl:"", hint:"" },
   openrouter:{ base:"https://openrouter.ai/api/v1", model:"openai/gpt-4o-mini",
                keyUrl:"https://openrouter.ai/keys", hint:"Örnek: openai/gpt-4o-mini, anthropic/claude-sonnet-4, google/gemini-2.5-flash" },
   openai:{ base:"https://api.openai.com/v1", model:"gpt-4o-mini",
@@ -1184,9 +1184,9 @@ const PROVIDERS = {
 };
 const FREE_CFG = { provider:"nakata", base:PROVIDERS.nakata.base, model:PROVIDERS.nakata.model, key:"" };
 const DEFAULT_NAKATA_MODELS = [
-  { id:"deepseek-v4.1-flash", label:"DeepSeek V4.1 Flash", free:true, main:true },
+  { id:"gemma4", label:"Gemma 4", free:true, main:true },
   { id:"gemini-4-hydrogen", label:"Gemini 4 Hydrogen", free:true, fallback:true },
-  { id:"gemma4", label:"Gemma 4", free:true },
+  { id:"deepseek-v4.1-flash", label:"DeepSeek V4.1 Flash", free:true },
   { id:"minimax-m2.7", label:"MiniMax M2.7", free:true },
   { id:"refuseless/glm-5.3-abliterated", label:"GLM 5.3 Abliterated", requiresConsent:true, free:false, credits:1 },
   { id:"refuseless/glm-5.3-flash-abliterated", label:"GLM 5.3 Flash Abliterated", requiresConsent:true, free:false, credits:1 },
@@ -2310,9 +2310,46 @@ async function send(text, opts = {}){
 
   if ((free || gb) && !curId) curId = "c" + Date.now() + Math.random().toString(36).slice(2, 6);
   controller = new AbortController();
-  let acc = "", frame = 0, retry = null, servedBy = "", msgAction = null, msgImageTask = null;
+  let acc = "", shownLen = 0, frame = 0, retry = null, servedBy = "", msgAction = null, msgImageTask = null;
   const msgSources = [], seenSrc = new Set(), msgImages = [], seenImg = new Set();
-  const paint = () => { frame = 0; if (bubble) { bubble.innerHTML = md(acc, { streaming: true }); scrollDown(); } };
+  const streamCache = { prefixLen: 0, prefixHtml: "" };
+  const mdStream = (visible, cache) => {
+    const sep = visible.lastIndexOf("\n\n");
+    if (sep > cache.prefixLen) {
+      let fenceOpen = false, mathOpen = false;
+      for (const ln of visible.slice(cache.prefixLen, sep).split("\n")) {
+        if (/^\s*```/.test(ln)) fenceOpen = !fenceOpen;
+        else if (!fenceOpen && /^\s*\$\$\s*$/.test(ln)) mathOpen = !mathOpen;
+      }
+      if (!fenceOpen && !mathOpen) {
+        const nextLen = sep + 2;
+        cache.prefixHtml += md(visible.slice(cache.prefixLen, nextLen), { streaming: true });
+        cache.prefixLen = nextLen;
+      }
+    }
+    return cache.prefixHtml + md(visible.slice(cache.prefixLen), { streaming: true });
+  };
+  const renderShown = (len) => {
+    if (!bubble) return;
+    const partial = len >= acc.length ? acc : acc.slice(0, len);
+    bubble.innerHTML = mdStream(partial, streamCache);
+    scrollDown();
+  };
+  const paintStep = () => {
+    frame = 0;
+    if (!bubble || shownLen >= acc.length) return;
+    const backlog = acc.length - shownLen;
+    const step = backlog <= 4 ? backlog : backlog <= 64 ? Math.max(3, Math.ceil(backlog * 0.35)) : Math.max(12, Math.ceil(backlog * 0.48));
+    shownLen = Math.min(acc.length, shownLen + step);
+    const code = acc.charCodeAt(shownLen - 1);
+    if (code >= 0xD800 && code <= 0xDBFF && shownLen < acc.length) shownLen++;
+    renderShown(shownLen);
+    if (shownLen < acc.length) frame = requestAnimationFrame(paintStep);
+  };
+  const flushPaint = () => {
+    if (frame) { cancelAnimationFrame(frame); frame = 0; }
+    if (bubble && shownLen < acc.length) { shownLen = acc.length; renderShown(shownLen); }
+  };
   const turnRetry = { text, images, files };
   try {
     const base = cfg.base.replace(/\/+$/, "");
@@ -2386,10 +2423,10 @@ async function send(text, opts = {}){
         const itk = ev.type === "tool_result" ? ev.imageTask : d.imageTask;
         if (itk && typeof itk === "object") msgImageTask = itk;
         if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
-        if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paint); }
+        if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
       }
     }
-    if (frame) { cancelAnimationFrame(frame); paint(); }
+    flushPaint();
     if (!acc && !reasonNode && !msgImageTask && !msgAction) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true, turnRetry);
     if (!acc && (msgImageTask || msgAction)) { if (!bubble) bubble = addAsst(); acc = " "; }
     if (acc) {
@@ -2412,7 +2449,7 @@ async function send(text, opts = {}){
       });
     }
   } catch (e) {
-    if (frame) { cancelAnimationFrame(frame); paint(); }
+    flushPaint();
     if (e.name !== "AbortError") { addNote("Bağlantı: " + e.message, true, turnRetry); window.__mascotReact?.onReply?.({ error: true }); }
   } finally {
     hidePending();
@@ -3193,8 +3230,13 @@ async function openModelSheet(){
       }
     }
     if (getCfg().provider !== "nakata") saveCfg({ ...FREE_CFG });
-    LS.set("nakata_free_model", m.id);
-    LS.set("nakata_free_label", m.label);
+    if (m.main || m.id === nakataDefaultModel) {
+      LS.del("nakata_free_model");
+      LS.del("nakata_free_label");
+    } else {
+      LS.set("nakata_free_model", m.id);
+      LS.set("nakata_free_label", m.label);
+    }
     paintModelChip(); closeSheet(); haptic();
   };
 

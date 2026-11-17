@@ -42,13 +42,13 @@ class H(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/mobile/models"):
             b = json.dumps({
                 "models": [
-                    {"id": "deepseek-v4.1-flash", "label": "DeepSeek V4.1 Flash", "main": True},
+                    {"id": "gemma4", "label": "Gemma 4", "main": True},
                     {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen", "fallback": True, **({"unavailable": True} if H.models_unavailable else {})},
-                    {"id": "gemma4", "label": "Gemma 4"},
+                    {"id": "deepseek-v4.1-flash", "label": "DeepSeek V4.1 Flash"},
                     {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"},
                     {"id": "refuseless/glm-5.3-abliterated", "label": "GLM 5.3 Abliterated", "requiresConsent": True, "credits": 1},
                 ],
-                "default": "deepseek-v4.1-flash",
+                "default": "gemma4",
                 "fallbackModel": "gemini-4-hydrogen",
                 "perDay": 30,
             }).encode()
@@ -108,10 +108,10 @@ with sync_playwright() as p:
     check("settings: free provider hides key fields", pg.evaluate("[document.getElementById('st-byok').hidden, document.getElementById('st-freehint').hidden]") == [True, False])
     pg.evaluate(f"localStorage.setItem('nakata_byok_cfg', JSON.stringify({{provider:'nakata', base:'{BASE}/api/mobile', model:'x', key:''}})); localStorage.setItem('nakata_profile', JSON.stringify({{name:'Atakan', style:'kısa'}}))")
     pg.reload(); pg.wait_for_timeout(700)
-    check("model chip shows the free default", pg.inner_text("#modelChipName") == "DeepSeek V4.1 Flash", pg.inner_text("#modelChipName"))
+    check("model chip shows the free default", pg.inner_text("#modelChipName") == "Gemma 4", pg.inner_text("#modelChipName"))
     pg.click("#modelChip"); pg.wait_for_timeout(400)
     free_sheet_nms = pg.evaluate("[...document.querySelectorAll('#modelList .nm')].map(n => n.textContent)")
-    check("model sheet shows Main + Fallback + Free + Abliterated even signed out", "DeepSeek V4.1 Flash" in free_sheet_nms and "Gemini 4 Hydrogen" in free_sheet_nms and "GLM 5.3 Abliterated" in free_sheet_nms and pg.locator("#modelList .model-tag", has_text="Main").count() == 1 and pg.locator("#modelList .model-tag", has_text="Yedek").count() == 1, str(free_sheet_nms))
+    check("model sheet shows Main + Fallback + Free + Abliterated even signed out", "Gemma 4" in free_sheet_nms and "DeepSeek V4.1 Flash" in free_sheet_nms and "Gemini 4 Hydrogen" in free_sheet_nms and "GLM 5.3 Abliterated" in free_sheet_nms and pg.locator("#modelList .model-tag", has_text="Main").count() == 1 and pg.locator("#modelList .model-tag", has_text="Yedek").count() == 1, str(free_sheet_nms))
     pg.locator("#modelList .botmain", has_text="Nemotron").click(); pg.wait_for_timeout(300)
     check("picking a free model updates the chip", pg.inner_text("#modelChipName").startswith("Nemotron"))
     pg.fill("#prompt", "selam"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
