@@ -386,8 +386,10 @@ with sync_playwright() as p:
     ]
     pg.evaluate("window.__mascotReact?.reset()")
     pg.click("#sendBtn")
-    pg.wait_for_selector(".mr-pop[data-tone='wow']", timeout=4000)
+    pg.wait_for_selector(".mr-pop[data-tone='wow'].in", timeout=4000)
     check("submitting wow pops the reactive mascot with sparkle badge", pg.inner_text(".mr-pop .mr-badge") == "✨")
+    pg.locator(".mr-pop").click()
+    check("tapping reactive wow mascot turns badge to excited", pg.inner_text(".mr-pop .mr-badge") == "🤩")
     pg.wait_for_function("() => document.querySelector('.followups .followup-chip') && document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder'", timeout=8000)
     check("offline math renders inline and block formulas", pg.locator(".math-inline").count() == 1 and pg.locator(".math-block").count() == 1 and "α + β = γ" in pg.inner_text(".math-block"))
     check("fallback OpenRouter model uses clean human label", pg.inner_text(".servedby") == "Yedek: Gemma 4 31B", pg.inner_text(".servedby"))
