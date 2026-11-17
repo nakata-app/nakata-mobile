@@ -41,12 +41,12 @@ class H(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/mobile/models"):
             b = json.dumps({
                 "models": [
-                    {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen"},
+                    {"id": "gemini-4-hydrogen", "label": "Gemini 4 Hydrogen", **({"unavailable": True} if H.models_unavailable else {})},
                     {"id": "gemma4", "label": "Gemma 4"},
                     {"id": "nemotron-3-nano:30b", "label": "Nemotron 3 Nano (en ucuz)"},
                     {"id": "refuseless/glm-5.3-abliterated", "label": "GLM 5.3 Abliterated", "requiresConsent": True, "credits": 1},
                 ],
-                "default": "gemini-4-hydrogen",
+                "default": "gemma4" if H.models_unavailable else "gemini-4-hydrogen",
                 "perDay": 30,
             }).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(b); return
@@ -123,6 +123,7 @@ with sync_playwright() as p:
     pg.wait_for_selector(".note.err", timeout=8000)
     check("used-up free day explained in Turkish", pg.inner_text(".note.err").startswith("Bugünkü ücretsiz mesajların bitti"))
     H.limit = False
+    H.models_unavailable = False
 
     # a gallery bot past the free quota: a signed-in user is asked, and on yes the
     # same message goes again with pay=credits (and later ones too, without asking)
@@ -218,7 +219,7 @@ with sync_playwright() as p:
     check("clicking an image opens an in-chat full-size preview", pg.locator(".md-chat-image-lightbox img").get_attribute("alt") == "Belgrade skyline")
     pg.evaluate("document.querySelector('.md-chat-image-lightbox img').click()")
     check("tapping the enlarged image does not close it", pg.locator(".md-chat-image-lightbox:not([hidden])").count() == 1)
-    pg.locator(".md-chat-image-lightbox button").click(force=True)
+    pg.locator(".md-chat-image-lightbox .md-chat-lightbox-close").click(force=True)
     check("image preview can be closed", pg.locator(".md-chat-image-lightbox[hidden]").count() == 1)
     check("reasoning shown", pg.locator(".reason").count() == 1)
     check("request carries model and history", H.last.get("model") == "test-model" and H.last["messages"][-1]["content"] == "üç madde yaz" and H.last.get("stream") is True)
@@ -314,6 +315,47 @@ with sync_playwright() as p:
     pg.evaluate("const id = curId; newChat(); openConvo(id);")
     pg.wait_for_function("document.querySelectorAll('.chat-gen-card img.md-chat-image').length === 2", timeout=5000)
     check("reopening session keeps tool-only generated images visible", pg.locator(".chat-gen-card img.md-chat-image").count() == 2)
+    pg.click(".chat-gen-card img.md-chat-image >> nth=0")
+    pg.wait_for_selector(".md-chat-image-lightbox:not([hidden])", timeout=5000)
+    save_txt = pg.inner_text(".md-chat-lightbox-save")
+    check("image lightbox displays share/save control alongside close", save_txt in ("Paylaş / Kaydet", "Share / Save") and pg.locator(".md-chat-lightbox-close").count() == 1, save_txt)
+    pg.click(".md-chat-lightbox-close")
+    check("image lightbox closes on close button click", pg.locator(".md-chat-image-lightbox:not([hidden])").count() == 0)
+
+    def handle_cloud_route(route):
+        url = route.request.url
+        if url.endswith("/api/chat/conversations/art_test_chat/artifacts"):
+            route.fulfill(status=200, content_type="application/json", body=json.dumps({
+                "ok": True,
+                "artifacts": [{"id": "art_png", "name": "desktop-render.png", "size": 256, "contentType": "image/svg+xml"}],
+            }))
+            return
+        if url.endswith("/api/chat/conversations/art_test_chat/artifacts/art_png"):
+            route.fulfill(
+                status=200,
+                content_type="image/svg+xml",
+                body='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="#3a86ff"/></svg>',
+            )
+            return
+        route.abort()
+
+    pg.route("https://nakata.app/api/chat/conversations/art_test_chat/**", handle_cloud_route)
+    pg.evaluate("""(() => {
+      const s = allSessions();
+      s['art_test_chat'] = { id: 'art_test_chat', title: 'Art Chat', createdAt: 1, updatedAt: 2, msgs: [{role:'user', content:'draw'}, {role:'assistant', content:'Done'}] };
+      saveSessions(s);
+      localStorage.setItem('nakata_token', JSON.stringify('tok_test'));
+      curId = 'art_test_chat';
+      renderConvo('art_test_chat');
+    })()""")
+    pg.wait_for_selector(".cloud-artifacts img.cloud-artifact-image", timeout=5000)
+    check("synced image artifact renders inline thumbnail in thread", pg.locator(".cloud-artifacts img.cloud-artifact-image").count() == 1 and pg.locator(".cloud-artifact-download").count() == 1)
+    pg.click(".cloud-artifact-download")
+    pg.wait_for_selector(".md-chat-image-lightbox:not([hidden])", timeout=5000)
+    check("clicking synced image artifact opens lightbox preview", pg.locator(".md-chat-image-lightbox:not([hidden])").count() == 1)
+    pg.click(".md-chat-lightbox-close")
+    pg.evaluate("localStorage.removeItem('nakata_token');")
+    pg.unroute("https://nakata.app/api/chat/conversations/art_test_chat/**")
     H.custom_events = None; H.served_by = None
 
     shot(pg, "chat.png")
