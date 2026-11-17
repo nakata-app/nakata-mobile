@@ -31,6 +31,10 @@ class H(SimpleHTTPRequestHandler):
         S["calls"].append(("GET", p.split("?")[0], self.headers.get("Authorization")))
         if not self.authed():
             return self.reply(401, {"error": "Unauthorized"})
+        if p.startswith("/api/mobile/models"):
+            return self.reply(200, {"default": "deepseek-v4.1-flash", "fallbackModel": "gemini-4-hydrogen", "models": [{"id": "deepseek-v4.1-flash", "label": "DeepSeek V4.1 Flash"}]})
+        if p.startswith("/api/mobile/uncensored-consent"):
+            return self.reply(200, {"ok": True, "enabled": False, "adult": False})
         if p.startswith("/api/mobile/credits"):
             return self.reply(200, {"credits": S["credits"], "image_credit_costs": {"gpt-image-2-5-flare-text-to-image": {"2K": 13, "4K": 21}, "gpt-image-2-5-flare-image-to-image": {"2K": 13, "4K": 21}, "nano-banana-2-1": {"2K": 14, "4K": 20}, "nano-banana-pro": {"2K": 24, "4K": 32}}})
         if p.startswith("/api/mobile/gallery"):
@@ -60,6 +64,14 @@ class H(SimpleHTTPRequestHandler):
             return self.reply(200, {"status": "completed", "imageUrl": "/mark.svg"})
         if p == "/api/mobile/gallery":
             return self.reply(200, {"ok": True})
+        if p == "/api/mobile/chat":
+            sse = (b'data: {"choices":[{"delta":{"content":"Tamam, not aldim."}}]}\n\n'
+                   b'data: [DONE]\n\n')
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.end_headers()
+            self.wfile.write(sse)
+            return
         if p == "/api/mobile/logout":
             return self.reply(200, {"ok": True})
         if p == "/api/mobile/account/delete":
@@ -201,6 +213,47 @@ with sync_playwright() as p:
     pg.wait_for_selector("#agentCommandArea", state="hidden", timeout=5000)
     check("disconnect hides Mac command area", not pg.is_visible("#agentCommandArea"))
     pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
+
+    # Mnemonics memory settings + clear + conversationId & memory flag in /api/mobile/chat
+    mem_deleted = {"auth": "", "count": 0}
+    chat_posts = []
+    def handle_memory(route):
+        req = route.request
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, OPTIONS"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        if req.method == "DELETE" and req.url.split("?")[0].endswith("/api/chat/memory"):
+            mem_deleted["auth"] = req.headers.get("authorization", "")
+            mem_deleted["count"] += 1
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "cleared": True}))
+        return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "conversations": [], "deletedIds": [], "total": 0}))
+    def handle_mobile_chat(route):
+        req = route.request
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Nakata-Device", "Access-Control-Allow-Methods": "POST, OPTIONS"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        chat_posts.append({"auth": req.headers.get("authorization", ""), "body": json.loads(req.post_data or "{}")})
+        return route.fulfill(status=200, content_type="text/event-stream", headers=cors, body='data: {"choices":[{"delta":{"content":"Tamam, not aldim."}}]}\n\ndata: [DONE]\n\n')
+    pg.route("https://nakata.app/api/chat/memory*", handle_memory)
+    pg.route("https://nakata.app/api/chat/conversations*", handle_memory)
+    pg.route("https://nakata.app/api/mobile/chat", handle_mobile_chat)
+    pg.click("#menuBtn"); pg.wait_for_timeout(250); pg.click("#settingsRow"); pg.wait_for_timeout(300)
+    check("Settings shows memory toggle on and clear button when signed in", pg.input_value("#st-memory") == "on" and pg.is_visible("#st-memory-clear"))
+    pg.once("dialog", lambda d: d.accept())
+    pg.click("#st-memory-clear")
+    pg.wait_for_function("() => document.getElementById('st-memory-hint').textContent.includes('temizlendi')", timeout=4000)
+    check("clear memory calls DELETE /api/chat/memory with Bearer token", mem_deleted["count"] == 1 and mem_deleted["auth"] == "Bearer pst_test", str(mem_deleted))
+    pg.select_option("#st-memory", "off"); pg.click("#st-save"); pg.wait_for_timeout(200)
+    pg.fill("#prompt", "Bunu hatirlama"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("() => document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder' && document.querySelectorAll('#thread .row:not(.user)').length === 1", timeout=5000)
+    c1 = chat_posts[-1]["body"] if chat_posts else {}
+    check("signed-in first turn sends Bearer token, conversationId and memory:false opt-out", chat_posts and chat_posts[-1]["auth"] == "Bearer pst_test" and isinstance(c1.get("conversationId"), str) and len(c1["conversationId"]) >= 8 and c1.get("memory") is False, str(chat_posts[-1:]))
+    pg.click("#menuBtn"); pg.wait_for_timeout(250); pg.click("#settingsRow"); pg.wait_for_timeout(250)
+    pg.select_option("#st-memory", "on"); pg.click("#st-save"); pg.wait_for_timeout(200)
+    pg.fill("#prompt", "Simdi hatirla"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_function("() => document.querySelector('#sendBtn').getAttribute('aria-label') === 'Gönder' && document.querySelectorAll('#thread .row:not(.user)').length === 2", timeout=5000)
+    c2 = chat_posts[-1]["body"] if len(chat_posts) > 1 else {}
+    check("re-enabling memory sends memory:true with same conversationId", c2.get("conversationId") == c1.get("conversationId") and c2.get("memory") is True, str(c2))
 
     # account page shortcut + delete account
     pg.click("#menuBtn"); pg.wait_for_timeout(300); pg.click("#accountRow"); pg.wait_for_timeout(350)

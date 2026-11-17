@@ -758,6 +758,13 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
       <select id="st-adult" class="field"><option value="off">Kapalı</option><option value="on">Açık</option></select>
       <div class="hint" id="st-adult-hint">Bu özellik için hesabına giriş yapmalısın.</div>
     </div>
+    <div id="st-memory-section">
+      <h3 class="sect">Hafıza</h3>
+      <label for="st-memory">Sohbetler arası hafıza (Mnemonics)</label>
+      <select id="st-memory" class="field"><option value="on">Açık</option><option value="off">Kapalı</option></select>
+      <div class="hint" id="st-memory-hint">Hesabına giriş yaptığında önemli tercih ve planları sohbetler arasında hatırlar.</div>
+      <button type="button" class="ghost" id="st-memory-clear" style="margin-top:8px" hidden>Kayıtlı hafızayı temizle</button>
+    </div>
     <h3 class="sect">Kişiselleştirme</h3>
     <label for="pf-name">Sana nasıl hitap edeyim?</label>
     <input id="pf-name" class="field" autocomplete="off" placeholder="örn. Atakan">
@@ -816,6 +823,15 @@ const EN = {
   "Kredin bitti, görüşme sonlandı.":"You ran out of credits; the call ended.","Uygulamadan çıkınca görüşme biter.":"The call ends when you leave the app.","Deste":"Deck","Destende henüz kart yok. Bir bota girince ya da beğenince buraya eklenir.":"No cards in your deck yet. A bot is added when you open it or like it.","AI maskot üret":"Generate AI mascot","İlk maskot ücretsiz, yenileri normal kredi fiyatıyla.":"The first mascot is free; new ones cost normal credits.","Maskot üretimi kredi harcayabilir (ilk üretim ücretsiz). Devam edilsin mi?":"Mascot generation may spend credits (the first one is free). Continue?","Maskot hazır.":"Mascot ready.","Maskot hazırlanıyor…":"Preparing the mascot…","Maskot üretilemedi":"Could not generate the mascot","Maskot henüz hazır değil, biraz sonra tekrar dene.":"The mascot is not ready yet, try again shortly.","sohbet":"chats","Botlar":"Bots","Nadir":"Rare","Epik":"Epic","Efsane":"Legendary","Keşfet":"Discover","Görsel":"Images","Giriş yap":"Sign in",
   "nakata.app hesabı":"nakata.app account","Ayarlar":"Settings","Nakata'ya hoş geldin":"Welcome to Nakata",
   "Sansürsüz mod (18+)":"Uncensored mode (18+)","18+ onayı":"18+ consent","Kapalı":"Off","Açık":"On",
+  "Hafıza":"Memory","Sohbetler arası hafıza (Mnemonics)":"Cross-chat memory (Mnemonics)",
+  "Hesabına giriş yaptığında önemli tercih ve planları sohbetler arasında hatırlar.":"When signed in, remembers important preferences and plans across chats.",
+  "Bu özellik kapalı. Açtığında giriş yapılı sohbetler arası hatırlama çalışır.":"Memory is off. Turn it on to remember context across signed-in chats.",
+  "Hafıza açık. Yalnız kendi hesabına ait güvenli notlar saklanır; silinen sohbetler ve temizle butonu anında siler.":"Memory is on. Only account-scoped safe notes are saved; deleted chats and clear remove them.",
+  "Kayıtlı hafızayı temizle":"Clear saved memory",
+  "Kayıtlı hafıza temizleniyor…":"Clearing saved memory…",
+  "Kayıtlı tüm sohbet hafızan silinsin mi? Bu işlem geri alınamaz.":"Erase all saved cross-chat memory? This cannot be undone.",
+  "Kayıtlı hafıza temizlendi.":"Saved memory cleared.",
+  "Hafıza temizlenemedi. Tekrar dene.":"Could not clear memory. Try again.",
   "Bu özellik için hesabına giriş yapmalısın.":"Sign in to your account to use this feature.",
   "18+ onayı kontrol ediliyor…":"Checking 18+ consent…",
   "Yaş doğrulama yöntemi hukuki açıdan onaylanana kadar 18+ modeller kapalı.":"18+ models are disabled until a legally compliant age-verification method is approved.",
@@ -1311,16 +1327,53 @@ async function refreshAdultConsent(){
   adultConsentBusy = false; paintAdultConsent();
   return adultConsent;
 }
+function isMemoryEnabled(){ return LS.get("nakata_memory_off", false) !== true; }
+function paintMemorySetting(){
+  const sel = $("#st-memory"), hint = $("#st-memory-hint"), clearBtn = $("#st-memory-clear");
+  if (!sel || !hint) return;
+  const on = isMemoryEnabled();
+  sel.value = on ? "on" : "off";
+  sel.disabled = !token();
+  if (clearBtn) clearBtn.hidden = !token();
+  hint.textContent = !token()
+    ? tx("Bu özellik için hesabına giriş yapmalısın.")
+    : on
+      ? tx("Hafıza açık. Yalnız kendi hesabına ait güvenli notlar saklanır; silinen sohbetler ve temizle butonu anında siler.")
+      : tx("Bu özellik kapalı. Açtığında giriş yapılı sohbetler arası hatırlama çalışır.");
+}
 function openSettings(){
   const c = getCfg();
   $("#st-provider").value = c.provider; fillProviderUI(c.provider);
   $("#st-base").value = c.base || (PROVIDERS[c.provider]||{}).base || "";
   $("#st-key").value = c.key || ""; $("#st-model").value = c.model || "";
   const pf = LS.get("nakata_profile", {}); $("#pf-name").value = pf.name || ""; $("#pf-about").value = pf.about || ""; $("#pf-style").value = pf.style || "";
+  paintMemorySetting();
   closeDrawer(); showPage("#f-settings");
   void refreshAdultConsent();
 }
 $("#settingsRow").addEventListener("click", openSettings);
+$("#st-memory")?.addEventListener("change", (e) => {
+  LS.set("nakata_memory_off", e.target.value !== "on");
+  paintMemorySetting();
+  haptic();
+});
+$("#st-memory-clear")?.addEventListener("click", async () => {
+  if (!token()) { openAccount(); return; }
+  if (!confirm(tx("Kayıtlı tüm sohbet hafızan silinsin mi? Bu işlem geri alınamaz."))) return;
+  const btn = $("#st-memory-clear"), hint = $("#st-memory-hint");
+  if (btn) btn.disabled = true;
+  if (hint) hint.textContent = tx("Kayıtlı hafıza temizleniyor…");
+  try {
+    await chatCloudRequest("/memory", { method: "DELETE" });
+    if (hint) hint.textContent = tx("Kayıtlı hafıza temizlendi.");
+    haptic();
+  } catch {
+    if (hint) hint.textContent = tx("Hafıza temizlenemedi. Tekrar dene.");
+    hapticError();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
 $("#st-adult").addEventListener("change", async (e) => {
   const on = e.target.value === "on";
   if (!token()) { e.target.value = "off"; openAccount(); return; }
@@ -2223,6 +2276,7 @@ async function send(text, opts = {}){
   }
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.role === "user" ? toApiContent(m) : m.content });
 
+  if ((free || gb) && !curId) curId = "c" + Date.now() + Math.random().toString(36).slice(2, 6);
   controller = new AbortController();
   let acc = "", frame = 0, retry = null, servedBy = "", msgAction = null, msgImageTask = null;
   const msgSources = [], seenSrc = new Set(), msgImages = [], seenImg = new Set();
@@ -2240,7 +2294,13 @@ async function send(text, opts = {}){
         // preflight (403) when they are present, which fails every request.
         ...(!gb && /openrouter\.ai/.test(cfg.base) ? { "HTTP-Referer": "https://nakata.app", "X-Title": "Nakata" } : {}),
       },
-      body: JSON.stringify({ model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || nakataDefaultModel) : model), stream: true, messages, ...(gb && payBots ? { pay: "credits" } : {}) }),
+      body: JSON.stringify({
+        model: gb ? undefined : (free ? (LS.get("nakata_free_model", "") || nakataDefaultModel) : model),
+        stream: true,
+        messages,
+        ...((free || gb) ? { conversationId: curId, memory: isMemoryEnabled() } : {}),
+        ...(gb && payBots ? { pay: "credits" } : {}),
+      }),
     });
     if (!res.ok || !res.body) {
       const j = await res.json().catch(() => ({}));
