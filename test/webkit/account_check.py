@@ -281,8 +281,9 @@ with sync_playwright() as p:
             agent_state["status"] = "queued"
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
                 "ok": True,
-                "answer": "Görevi Mac'e gönderdim, bitince haber vereceğim.",
-                "toolsUsed": ["dispatch_mac_task"],
+                "answer": "Görevi Mac'e gönderdim, bitince haber verecegim.",
+                "toolsUsed": ["dispatch_mac_task", "web_search"],
+                "sources": [{"title": "GitHub Runs", "url": "https://github.com/nakata/runs"}],
                 "dispatchedTasks": dispatched,
             }))
         if path.endswith("/voice/ping"):
@@ -379,7 +380,8 @@ with sync_playwright() as p:
     pg.click("#micBtn")
     pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
     v_custom = voice_calls["sessions"][-1]
-    check("voice call forwards customBot persona, lessons, and active pairId", v_custom.get("pairId") == "pair_test_1" and v_custom.get("customBot", {}).get("name") == "Scout" and v_custom.get("customBot", {}).get("lessons") == ["Kural 1: Türkçe cevap ver"], str(v_custom))
+    v_ctx = pg.inner_text("#voiceContext") if pg.is_visible("#voiceContext") else ""
+    check("voice call forwards customBot persona, lessons, and active pairId", v_custom.get("pairId") == "pair_test_1" and v_custom.get("customBot", {}).get("name") == "Scout" and v_custom.get("customBot", {}).get("lessons") == ["Kural 1: Türkçe cevap ver"] and "Scout" in v_ctx and "Mac bağlı" in v_ctx, str((v_custom, v_ctx)))
     pg.evaluate("""(() => {
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Testleri Scout ile çalıştır' }) });
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'session.delegation.created', delegation: { id: 'del_1' } }) });
@@ -389,6 +391,8 @@ with sync_playwright() as p:
     commentary = next((m for m in dc_sent if m.get("type") == "session.commentary.append"), {})
     check("voice delegation sends transcript, forwards commentary answer, and queues Mac poll", len(voice_calls["delegations"]) == 1 and voice_calls["delegations"][0].get("text") == "Testleri Scout ile çalıştır" and commentary.get("delegation_id") == "del_1" and "Mac'e gönderdim" in commentary.get("content", ""), str((voice_calls["delegations"], commentary)))
     pg.click("#voiceEnd"); pg.wait_for_timeout(250)
+    src_href = pg.evaluate("document.querySelector('#thread .srcs a')?.href || ''")
+    check("voice turn and web sources persist into active chat thread after call", "Testleri Scout ile çalıştır" in pg.inner_text("#thread") and src_href == "https://github.com/nakata/runs", str(src_href))
     agent_state["status"] = "completed"
     pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=8000)
     pg.click("#agentTaskNotice")

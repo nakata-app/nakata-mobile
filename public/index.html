@@ -443,6 +443,8 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .math-block{margin:.7em 0;padding:10px 14px;border-radius:12px;background:var(--raised);border:1px solid var(--line);font-family:Georgia,"Times New Roman",serif;font-size:16px;text-align:center;overflow-x:auto}
 .art-streaming{padding:14px;font-size:13px;color:var(--muted)}
 .voice-pulse .nk-mascot .bot-orb{transition:transform .12s ease}
+.vcontext{max-width:320px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:#ffffff0a;color:var(--side-ink);font-size:12px}
+:root[data-theme="light"] .vcontext{background:#00000006}
 .vtranscript{max-width:340px;max-height:110px;overflow-y:auto;font-size:13.5px;line-height:1.45;color:var(--side-ink);padding:0 12px}
 
 </style>
@@ -519,6 +521,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 <section class="page" id="f-voice">
   <button class="icon fclose vclose" id="voiceClose" aria-label="Kapat"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
   <div class="nk-mascot" id="voiceOrb"></div>
+  <div class="vcontext" id="voiceContext" hidden></div>
   <div class="vstate" id="voiceState"></div>
   <div class="vtimer" id="voiceTimer"></div>
   <div class="vtranscript" id="voiceTranscript" hidden></div>
@@ -3941,6 +3944,20 @@ async function startVoice(){
   paintVoiceControls();
   voiceOrb.setColor(orbColor()); $("#voiceTimer").textContent = ""; $("#voiceFree").textContent = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
+  const vctx = $("#voiceContext"); if (vctx) { vctx.textContent = ""; vctx.hidden = true; }
+  const localBotPreview = !galleryBot && activeBot ? (allBots()[activeBot] || BOT_TEMPLATES.find((t) => t.name === activeBot)) : null;
+  const ctxEl = $("#voiceContext");
+  if (ctxEl) {
+    const parts = [];
+    if (galleryBot?.name) parts.push(`${tx("Bot")}: ${galleryBot.name}`);
+    else if (activeBot && localBotPreview) {
+      const nRules = activeBotLessons(localBotPreview).length;
+      parts.push(`${tx("Bot")}: ${activeBot}${nRules ? ` (${nRules} ${tx("kural")})` : ""}`);
+    }
+    if (activeAgentPairId) parts.push(tx("Mac bağlı"));
+    ctxEl.textContent = parts.join(" · ");
+    ctxEl.hidden = parts.length === 0;
+  }
   voiceSay("Bağlanıyor…", "thinking");
   const v = voice = { ending: false, id: null, raf: 0, ac: null, caption: "", discT: 0, faceT: 0, lastFaceAt: 0, pingBusy: false };
   const setVoiceMood = (face, minGapMs = 650) => {
@@ -4039,6 +4056,19 @@ async function startVoice(){
               voiceSay(tx("Bilgi bulundu"), "happy");
             }
             if (d.ok && d.j.answer) {
+              const vSources = Array.isArray(d.j.sources) ? d.j.sources : [];
+              const qText = prompt.trim();
+              if (qText) {
+                showHero(false);
+                if (!curId) curId = "c" + Date.now() + Math.random().toString(36).slice(2, 6);
+                addUser(qText);
+                const vb = addAsst();
+                vb.innerHTML = md(d.j.answer);
+                if (vSources.length) renderSources(vb.parentElement?.parentElement, vSources);
+                convo.push({ role: "user", content: qText });
+                convo.push({ role: "assistant", content: d.j.answer, ...(vSources.length ? { sources: vSources } : {}) });
+                persist();
+              }
               const ansMood = voiceFaceFrom(d.j.answer, "happy");
               if (ansMood !== "happy") setVoiceMood(ansMood, 0);
               if (v.dc?.readyState === "open")
@@ -4120,6 +4150,7 @@ async function endVoice(note, { keepOpen = false } = {}){
   try { await v.ac?.close(); } catch {}
   voiceOrb.el.style.transform = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
+  const vctx = $("#voiceContext"); if (vctx) { vctx.textContent = ""; vctx.hidden = true; }
   try {
     if (v.dc?.readyState === "open") { v.dc.send(JSON.stringify({ type: "session.close" })); await Promise.race([new Promise((res) => { v.closed = res; }), wait(keepOpen ? 800 : 3000)]); }
   } catch {}
