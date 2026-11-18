@@ -3970,8 +3970,7 @@ async function startVoice(){
     }
   };
   try {
-    notifyNativeVoiceAudio(true);
-    try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
+    const hasNativeAudio = !!window.webkit?.messageHandlers?.nakataAudio;
     const st = await api("/voice/status");
     if (st.ok && Array.isArray(st.j.voices) && st.j.voices.length) {
       voiceCatalog = st.j.voices;
@@ -3981,12 +3980,15 @@ async function startVoice(){
     if (st.ok && st.j.enabled === false) throw new Error(VOICE_MSG.voice_closed);
     if (st.ok && st.j.freeLeftSec != null) $("#voiceFree").textContent = st.j.freeLeftSec > 0 ? `Bugün ${Math.floor(st.j.freeLeftSec / 60)} dk ücretsiz kaldı. Sonrası ${st.j.creditsPerMin} kredi/dk.` : `Ücretsiz süre bitti: ${st.j.creditsPerMin} kredi/dk.`;
     v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    if (hasNativeAudio) notifyNativeVoiceAudio(true);
+    else { try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {} }
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (AC) {
         v.ac = new AC();
+        v.acStream = typeof v.stream.clone === "function" ? v.stream.clone() : v.stream;
         const analyser = v.ac.createAnalyser(); analyser.fftSize = 128;
-        v.ac.createMediaStreamSource(v.stream).connect(analyser);
+        v.ac.createMediaStreamSource(v.acStream).connect(analyser);
         const data = new Uint8Array(analyser.frequencyBinCount);
         const pulse = () => {
           if (!voice || v.ending) return;
@@ -4148,6 +4150,9 @@ async function endVoice(note, { keepOpen = false } = {}){
   cancelAnimationFrame(v.raf);
   if ($("#voiceSheet")?.classList.contains("on")) closeSheet();
   try { await v.ac?.close(); } catch {}
+  if (v.acStream && v.acStream !== v.stream) {
+    for (const t of v.acStream.getTracks?.() || []) { try { t.stop(); } catch {} }
+  }
   voiceOrb.el.style.transform = "";
   const vt = $("#voiceTranscript"); if (vt) { vt.textContent = ""; vt.hidden = true; }
   const vctx = $("#voiceContext"); if (vctx) { vctx.textContent = ""; vctx.hidden = true; }
@@ -4163,7 +4168,9 @@ async function endVoice(note, { keepOpen = false } = {}){
   if (v.audio) { v.audio.srcObject = null; }
   if (!keepOpen) {
     notifyNativeVoiceAudio(false);
-    try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
+    if (!window.webkit?.messageHandlers?.nakataAudio) {
+      try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch {}
+    }
   }
   voiceOrb.set("neutral");
   if (!keepOpen) $("#f-voice").classList.remove("on");

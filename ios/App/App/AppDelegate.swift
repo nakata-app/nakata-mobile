@@ -25,6 +25,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     private var voiceCallActive = false
     private var observersInstalled = false
+    private var observerTokens: [NSObjectProtocol] = []
+    private var lastResumeNotifyAt: TimeInterval = 0
     private var bgTask: UIBackgroundTaskIdentifier = .invalid
     private weak var attachedWebView: WKWebView?
 
@@ -35,9 +37,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         #else
         let bluetooth: AVAudioSession.CategoryOptions = .allowBluetooth
         #endif
-        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.mixWithOthers, .defaultToSpeaker, bluetooth])
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, bluetooth])
         if active {
             try? session.setActive(true, options: [])
+        }
+    }
+
+    private func notifyJsAudioResumed() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.voiceCallActive, let webView = self.attachedWebView else { return }
+            let now = Date.timeIntervalSinceReferenceDate
+            guard now - self.lastResumeNotifyAt >= 0.75 else { return }
+            self.lastResumeNotifyAt = now
+            webView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
         }
     }
 
@@ -52,9 +64,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         guard !observersInstalled else { return }
         observersInstalled = true
         let nc = NotificationCenter.default
-        nc.addObserver(self, selector: #selector(handleAudioInterruption(_:)), name: AVAudioSession.interruptionNotification, object: nil)
-        nc.addObserver(self, selector: #selector(handleAudioRouteOrReset(_:)), name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
-        nc.addObserver(self, selector: #selector(handleAudioRouteOrReset(_:)), name: AVAudioSession.routeChangeNotification, object: nil)
+        observerTokens.append(
+            nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+                guard let self = self, self.voiceCallActive,
+                      let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                      let kind = AVAudioSession.InterruptionType(rawValue: raw),
+                      kind == .ended else { return }
+                self.configureAudioSession(active: true)
+                self.notifyJsAudioResumed()
+            }
+        )
+        observerTokens.append(
+            nc.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
+                guard let self = self, self.voiceCallActive else { return }
+                self.configureAudioSession(active: true)
+                self.notifyJsAudioResumed()
+            }
+        )
+        observerTokens.append(
+            nc.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] notification in
+                guard let self = self, self.voiceCallActive,
+                      let raw = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                      let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
+                // Never call setCategory inside routeChangeNotification (.categoryChange/.override loops with WebKit WebRTC).
+                if reason == .oldDeviceUnavailable || reason == .newDeviceAvailable {
+                    self.notifyJsAudioResumed()
+                }
+            }
+        )
     }
 
     private func attachAudioBridgeIfNeeded() {
@@ -68,33 +105,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func setVoiceCallActive(_ active: Bool) {
+        attachAudioBridgeIfNeeded()
         voiceCallActive = active
         if active {
             configureAudioSession(active: true)
         } else {
             endVoiceBackgroundTask()
+            lastResumeNotifyAt = 0
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
         }
     }
 
-    @objc private func handleAudioInterruption(_ notification: Notification) {
-        guard voiceCallActive,
-              let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let kind = AVAudioSession.InterruptionType(rawValue: raw),
-              kind == .ended else { return }
-        configureAudioSession(active: true)
-        attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
-    }
-
-    @objc private func handleAudioRouteOrReset(_ notification: Notification) {
-        guard voiceCallActive else { return }
-        configureAudioSession(active: true)
-        attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
-    }
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        configureAudioSession(active: false)
         installAudioObserversIfNeeded()
         DispatchQueue.main.async { [weak self] in
             self?.attachAudioBridgeIfNeeded()
@@ -133,7 +156,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         attachAudioBridgeIfNeeded()
         if voiceCallActive {
             configureAudioSession(active: true)
-            attachedWebView?.evaluateJavaScript("window.dispatchEvent(new CustomEvent('nakata:audio-resumed'));", completionHandler: nil)
+            notifyJsAudioResumed()
         }
     }
 
