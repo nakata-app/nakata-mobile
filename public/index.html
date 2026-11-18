@@ -1121,8 +1121,9 @@ const EN = {
   "Seç":"Use",
   "Seçili":"Selected",
   "Kaldır":"Remove",
-  "Eğitilmiş özel ses":"Custom trained voice",
-  "Eğitilmiş sesimiz (XTTS)":"Our trained voice (XTTS)",
+  "Eğitilmiş özel ses":"Custom voice",
+  "Özel ses":"Custom voice",
+  "Sıcak ve çekici":"Warm & alluring",
   "Özel ses sunucusuna bağlanılamadı.":"Could not reach custom voice server.",
   "Geçerli bir ses adı ve ID gir.":"Enter a valid voice name and ID.",
   "Geçerli bir http/https TTS adresi gir.":"Enter a valid http/https TTS URL.",
@@ -3951,26 +3952,13 @@ let voice = null;   // { pc, dc, stream, audio, id, ping, tick, t0, ending, ping
 const DEFAULT_VOICES = [
   { id: "marin", label: "Marin", hint: "Doğal ve dengeli (varsayılan)" },
   { id: "cedar", label: "Cedar", hint: "Sıcak ve net" },
-  { id: "alloy", label: "Alloy", hint: "Nötr ve dengeli" },
   { id: "coral", label: "Coral", hint: "Canlı ve samimi" },
-  { id: "echo", label: "Echo", hint: "Tok ve net" },
-  { id: "ash", label: "Ash", hint: "Sakin ve derin" },
   { id: "ballad", label: "Ballad", hint: "Akıcı ve sıcak" },
   { id: "sage", label: "Sage", hint: "Yumuşak ve bilge" },
   { id: "shimmer", label: "Shimmer", hint: "Hafif ve berrak" },
   { id: "verse", label: "Verse", hint: "İfadeli ve doğal" },
   { id: "vesper", label: "Vesper", hint: "İngiliz vurgulu" },
-  { id: "willow", label: "Willow", hint: "İrlanda kadın" },
-  { id: "stone", label: "Stone", hint: "İrlanda erkek" },
-  { id: "gleam", label: "Gleam", hint: "Kuzey Amerika kadın" },
-  { id: "meridian", label: "Meridian", hint: "Kuzey Amerika erkek" },
-  { id: "quartz", label: "Quartz", hint: "Avustralya kadın" },
-  { id: "ripple", label: "Ripple", hint: "Avustralya erkek" },
-  { id: "bossa", label: "Bossa", hint: "Melodik" },
-  { id: "tempo", label: "Tempo", hint: "Ritmik" },
-  { id: "beacon", label: "Beacon", hint: "Net ve enerjik" },
-  { id: "delta", label: "Delta", hint: "Güney ABD erkek" },
-  { id: "cinder", label: "Cinder", hint: "Güney ABD kadın" },
+  { id: "ash", label: "Ash", hint: "Sakin ve derin" },
 ];
 let voiceCatalog = DEFAULT_VOICES;
 let customVoices = [];
@@ -4042,27 +4030,11 @@ function paintVoiceControls(pendingLabel = ""){
   const sel = $("#st-voice");
   if (sel) {
     sel.innerHTML = "";
-    const list = allVoiceCatalog();
-    const customList = list.filter((x) => x.kind === "custom-tts" || x.local);
-    const builtinList = list.filter((x) => !(x.kind === "custom-tts" || x.local));
-    const appendOpts = (parent, items) => {
-      for (const item of items) {
-        const opt = el("option");
-        opt.value = item.id;
-        opt.textContent = `${item.label} — ${tx(item.hint || "Eğitilmiş özel ses")}`;
-        parent.append(opt);
-      }
-    };
-    if (customList.length) {
-      const g1 = document.createElement("optgroup");
-      g1.label = tx("Özel / Eğitilmiş Sesler");
-      appendOpts(g1, customList);
-      const g2 = document.createElement("optgroup");
-      g2.label = tx("Yerleşik Sesler");
-      appendOpts(g2, builtinList);
-      sel.append(g1, g2);
-    } else {
-      appendOpts(sel, list);
+    for (const item of allVoiceCatalog()) {
+      const opt = el("option");
+      opt.value = item.id;
+      opt.textContent = `${item.label} — ${tx(item.hint || "Sıcak ve çekici")}`;
+      sel.append(opt);
     }
     sel.value = cur.id;
   }
@@ -4078,7 +4050,7 @@ function paintCustomVoicesUI(){
   for (const item of combined) {
     const row = el("div", "cv-row");
     const meta = el("div", "cv-meta");
-    meta.append(el("b", "", item.label), el("span", "", item.local ? (item.url || item.ttsVoice || item.id) : tx(item.hint || "Eğitilmiş özel ses")));
+    meta.append(el("b", "", item.label), el("span", "", item.local ? (item.url || item.ttsVoice || item.id) : tx(item.hint || "Sıcak ve çekici")));
     row.append(meta);
     const useBtn = el("button", "", selectedVoice() === item.id ? tx("Seçili") : tx("Seç"));
     useBtn.type = "button";
@@ -4216,8 +4188,6 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
   } catch {
     for (const p of prefetched) p.then((u) => { try { URL.revokeObjectURL(u); } catch {} }).catch(() => {});
     if (voice !== v || v.ending || ctrl.signal.aborted || v.ttsPlaySeq !== seq) return;
-    // Graceful fallback: unmute GPT-Live if custom TTS server is temporarily unreachable.
-    if (v.audio && !activeVoice.localOnly) v.audio.muted = false;
     voiceSay(tx("Dinliyorum"), "attentive");
   }
 }
@@ -4294,14 +4264,36 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       }
     }
     else if (ev.type === "response.created") {
-      if (v.activeVoice?.kind === "custom-tts" || v.suppressNextLiveAudio) {
+      if (v.activeVoice?.kind === "custom-tts") {
+        if (v.audio) v.audio.muted = true;
+        if (v.suppressNextLiveAudio) {
+          v.suppressNextLiveAudio = false;
+          v.ignoreLiveTranscript = true;
+          try { if (dc.readyState === "open") dc.send(JSON.stringify({ type: "response.cancel" })); } catch {}
+        } else {
+          v.ignoreLiveTranscript = false;
+          v.directCustomBuf = "";
+        }
+      } else if (v.suppressNextLiveAudio) {
         v.suppressNextLiveAudio = false;
         if (v.audio) v.audio.muted = true;
         try { if (dc.readyState === "open") dc.send(JSON.stringify({ type: "response.cancel" })); } catch {}
       }
     }
-    else if (ev.type === "response.audio_transcript.delta" || ev.type === "response.output_audio_transcript.delta") {
-      if (v.activeVoice?.kind === "custom-tts") return;
+    else if (ev.type === "response.audio_transcript.delta" || ev.type === "response.output_audio_transcript.delta" || ev.type === "session.output_transcript.delta") {
+      if (v.activeVoice?.kind === "custom-tts") {
+        if (!v.ignoreLiveTranscript && ev.delta) {
+          v.directCustomBuf = ((v.directCustomBuf || "") + ev.delta).slice(-1500);
+          if (vt) {
+            v.caption = ((v.caption || "") + ev.delta).slice(-320);
+            vt.textContent = v.caption;
+            vt.hidden = false;
+          }
+          voiceSay(tx("Konuşuyor…"));
+          setVoiceMood(voiceFaceFrom(v.caption || v.directCustomBuf, "happy"), 650);
+        }
+        return;
+      }
       if (ev.delta && vt) {
         v.caption = (v.caption + ev.delta).slice(-320);
         vt.textContent = v.caption;
@@ -4311,7 +4303,13 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       }
     }
     else if (ev.type === "response.done") {
-      if (v.activeVoice?.kind === "custom-tts") return;
+      if (v.activeVoice?.kind === "custom-tts") {
+        const directTxt = !v.ignoreLiveTranscript && v.directCustomBuf?.trim() ? v.directCustomBuf.trim() : "";
+        v.directCustomBuf = "";
+        v.ignoreLiveTranscript = false;
+        if (directTxt) void speakCustomVoiceAnswer(v, directTxt, null);
+        return;
+      }
       const finalMood = v.caption ? voiceFaceFrom(v.caption, "happy") : "attentive";
       v.caption = "";
       voiceSay(tx("Dinliyorum"));
@@ -4326,6 +4324,8 @@ function bindVoiceTransport(v, pc, dc, audioEl){
     else if (ev.type === "input_audio_buffer.speech_started") {
       clearTimeout(v.faceT);
       v.caption = "";
+      v.directCustomBuf = "";
+      v.ignoreLiveTranscript = false;
       stopCustomVoiceSpeech(v);
       voiceSay("Dinliyorum", "curious");
     }
@@ -4335,6 +4335,8 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       if (inpMood !== "curious") setVoiceMood(inpMood, 600);
     }
     else if (ev.type === "session.delegation.created" && v.id) {
+      v.ignoreLiveTranscript = true;
+      v.directCustomBuf = "";
       // Thinking is delegated to the client: ask nakata.app (Evren brain + live tools/Mac relay), selected voice speaks the answer.
       clearTimeout(v.faceT);
       voiceSay("Düşünüyor…", "thinking");
@@ -4504,31 +4506,19 @@ function openVoiceSheet(){
   if (!list || !sheet || !scrim) return;
   const cur = selectedVoice();
   const catalog = allVoiceCatalog();
-  const customItems = catalog.filter((x) => x.kind === "custom-tts" || x.local);
-  const builtinItems = catalog.filter((x) => !(x.kind === "custom-tts" || x.local));
   list.innerHTML = "";
-  const appendItems = (items) => {
-    for (const item of items) {
-      const row = el("div", "botopt" + (item.id === cur ? " on" : ""));
-      const main = el("button", "botmain");
-      const meta = el("div", "meta");
-      meta.append(el("div", "nm", item.label), el("div", "ds", tx(item.hint || "Eğitilmiş özel ses")));
-      main.append(meta);
-      const chk = el("span", "chk");
-      chk.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
-      main.append(chk);
-      main.addEventListener("click", () => { closeSheet(); haptic(); void setVoiceChoice(item.id, { restart: true }); });
-      row.append(main);
-      list.append(row);
-    }
-  };
-  if (customItems.length) {
-    list.append(el("div", "sheet-sec", tx("Özel / Eğitilmiş Sesler")));
-    appendItems(customItems);
-    list.append(el("div", "sheet-sec", tx("Yerleşik Sesler")));
-    appendItems(builtinItems);
-  } else {
-    appendItems(catalog);
+  for (const item of catalog) {
+    const row = el("div", "botopt" + (item.id === cur ? " on" : ""));
+    const main = el("button", "botmain");
+    const meta = el("div", "meta");
+    meta.append(el("div", "nm", item.label), el("div", "ds", tx(item.hint || "Sıcak ve çekici")));
+    main.append(meta);
+    const chk = el("span", "chk");
+    chk.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+    main.append(chk);
+    main.addEventListener("click", () => { closeSheet(); haptic(); void setVoiceChoice(item.id, { restart: true }); });
+    row.append(main);
+    list.append(row);
   }
   const topZ = Number($("#f-voice").style.zIndex || pageZ || 70);
   scrim.style.zIndex = String(topZ + 1);
@@ -4863,7 +4853,7 @@ $("#cv-save")?.addEventListener("click", () => {
   const entry = {
     id,
     label,
-    hint: kind === "custom-tts" ? "Eğitilmiş özel ses" : "OpenAI GPT-Live Özel Ses ID",
+    hint: kind === "custom-tts" ? "Özel ses" : "OpenAI GPT-Live Özel Ses ID",
     kind,
     local: kind === "custom-tts",
     localOnly: kind === "custom-tts",
