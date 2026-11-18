@@ -2591,6 +2591,7 @@ async function send(text, opts = {}){
         stream: true,
         messages,
         ...((free || gb) ? { conversationId: curId, memory: isMemoryEnabled() } : {}),
+        ...(free && activeAgentPairId ? { pairId: activeAgentPairId } : {}),
         ...(gb && payBots ? { pay: "credits" } : {}),
       }),
     });
@@ -2625,6 +2626,8 @@ async function send(text, opts = {}){
           else if (tc.name === "fetch_url") setPendingStatus("Sayfa okunuyor…");
           else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
           else if (tc.name === "generate_image") setPendingStatus("Görsel hazırlanıyor…");
+          else if (tc.name === "dispatch_mac_task") setPendingStatus("Mac’e görev gönderiliyor…");
+          else if (tc.name === "check_mac_task") setPendingStatus("Mac görevi kontrol ediliyor…");
           else setPendingStatus("Araç çalıştırılıyor…");
           pendingOrb?.set(tc.name === "generate_image" ? "excited" : "curious");
           window.__mascotReact?.onTool?.(tc.name, tc.args);
@@ -2646,6 +2649,13 @@ async function send(text, opts = {}){
         if (act && typeof act === "object") msgAction = act;
         const itk = ev.type === "tool_result" ? ev.imageTask : d.imageTask;
         if (itk && typeof itk === "object") msgImageTask = itk;
+        const dtk = ev.type === "tool_result" ? ev.dispatchedTask : d.dispatchedTask;
+        if (dtk?.id && activeAgentPairId) {
+          agentTaskAccount = agentAcct();
+          agentTaskPair = activeAgentPairId;
+          agentPendingIds.add(dtk.id);
+          void refreshAgentTasks();
+        }
         if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
         if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
       }
@@ -2728,7 +2738,7 @@ function handleMobileRuleCommand(kind, rawArg){
   if (galleryBot) { addNote(tx("Galeri botları düzenlenemez; önce kendi botuna kaydet veya yeni bot oluştur.")); return; }
   let targetName = activeBot;
   let arg = String(rawArg || "").trim();
-  const tagged = arg.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+  const tagged = arg.match(/^@([\p{L}\p{N}_-]{1,40})\s+([\s\S]+)$/u);
   if (tagged) {
     const resolved = findLocalOrTemplateBotName(tagged[1]);
     if (!resolved) { addNote(`${tx("Bot bulunamadı")}: @${tagged[1]}`); return; }
@@ -2751,7 +2761,7 @@ function handleMobileRuleCommand(kind, rawArg){
 async function submitMobilePrompt(rawText, opts = {}){
   let text = String(rawText || "");
   if (text && !galleryBot) {
-    const mention = text.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+    const mention = text.match(/^@([\p{L}\p{N}_-]{1,40})\s+([\s\S]+)$/u);
     if (mention) {
       const resolved = findLocalOrTemplateBotName(mention[1]);
       if (resolved) {
@@ -3043,7 +3053,7 @@ function renderAgentBotStarters(bot){
 }
 function syncAgentBotStartersFromPrompt(){
   const val = String($("#agentCommandPrompt")?.value || "");
-  const m = val.match(/^@([A-Za-z0-9_-]{1,40})(?:\s|$)/);
+  const m = val.match(/^@([\p{L}\p{N}_-]{1,40})(?:\s|$)/u);
   const matched = m ? agentPairedBots.find((b) => b.name.toLowerCase() === m[1].toLowerCase()) : null;
   renderAgentBotStarters(matched || null);
 }

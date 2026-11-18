@@ -131,6 +131,16 @@ def test_mobile(p):
         if u.endswith("/api/mobile/chat") and req.method == "POST":
             body = json.loads(req.post_data or "{}")
             MobileHandler.chat_posts.append({"path": "/api/mobile/chat", "body": body})
+            last_msg = str((body.get("messages") or [{}])[-1].get("content", ""))
+            if "Mac gorevi gonder" in last_msg:
+                agent_state["cmd"] = {"id": "cmd_txt_1", "prompt": "@Scout test"}
+                sse_body = "\n\n".join([
+                    'data: {"type":"tool_call","tool":"dispatch_mac_task","args":{"bot":"Scout","prompt":"test"}}',
+                    'data: {"type":"tool_result","tool":"dispatch_mac_task","sources":[],"images":[],"dispatchedTask":{"id":"cmd_txt_1","prompt":"@Scout test","status":"queued","bot":"Scout"}}',
+                    'data: {"choices":[{"delta":{"content":"Mac gorevi kuyruga alindi."}}]}',
+                    'data: [DONE]',
+                ]) + "\n\n"
+                return route.fulfill(status=200, content_type="text/event-stream", headers=cors, body=sse_body)
             return route.fulfill(
                 status=200,
                 content_type="text/event-stream",
@@ -245,6 +255,38 @@ def test_mobile(p):
         )
         pg.click("#f-botform .fclose")
         pg.wait_for_timeout(150)
+
+        # Unicode @Bot mention (/teach @Araştır & @Araştır) + paired Mac text chat dispatch
+        pg.click("#modelBtn")
+        pg.wait_for_timeout(150)
+        pg.click("#botNew")
+        pg.wait_for_selector("#bf-name", timeout=2000)
+        pg.fill("#bf-name", "Araştır")
+        pg.fill("#bf-persona", "Kısa araştır.")
+        pg.click("#botSave")
+        pg.wait_for_timeout(150)
+        pg.locator("#botList .botmain", has_text="Nakata").click()
+        pg.wait_for_timeout(150)
+        pg.fill("#prompt", "/teach @Araştır Türkçe kaynak ekle")
+        pg.dispatch_event("#prompt", "input")
+        pg.click("#sendBtn")
+        pg.wait_for_function("document.getElementById('thread').innerText.includes('Araştır yeni kural öğrendi')", timeout=4000)
+        pg.click("#modelBtn")
+        pg.wait_for_timeout(150)
+        pg.locator("#botList .botmain", has_text="Nakata").click()
+        pg.wait_for_timeout(150)
+        posts_u = len(MobileHandler.chat_posts)
+        pg.fill("#prompt", "@Araştır Mac gorevi gonder")
+        pg.dispatch_event("#prompt", "input")
+        pg.click("#sendBtn")
+        pg.wait_for_function(f"() => {posts_u + 1} <= 999 && document.getElementById('thread').innerText.includes('Mac gorevi kuyruga alindi.')", timeout=5000)
+        pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=6000)
+        u_post = MobileHandler.chat_posts[-1]["body"]
+        check(
+            "Unicode @Araştır mention injects lessons and forwards pairId + handles Mac SSE task dispatch",
+            u_post.get("pairId") == "a" * 32 and "Türkçe kaynak ekle" in str(u_post.get("messages", [{}])[0]),
+            str(u_post),
+        )
 
         # Mac Agent synced bots + starters + prefix cleanup + Retry button
         pg.click("#menuBtn")

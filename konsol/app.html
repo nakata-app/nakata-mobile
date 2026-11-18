@@ -549,7 +549,7 @@ async function runBotRuleCommand(kind, rawArg) {
   showHero(false);
   let targetName = activeBot;
   let arg = rawArg.trim();
-  const tagged = arg.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+  const tagged = arg.match(/^@([\p{L}\p{N}_-]{1,40})\s+([\s\S]+)$/u);
   if (tagged) {
     if (!botCatalog.length) await refreshBots().catch(() => {});
     const target = findBot(tagged[1]);
@@ -580,7 +580,7 @@ async function runBotRuleCommand(kind, rawArg) {
 
 async function submitPrompt(rawText) {
   let text = rawText;
-  const mention = text.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+  const mention = text.match(/^@([\p{L}\p{N}_-]{1,40})\s+([\s\S]+)$/u);
   if (mention) {
     if (!botCatalog.length) await refreshBots().catch(() => {});
     const target = findBot(mention[1]);
