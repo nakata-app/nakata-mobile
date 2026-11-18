@@ -11,6 +11,15 @@ const DIR = import.meta.dir;
 // ---- Sohbet: PC'deki nakata'nın kendisi (desktop ile aynı session'lar) ----
 import { readdir, realpath, stat, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import {
+  defaultBotsDir,
+  deleteBotInDir,
+  listBotsInDir,
+  loadBotFromDir,
+  resolveBotChatArgs,
+  saveBotInDir,
+  teachBotInDir,
+} from "./bots.js";
 const HOME = process.env.HOME || "";
 const NAKATA = Bun.which("nakata") || `${HOME}/.local/bin/nakata`;
 // Ağdan yalnız session transcript'leri okunabilir: kökler realpath ile sabitlenir.
@@ -107,103 +116,36 @@ async function readSession(path) {
   return out;
 }
 
-// ---- Botlar: desktop ile AYNI ~/.nakata/bots/<ad>.md dosyaları (model/tools
-// frontmatter + persona gövdesi). Telefonda botu seçince model+persona uygulanır;
-// araçlar, telefonda onay arayüzü olmadığı için chat'in güvenli setinde kalır. ----
-const BOTS_DIR = `${HOME}/.nakata/bots`;
-function parseBot(name, text) {
-  let description = "", model = null, persona = text.trimStart();
-  const t = text.trimStart();
-  if (t.startsWith("---")) {
-    const end = t.indexOf("\n---", 3);
-    if (end >= 0) {
-      persona = t.slice(end + 4).replace(/^[\r\n]+/, "");
-      for (const line of t.slice(3, end).split("\n")) {
-        const i = line.indexOf(":");
-        if (i < 0) continue;
-        const k = line.slice(0, i).trim(), v = line.slice(i + 1).trim().replace(/^"|"$/g, "");
-        if (k === "description") description = v;
-        else if (k === "model" && v) model = v;
-      }
-    }
-  }
-  return { name, description, model, persona: persona.trim() };
-}
-async function listBots() {
-  const names = await readdir(BOTS_DIR).catch(() => []);
-  const out = [];
-  for (const f of names) {
-    if (!f.endsWith(".md")) continue;
-    const text = await Bun.file(`${BOTS_DIR}/${f}`).text().catch(() => "");
-    if (text) out.push(parseBot(f.slice(0, -3), text));
-  }
-  return out.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-}
-async function loadBot(name) {
-  if (!validBotName(name)) return null;
-  const n = name.trim();
-  const text = await Bun.file(`${BOTS_DIR}/${n}.md`).text().catch(() => "");
-  return text ? parseBot(n, text) : null;
-}
-// Desktop'ın is_alphanumeric'iyle aynı (Unicode harf/rakam) + boşluk/-/_. Yol
-// ayracı (/ . \) hariç olduğu için dosya adı olarak güvenli; traversal imkânsız.
-const validBotName = (n) => typeof n === "string" && /^[\p{L}\p{N} _-]{1,48}$/u.test(n.trim());
-function botToMd(b) {
-  let out = `---\nname: ${b.name.trim()}\n`;
-  if (b.description?.trim()) out += `description: ${b.description.trim()}\n`;
-  if (b.model?.trim()) out += `model: ${b.model.trim()}\n`;
-  if (b.tools?.trim()) out += `tools: ${b.tools.trim()}\n`;
-  return `${out}---\n\n${(b.persona || "").trim()}\n`;
-}
-async function saveBot(b) {
-  if (!validBotName(b?.name)) return json({ error: "ad geçersiz" }, 400);
-  if (typeof b.persona !== "string" || !b.persona.trim()) return json({ error: "persona (talimat) gerekli" }, 400);
-  if (b.persona.length > 20000) return json({ error: "persona çok uzun" }, 400);
-  await Bun.$`mkdir -p ${BOTS_DIR}`.quiet().catch(() => {});
-  await Bun.write(`${BOTS_DIR}/${b.name.trim()}.md`, botToMd(b));
-  return json({ ok: true });
-}
-async function deleteBot(name) {
-  if (!validBotName(name)) return json({ error: "ad geçersiz" }, 400);
-  await unlink(`${BOTS_DIR}/${name.trim()}.md`).catch(() => {});
-  return json({ ok: true });
-}
+// ---- Botlar: desktop ile AYNI ~/.nakata/bots/<ad>.json (ve eski .md) dosyaları.
+// Model, persona, aktif dersler ve tool kısıtları (rules.never) uygulanır. ----
+const BOTS_DIR = defaultBotsDir(HOME);
 
-// Desktop'ın command_args'ıyla aynı: chat modu kısıtlı araç seti, --resume aynı
-// sohbeti sürdürür, bot persona'sı ekstra sistem promptu olarak biner.
-function chatArgs(mode, sessionId, model, persona) {
-  const chat = mode === "chat";
-  const args = [
-    "--output-format", "stream-json", "--input-format", "stream-json", "--ask-stdin",
-    "--permission-mode", chat ? "default" : mode,
-  ];
-  if (chat) args.push("--only-tools", "WebSearch,WebFetch,AskUserQuestion,ScheduleTask", "--allowedTools", "ScheduleTask");
-  if (persona && persona.trim()) args.push("--append-system-prompt", persona.trim());
-  if (sessionId) args.push("--resume", sessionId);
-  if (model) args.push("--model", model);
-  return args;
-}
-
-async function chat(body) {
+async function chat(body, deps = {}) {
+  const botsDir = deps.botsDir || BOTS_DIR;
+  const nakataBin = deps.nakataBin || NAKATA;
   const prompt = typeof body?.prompt === "string" ? body.prompt : "";
   if (!prompt.trim() || prompt.length > 20000) return json({ error: "mesaj geçersiz" }, 400);
   const mode = MODES.has(body.mode) ? body.mode : "chat";
   const sessionId = typeof body.sessionId === "string" && /^[A-Za-z0-9-]{8,64}$/.test(body.sessionId) ? body.sessionId : null;
   let model = typeof body.model === "string" && /^[A-Za-z0-9._:/-]{1,80}$/.test(body.model) ? body.model : null;
-  const dir = await workspace(body.cwd);
-  if (!dir) return json({ error: "klasör geçersiz" }, 400);
 
-  // Bot seçiliyse model + persona'sını uygula (desktop ile aynı bot tanımı).
-  let persona = null;
+  // Bot seçiliyse model + persona + dersler + tool kısıtlarını uygula.
+  let bot = null;
   if (body.bot) {
-    const bot = await loadBot(body.bot);
+    bot = loadBotFromDir(body.bot, botsDir);
     if (!bot) return json({ error: "bot yok" }, 404);
-    persona = bot.persona;
     if (bot.model && !model) model = bot.model;
   }
 
+  let dir = body.cwd ? await workspace(body.cwd) : null;
+  if (body.cwd && !dir) return json({ error: "klasör geçersiz" }, 400);
+  if (!dir && bot?.cwd) dir = await workspace(bot.cwd);
+  if (!dir) dir = await workspace(null);
+  if (!dir) return json({ error: "klasör geçersiz" }, 400);
+
   const runId = crypto.randomUUID();
-  const proc = Bun.spawn([NAKATA, ...chatArgs(mode, sessionId, model, persona)], {
+  const spawnArgs = resolveBotChatArgs({ mode, sessionId, model, bot });
+  const proc = Bun.spawn([nakataBin, ...spawnArgs], {
     cwd: dir, env: await shellEnv(), stdin: "pipe", stdout: "pipe", stderr: "ignore",
   });
   runs.set(runId, proc);
@@ -348,77 +290,98 @@ async function checkTarget(t) {
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 
-async function handle(req) {
-  if (req.headers.get("tailscale-user-login") !== OWNER) return new Response("forbidden", { status: 403 });
-  const url = new URL(req.url);
+export function createKonsolHandler(deps = {}) {
+  const owner = deps.owner ?? OWNER;
+  const botsDir = deps.botsDir ?? BOTS_DIR;
+  const nakataBin = deps.nakataBin ?? NAKATA;
+  return async function handle(req) {
+    if (req.headers.get("tailscale-user-login") !== owner) return new Response("forbidden", { status: 403 });
+    const url = new URL(req.url);
 
-  // HTML sayfaları önbelleğe alınmasın: UI güncellemesi telefonda anında görünsün.
-  const page = (file) => new Response(Bun.file(`${DIR}/${file}`), { headers: { "Cache-Control": "no-store" } });
-  if (req.method === "GET" && url.pathname === "/") return page("app.html");
-  if (req.method === "GET" && url.pathname === "/konsol") return page("panel.html");
-  if (req.method === "GET" && url.pathname === "/manifest.json") return new Response(Bun.file(`${DIR}/manifest.json`));
-  if (req.method === "GET" && /^\/icon-(192|512)\.png$/.test(url.pathname)) return new Response(Bun.file(`${DIR}${url.pathname}`));
+    // HTML sayfaları önbelleğe alınmasın: UI güncellemesi telefonda anında görünsün.
+    const page = (file) => new Response(Bun.file(`${DIR}/${file}`), { headers: { "Cache-Control": "no-store" } });
+    if (req.method === "GET" && url.pathname === "/") return page("app.html");
+    if (req.method === "GET" && url.pathname === "/konsol") return page("panel.html");
+    if (req.method === "GET" && url.pathname === "/manifest.json") return new Response(Bun.file(`${DIR}/manifest.json`));
+    if (req.method === "GET" && /^\/icon-(192|512)\.png$/.test(url.pathname)) return new Response(Bun.file(`${DIR}${url.pathname}`));
 
-  if (req.method === "GET" && url.pathname === "/api/windows") return json(await listWindowsWithPreview());
+    if (req.method === "GET" && url.pathname === "/api/windows") return json(await listWindowsWithPreview());
 
-  if (req.method === "GET" && url.pathname === "/api/pane") {
-    const t = url.searchParams.get("t");
-    if (!(await checkTarget(t))) return json({ error: "pencere yok" }, 404);
-    const text = await tmux("capture-pane", "-p", "-J", "-t", t, "-S", "-300");
-    return json({ text: text.replace(/\s+$/, "") });
-  }
-
-  if (req.method === "POST" && (url.pathname === "/api/send" || url.pathname === "/api/key")) {
-    const body = await req.json().catch(() => null);
-    if (!body || !(await checkTarget(body.t))) return json({ error: "pencere yok" }, 404);
-    if (url.pathname === "/api/key") {
-      if (!KEYS.has(body.key)) return json({ error: "tuş izinli değil" }, 400);
-      await tmux("send-keys", "-t", body.t, body.key);
-    } else {
-      if (typeof body.text !== "string" || body.text.length > 8000) return json({ error: "metin geçersiz" }, 400);
-      if (body.text) await tmux("send-keys", "-t", body.t, "-l", body.text);
-      if (body.enter) await tmux("send-keys", "-t", body.t, "Enter");
+    if (req.method === "GET" && url.pathname === "/api/pane") {
+      const t = url.searchParams.get("t");
+      if (!(await checkTarget(t))) return json({ error: "pencere yok" }, 404);
+      const text = await tmux("capture-pane", "-p", "-J", "-t", t, "-S", "-300");
+      return json({ text: text.replace(/\s+$/, "") });
     }
-    return json({ ok: true });
-  }
 
-  if (req.method === "GET" && url.pathname === "/api/sessions") {
-    const dir = await workspace(url.searchParams.get("cwd"));
-    if (!dir) return json({ error: "klasör geçersiz" }, 400);
-    return json({ cwd: dir, sessions: await listSessions(dir) });
-  }
+    if (req.method === "POST" && (url.pathname === "/api/send" || url.pathname === "/api/key")) {
+      const body = await req.json().catch(() => null);
+      if (!body || !(await checkTarget(body.t))) return json({ error: "pencere yok" }, 404);
+      if (url.pathname === "/api/key") {
+        if (!KEYS.has(body.key)) return json({ error: "tuş izinli değil" }, 400);
+        await tmux("send-keys", "-t", body.t, body.key);
+      } else {
+        if (typeof body.text !== "string" || body.text.length > 8000) return json({ error: "metin geçersiz" }, 400);
+        if (body.text) await tmux("send-keys", "-t", body.t, "-l", body.text);
+        if (body.enter) await tmux("send-keys", "-t", body.t, "Enter");
+      }
+      return json({ ok: true });
+    }
 
-  if (req.method === "GET" && url.pathname === "/api/session") {
-    const messages = await readSession(url.searchParams.get("path"));
-    if (!messages) return json({ error: "session yok" }, 404);
-    return json(messages);
-  }
+    if (req.method === "GET" && url.pathname === "/api/sessions") {
+      const dir = await workspace(url.searchParams.get("cwd"));
+      if (!dir) return json({ error: "klasör geçersiz" }, 400);
+      return json({ cwd: dir, sessions: await listSessions(dir) });
+    }
 
-  if (req.method === "GET" && url.pathname === "/api/bots") return json(await listBots());
-  if (req.method === "POST" && url.pathname === "/api/bot") return saveBot(await req.json().catch(() => null));
-  if (req.method === "POST" && url.pathname === "/api/bot/delete") return deleteBot((await req.json().catch(() => ({})))?.name);
-  if (req.method === "POST" && url.pathname === "/api/chat") return chat(await req.json().catch(() => null));
-  if (req.method === "POST" && url.pathname === "/api/music") return identifyMusic(await req.json().catch(() => null));
+    if (req.method === "GET" && url.pathname === "/api/session") {
+      const messages = await readSession(url.searchParams.get("path"));
+      if (!messages) return json({ error: "session yok" }, 404);
+      return json(messages);
+    }
 
-  if (req.method === "POST" && ["/api/answer", "/api/steer", "/api/stop"].includes(url.pathname)) {
-    return runControl(url.pathname, await req.json().catch(() => null));
-  }
+    if (req.method === "GET" && url.pathname === "/api/bots") return json(listBotsInDir(botsDir));
+    if (req.method === "POST" && url.pathname === "/api/bot") {
+      const res = saveBotInDir(await req.json().catch(() => null), botsDir);
+      return json(res.ok ? { ok: true, bot: res.bot } : { error: res.error }, res.ok ? 200 : (res.status || 400));
+    }
+    if (req.method === "POST" && url.pathname === "/api/bot/teach") {
+      const body = await req.json().catch(() => null);
+      const res = teachBotInDir(body?.name, body?.text, botsDir, "konsol");
+      return json(res.ok ? { ok: true, added: res.added, bot: res.bot } : { error: res.error }, res.ok ? 200 : (res.status || 400));
+    }
+    if (req.method === "POST" && url.pathname === "/api/bot/delete") {
+      const res = deleteBotInDir((await req.json().catch(() => ({})))?.name, botsDir);
+      return json(res.ok ? { ok: true } : { error: res.error }, res.ok ? 200 : (res.status || 400));
+    }
+    if (req.method === "POST" && url.pathname === "/api/chat") {
+      return chat(await req.json().catch(() => null), { botsDir, nakataBin });
+    }
+    if (req.method === "POST" && url.pathname === "/api/music") return identifyMusic(await req.json().catch(() => null));
 
-  return new Response("not found", { status: 404 });
+    if (req.method === "POST" && ["/api/answer", "/api/steer", "/api/stop"].includes(url.pathname)) {
+      return runControl(url.pathname, await req.json().catch(() => null));
+    }
+
+    return new Response("not found", { status: 404 });
+  };
 }
 
-Bun.serve({
-  hostname: "127.0.0.1",
-  port: PORT,
-  // Varsayılan 10 sn: model yanıtı beklerken SSE akışını keserdi. 255 = Bun üst sınırı;
-  // aradaki 15 sn'lik ping zaten bağlantıyı canlı tutar.
-  idleTimeout: 255,
-  async fetch(req) {
-    try {
-      return await handle(req);
-    } catch (e) {
-      return json({ error: String(e.message || e) }, 500);
-    }
-  },
-});
-console.log(`konsol 127.0.0.1:${PORT}`);
+if (import.meta.main) {
+  const handle = createKonsolHandler();
+  Bun.serve({
+    hostname: "127.0.0.1",
+    port: PORT,
+    // Varsayılan 10 sn: model yanıtı beklerken SSE akışını keserdi. 255 = Bun üst sınırı;
+    // aradaki 15 sn'lik ping zaten bağlantıyı canlı tutar.
+    idleTimeout: 255,
+    async fetch(req) {
+      try {
+        return await handle(req);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 500);
+      }
+    },
+  });
+  console.log(`konsol 127.0.0.1:${PORT}`);
+}
