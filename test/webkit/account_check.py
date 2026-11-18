@@ -255,8 +255,24 @@ with sync_playwright() as p:
     c2 = chat_posts[-1]["body"] if len(chat_posts) > 1 else {}
     check("re-enabling memory sends memory:true with same conversationId", c2.get("conversationId") == c1.get("conversationId") and c2.get("memory") is True, str(c2))
 
-    # voice selection + background continuity during live voice call
-    voice_calls = {"sessions": [], "delegations": [], "pings": 0, "ends": 0}
+    # voice selection + background continuity + minimize-to-chat + hot voice switch + custom trained voices
+    import struct
+    SILENT_WAV = (
+        b"RIFF" + struct.pack("<I", 36 + 64) + b"WAVE"
+        + b"fmt " + struct.pack("<IHHIIHH", 16, 1, 1, 16000, 32000, 2, 16)
+        + b"data" + struct.pack("<I", 64) + (b"\x00" * 64)
+    )
+    voice_calls = {"sessions": [], "switches": [], "tts": [], "local_tts": [], "delegations": [], "pings": 0, "ends": 0, "ended_ids": []}
+    def handle_local_tts(route):
+        req = route.request
+        cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers=cors)
+        body = json.loads(req.post_data or "{}") if req.post_data else {}
+        voice_calls["local_tts"].append({"auth": req.headers.get("authorization", ""), "body": body})
+        return route.fulfill(status=200, content_type="audio/wav", headers=cors, body=SILENT_WAV)
+    pg.route("http://127.0.0.1:18765/**", handle_local_tts)
+
     def handle_voice(route):
         req = route.request
         cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
@@ -266,14 +282,38 @@ with sync_playwright() as p:
         body = json.loads(req.post_data or "{}") if req.method == "POST" and req.post_data else {}
         if path.endswith("/voice/status"):
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
-                "enabled": True, "signedIn": True, "freeLeftSec": 900, "creditsPerMin": 13, "defaultVoice": "marin",
-                "voices": [{"id": "marin", "label": "Marin", "hint": "Doğal"}, {"id": "cedar", "label": "Cedar", "hint": "Sıcak"}, {"id": "vesper", "label": "Vesper", "hint": "İngiliz vurgulu"}],
+                "enabled": True, "signedIn": True, "freeLeftSec": 900, "creditsPerMin": 13, "defaultVoice": "marin", "customTtsAvailable": True,
+                "voices": [
+                    {"id": "marin", "label": "Marin", "hint": "Doğal", "kind": "gpt-live"},
+                    {"id": "cedar", "label": "Cedar", "hint": "Sıcak", "kind": "gpt-live"},
+                    {"id": "vesper", "label": "Vesper", "hint": "İngiliz vurgulu", "kind": "gpt-live"},
+                    {"id": "custom:sonji", "label": "Sonji", "hint": "Eğitilmiş sesimiz (XTTS)", "kind": "custom-tts", "ttsVoice": "sonji"},
+                ],
             }))
         if path.endswith("/voice/session"):
             voice_calls["sessions"].append(body)
+            req_voice = body.get("voice", "marin")
+            is_custom = req_voice == "custom:sonji"
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
-                "sessionId": f"vs_{len(voice_calls['sessions'])}", "sdp": "v=0\r\n", "freeLeftSec": 885, "pingEverySec": 20, "maxSessionSec": 600, "creditsPerMin": 13, "voice": body.get("voice", "marin"),
+                "sessionId": f"vs_{len(voice_calls['sessions'])}", "sdp": "v=0\r\n", "freeLeftSec": 885, "pingEverySec": 20, "maxSessionSec": 600, "creditsPerMin": 13,
+                "voice": req_voice, "transportVoice": "marin" if is_custom else req_voice, "voiceKind": "custom-tts" if is_custom else "gpt-live",
             }))
+        if path.endswith("/voice/switch"):
+            voice_calls["switches"].append(body)
+            req_voice = body.get("voice", "vesper")
+            if req_voice == "custom:sonji" or not body.get("sdp"):
+                return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
+                    "ok": True, "hot": True, "sessionId": body.get("sessionId"),
+                    "transportVoice": "cedar", "voice": req_voice,
+                    "voiceKind": "custom-tts" if req_voice == "custom:sonji" else "gpt-live", "freeLeftSec": 882,
+                }))
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
+                "ok": True, "hot": True, "sessionId": f"vs_sw_{len(voice_calls['switches'])}",
+                "sdp": "v=0\r\n", "transportVoice": req_voice, "voice": req_voice, "voiceKind": "gpt-live", "freeLeftSec": 882,
+            }))
+        if path.endswith("/voice/tts"):
+            voice_calls["tts"].append(body)
+            return route.fulfill(status=200, content_type="audio/wav", headers=cors, body=SILENT_WAV)
         if path.endswith("/voice/delegation"):
             voice_calls["delegations"].append(body)
             dispatched = [{"id": "cmd_voice_1", "prompt": "@Scout testleri calistir", "status": "queued", "bot": "Scout"}]
@@ -291,6 +331,8 @@ with sync_playwright() as p:
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "stop": False, "freeLeftSec": 880}))
         if path.endswith("/voice/end"):
             voice_calls["ends"] += 1
+            if body.get("sessionId"):
+                voice_calls["ended_ids"].append(body["sessionId"])
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({"ok": True, "stop": True}))
         return route.fulfill(status=404, content_type="application/json", headers=cors, body="{}")
     pg.route("**/api/mobile/voice/*", handle_voice)
@@ -305,7 +347,7 @@ with sync_playwright() as p:
         const pc = {
           iceGatheringState: "complete", connectionState: "connected",
           localDescription: { sdp: "v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n" },
-          addTrack(){}, close(){},
+          addTrack(){}, close(){ this._closed = true; },
           createDataChannel(){
             window.__voiceDcSent = window.__voiceDcSent || [];
             const dc = {
@@ -353,15 +395,69 @@ with sync_playwright() as p:
     pg.wait_for_timeout(250)
     check("backgrounding app keeps active voice call alive and sends heartbeat", pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] == 0 and voice_calls["pings"] >= 1, str(voice_calls))
     pg.evaluate("delete document.hidden")
+
+    # Returning to chat keeps the active voice call running with a persistent live mini-bar
+    pg.click("#voiceClose"); pg.wait_for_timeout(200)
+    mini_visible = pg.is_visible("#voiceMiniBar")
+    mic_live = pg.evaluate("document.getElementById('micBtn').classList.contains('live')")
+    pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: 'Sohbette de konuşmaya devam ediyorum.' }) })""")
+    pg.wait_for_timeout(150)
+    mini_state = pg.inner_text("#voiceMiniState")
+    mini_voice = pg.inner_text("#voiceMiniVoice")
+    check("returning to chat keeps voice call alive with mini-bar", (not pg.evaluate("document.getElementById('f-voice').classList.contains('on')")) and mini_visible and mic_live and voice_calls["ends"] == 0 and "Cedar" in mini_voice and mini_state == "Konuşuyor…", str((mini_visible, mic_live, mini_state, mini_voice, voice_calls["ends"])))
+    pg.click("#voiceMiniOpen"); pg.wait_for_timeout(150)
+    check("tapping live mini-bar returns to full voice call without reconnecting", pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and len(voice_calls["sessions"]) == 1 and voice_calls["ends"] == 0, str(voice_calls))
+
+    # Hot switching GPT-Live voice (make-before-break) without tearing down or calling /voice/session again
     pg.click("#voicePick")
     pg.wait_for_selector("#voiceSheet.on", timeout=3000)
     z_ok = pg.evaluate("Number(getComputedStyle(document.getElementById('voiceSheet')).zIndex) > Number(getComputedStyle(document.getElementById('f-voice')).zIndex)")
     pg.locator("#voiceList .botmain", has_text="Vesper").click()
     pg.wait_for_function("document.getElementById('voicePick').textContent.includes('Vesper') && document.getElementById('voiceState').textContent === 'Dinliyorum'", timeout=5000)
-    check("voice picker sheet renders above call screen and reconnects with new voice", z_ok and len(voice_calls["sessions"]) >= 2 and voice_calls["sessions"][-1].get("voice") == "vesper" and voice_calls["ends"] >= 1, str(voice_calls))
-    pg.click("#voiceEnd"); pg.wait_for_timeout(300)
+    check("voice picker hot-switches GPT-Live voice without /voice/session restart", z_ok and len(voice_calls["sessions"]) == 1 and len(voice_calls["switches"]) == 1 and voice_calls["switches"][-1].get("voice") == "vesper" and voice_calls["switches"][-1].get("sessionId") == "vs_1", str(voice_calls))
+
+    # Instant 0ms switch to custom trained XTTS voice (Sonji) + /voice/tts playback + barge-in
+    pg.click("#voicePick"); pg.wait_for_selector("#voiceSheet.on", timeout=3000)
+    pg.locator("#voiceList .botmain", has_text="Sonji").click()
+    pg.wait_for_function("document.getElementById('voicePick').textContent.includes('Sonji') && document.getElementById('voiceState').textContent === 'Dinliyorum'", timeout=3000)
+    webrtc_muted = pg.evaluate("Array.from(document.querySelectorAll('audio')).some(a => a.muted === true)")
+    pg.evaluate("""(() => {
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Sonji sesini dene' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'session.delegation.created', delegation: { id: 'del_sonji' } }) });
+    })()""")
+    pg.wait_for_function("() => (window.__voiceDcSent || []).some((m) => m.type === 'session.commentary.append' && m.delegation_id === 'del_sonji')", timeout=5000)
+    pg.wait_for_timeout(150)
+    # Barge-in must abort custom TTS playback cleanly
+    pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'input_audio_buffer.speech_started' }) })""")
+    pg.wait_for_timeout(100)
+    check("switching to custom trained Sonji voice uses /voice/tts instantaneously without reconnect", len(voice_calls["sessions"]) == 1 and webrtc_muted and len(voice_calls["tts"]) >= 1 and voice_calls["tts"][0].get("voice") == "custom:sonji" and pg.inner_text("#voiceState") == "Dinliyorum", str((webrtc_muted, voice_calls["tts"], voice_calls["sessions"])))
+
+    # Ending from minimized mini-bar properly terminates call and native audio
+    pg.click("#voiceClose"); pg.wait_for_timeout(150)
+    pg.click("#voiceMiniEnd"); pg.wait_for_timeout(300)
     native_audio_end = pg.evaluate("window.__nativeAudio")
-    check("ending call closes voice screen and deactivates native audio", not pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] >= 2 and native_audio_end[-1].get("active") is False, str(native_audio_end))
+    check("ending call from chat mini-bar closes call and deactivates native audio", (not pg.evaluate("document.getElementById('f-voice').classList.contains('on')")) and pg.evaluate("document.getElementById('voiceMiniBar').hidden === true") and (not pg.evaluate("document.getElementById('micBtn').classList.contains('live')")) and voice_calls["ends"] >= 2 and native_audio_end[-1].get("active") is False, str(native_audio_end))
+
+    # Adding user's own local trained custom voice in Settings + "Oku" read-aloud
+    pg.click("#menuBtn"); pg.wait_for_timeout(200); pg.click("#settingsRow"); pg.wait_for_selector("#cv-toggle-form", timeout=3000)
+    pg.click("#cv-toggle-form"); pg.wait_for_selector("#cv-form:not([hidden])", timeout=3000)
+    pg.fill("#cv-name", "Eğitimli Sonji")
+    pg.select_option("#cv-kind", "custom-tts")
+    pg.fill("#cv-url", "http://127.0.0.1:18765/v1/audio/speech")
+    pg.fill("#cv-voice", "sonji-v2")
+    pg.fill("#cv-token", "local-tok")
+    pg.click("#cv-test")
+    pg.wait_for_function("document.getElementById('cv-err')?.textContent.includes('Ses çalıştı.')", timeout=3000)
+    pg.click("#cv-save"); pg.wait_for_timeout(200)
+    cv_added = "Eğitimli Sonji" in pg.inner_text("#cv-list")
+    pg.click("#f-settings .fclose"); pg.wait_for_timeout(200)
+    pg.locator("#thread .msg-actions .speak").first.click()
+    pg.wait_for_timeout(250)
+    check("custom trained TTS server can be added/tested in Settings and used for chat read-aloud", cv_added and len(voice_calls["local_tts"]) >= 2 and voice_calls["local_tts"][-1]["body"].get("voice") == "sonji-v2" and voice_calls["local_tts"][-1].get("auth") == "Bearer local-tok", str((cv_added, voice_calls["local_tts"])))
+
+    # Switch back to GPT-Live Cedar before testing Scout custom bot delegation
+    pg.click("#menuBtn"); pg.wait_for_timeout(150); pg.click("#settingsRow"); pg.wait_for_timeout(150)
+    pg.select_option("#st-voice", "cedar"); pg.click("#st-save"); pg.wait_for_timeout(150)
 
     # voice call with custom bot + lessons + paired Mac delegation -> background task tracking
     pg.click("#modelBtn"); pg.wait_for_selector("#botNew", timeout=3000)
@@ -377,6 +473,7 @@ with sync_playwright() as p:
     pg.wait_for_selector("#agentCommandArea:not([hidden])", timeout=8000)
     pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
     pg.evaluate("window.__voiceDcSent = []")
+    del_before = len(voice_calls["delegations"])
     pg.click("#micBtn")
     pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
     v_custom = voice_calls["sessions"][-1]
@@ -386,10 +483,10 @@ with sync_playwright() as p:
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Testleri Scout ile çalıştır' }) });
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'session.delegation.created', delegation: { id: 'del_1' } }) });
     })()""")
-    pg.wait_for_function("() => (window.__voiceDcSent || []).some((m) => m.type === 'session.commentary.append')", timeout=5000)
+    pg.wait_for_function("() => (window.__voiceDcSent || []).some((m) => m.type === 'session.commentary.append' && m.delegation_id === 'del_1')", timeout=5000)
     dc_sent = pg.evaluate("window.__voiceDcSent")
-    commentary = next((m for m in dc_sent if m.get("type") == "session.commentary.append"), {})
-    check("voice delegation sends transcript, forwards commentary answer, and queues Mac poll", len(voice_calls["delegations"]) == 1 and voice_calls["delegations"][0].get("text") == "Testleri Scout ile çalıştır" and commentary.get("delegation_id") == "del_1" and "Mac'e gönderdim" in commentary.get("content", ""), str((voice_calls["delegations"], commentary)))
+    commentary = next((m for m in dc_sent if m.get("type") == "session.commentary.append" and m.get("delegation_id") == "del_1"), {})
+    check("voice delegation sends transcript, forwards commentary answer, and queues Mac poll", len(voice_calls["delegations"]) == del_before + 1 and voice_calls["delegations"][-1].get("text") == "Testleri Scout ile çalıştır" and commentary.get("delegation_id") == "del_1" and "Mac'e gönderdim" in commentary.get("content", ""), str((voice_calls["delegations"], commentary)))
     pg.click("#voiceEnd"); pg.wait_for_timeout(250)
     src_href = pg.evaluate("document.querySelector('#thread .srcs a')?.href || ''")
     check("voice turn and web sources persist into active chat thread after call", "Testleri Scout ile çalıştır" in pg.inner_text("#thread") and src_href == "https://github.com/nakata/runs", str(src_href))
