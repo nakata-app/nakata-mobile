@@ -256,7 +256,7 @@ with sync_playwright() as p:
     check("re-enabling memory sends memory:true with same conversationId", c2.get("conversationId") == c1.get("conversationId") and c2.get("memory") is True, str(c2))
 
     # voice selection + background continuity during live voice call
-    voice_calls = {"sessions": [], "pings": 0, "ends": 0}
+    voice_calls = {"sessions": [], "delegations": [], "pings": 0, "ends": 0}
     def handle_voice(route):
         req = route.request
         cors = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "GET, POST, OPTIONS"}
@@ -273,6 +273,17 @@ with sync_playwright() as p:
             voice_calls["sessions"].append(body)
             return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
                 "sessionId": f"vs_{len(voice_calls['sessions'])}", "sdp": "v=0\r\n", "freeLeftSec": 885, "pingEverySec": 20, "maxSessionSec": 600, "creditsPerMin": 13, "voice": body.get("voice", "marin"),
+            }))
+        if path.endswith("/voice/delegation"):
+            voice_calls["delegations"].append(body)
+            dispatched = [{"id": "cmd_voice_1", "prompt": "@Scout testleri calistir", "status": "queued", "bot": "Scout"}]
+            agent_state["cmd"] = {"id": "cmd_voice_1", "prompt": "@Scout testleri calistir", "createdAt": 1700000001000}
+            agent_state["status"] = "queued"
+            return route.fulfill(status=200, content_type="application/json", headers=cors, body=json.dumps({
+                "ok": True,
+                "answer": "Görevi Mac'e gönderdim, bitince haber vereceğim.",
+                "toolsUsed": ["dispatch_mac_task"],
+                "dispatchedTasks": dispatched,
             }))
         if path.endswith("/voice/ping"):
             voice_calls["pings"] += 1
@@ -295,10 +306,15 @@ with sync_playwright() as p:
           localDescription: { sdp: "v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n" },
           addTrack(){}, close(){},
           createDataChannel(){
+            window.__voiceDcSent = window.__voiceDcSent || [];
             const dc = {
               readyState: "open",
               send(raw){
-                try { if (JSON.parse(raw).type === "session.close") setTimeout(() => dc.onmessage && dc.onmessage({ data: JSON.stringify({ type: "session.closed" }) }), 10); } catch {}
+                try {
+                  const msg = JSON.parse(raw);
+                  window.__voiceDcSent.push(msg);
+                  if (msg.type === "session.close") setTimeout(() => dc.onmessage && dc.onmessage({ data: JSON.stringify({ type: "session.closed" }) }), 10);
+                } catch {}
               },
               close(){},
             };
@@ -322,7 +338,8 @@ with sync_playwright() as p:
     native_audio = pg.evaluate("window.__nativeAudio")
     check("voice call sends profile name, memory flag, voice choice and activates native audio", len(voice_calls["sessions"]) == 1 and sess0.get("voice") == "cedar" and sess0.get("memory") is True and sess0.get("profile", {}).get("name") == "Atakan" and any(x.get("active") is True for x in native_audio) and "Cedar" in pg.inner_text("#voicePick"), str((sess0, native_audio)))
     pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: 'Harika, hoş geldin Atakan!' }) })""")
-    pg.wait_for_timeout(120)
+    try: pg.wait_for_function("document.querySelector('#voiceOrb svg.bot-orb')?.dataset.expression === 'excited'", timeout=1500)
+    except Exception: pass
     v_face = pg.evaluate("document.querySelector('#voiceOrb svg.bot-orb')?.dataset.expression")
     check("voice orb expression reacts dynamically to spoken transcript tone", v_face == "excited", str(v_face))
     pg.evaluate("""(() => {
@@ -345,6 +362,41 @@ with sync_playwright() as p:
     native_audio_end = pg.evaluate("window.__nativeAudio")
     check("ending call closes voice screen and deactivates native audio", not pg.evaluate("document.getElementById('f-voice').classList.contains('on')") and voice_calls["ends"] >= 2 and native_audio_end[-1].get("active") is False, str(native_audio_end))
 
+    # voice call with custom bot + lessons + paired Mac delegation -> background task tracking
+    pg.click("#modelBtn"); pg.wait_for_selector("#botNew", timeout=3000)
+    pg.click("#botNew"); pg.wait_for_selector("#bf-name", timeout=3000)
+    pg.fill("#bf-name", "Scout"); pg.fill("#bf-persona", "Kısa ve net konuş."); pg.click("#botSave")
+    pg.locator("#botList .botmain", has_text="Scout").wait_for(state="visible", timeout=3000)
+    pg.locator("#botList .botmain", has_text="Scout").click()
+    pg.wait_for_selector("#botSheet:not(.on)", timeout=3000)
+    pg.fill("#prompt", "/teach Kural 1: Türkçe cevap ver"); pg.dispatch_event("#prompt", "input"); pg.click("#sendBtn")
+    pg.wait_for_timeout(200)
+    pg.click("#menuBtn"); pg.wait_for_timeout(250); pg.click("#agentRow"); pg.wait_for_selector("#agentPairCode", timeout=3000)
+    pg.fill("#agentPairCode", "AB12CD34EF567890"); pg.click("#agentPairButton")
+    pg.wait_for_selector("#agentCommandArea:not([hidden])", timeout=8000)
+    pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
+    pg.evaluate("window.__voiceDcSent = []")
+    pg.click("#micBtn")
+    pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
+    v_custom = voice_calls["sessions"][-1]
+    check("voice call forwards customBot persona, lessons, and active pairId", v_custom.get("pairId") == "pair_test_1" and v_custom.get("customBot", {}).get("name") == "Scout" and v_custom.get("customBot", {}).get("lessons") == ["Kural 1: Türkçe cevap ver"], str(v_custom))
+    pg.evaluate("""(() => {
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Testleri Scout ile çalıştır' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'session.delegation.created', delegation: { id: 'del_1' } }) });
+    })()""")
+    pg.wait_for_function("() => (window.__voiceDcSent || []).some((m) => m.type === 'session.commentary.append')", timeout=5000)
+    dc_sent = pg.evaluate("window.__voiceDcSent")
+    commentary = next((m for m in dc_sent if m.get("type") == "session.commentary.append"), {})
+    check("voice delegation sends transcript, forwards commentary answer, and queues Mac poll", len(voice_calls["delegations"]) == 1 and voice_calls["delegations"][0].get("text") == "Testleri Scout ile çalıştır" and commentary.get("delegation_id") == "del_1" and "Mac'e gönderdim" in commentary.get("content", ""), str((voice_calls["delegations"], commentary)))
+    pg.click("#voiceEnd"); pg.wait_for_timeout(250)
+    agent_state["status"] = "completed"
+    pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=8000)
+    pg.click("#agentTaskNotice")
+    pg.wait_for_function("document.getElementById('agentCommandResult').textContent.includes('OK 42% used')", timeout=6000)
+    check("voice-dispatched Mac task surfaces completion notice and output", "OK 42% used" in pg.inner_text("#agentCommandResult"))
+    pg.click("#agentUnpair"); pg.wait_for_selector("#agentCommandArea", state="hidden", timeout=5000)
+    pg.click("#f-agent .fclose"); pg.wait_for_timeout(200)
+
     # account page shortcut + delete account
     pg.click("#menuBtn"); pg.wait_for_timeout(300); pg.click("#accountRow"); pg.wait_for_timeout(350)
     check("account page links to Mac Agent", pg.is_visible("#acc-agent-btn"))
@@ -354,7 +406,7 @@ with sync_playwright() as p:
     except Exception: pass
     check("delete with a wrong password is refused", pg.inner_text("#acc-del-err") == "Şifre yanlış" and pg.evaluate("JSON.parse(localStorage.getItem('nakata_token'))") == "pst_test")
     pg.fill("#acc-del-pass", "dogru"); pg.click("#acc-del-go"); pg.wait_for_timeout(500)
-    after = pg.evaluate("({ tok: JSON.parse(localStorage.getItem('nakata_token')), page: document.getElementById('f-account').classList.contains('on'), note: document.querySelector('.note')?.textContent || '' })")
+    after = pg.evaluate("({ tok: JSON.parse(localStorage.getItem('nakata_token')), page: document.getElementById('f-account').classList.contains('on'), note: Array.from(document.querySelectorAll('#thread .note')).pop()?.textContent || '' })")
     check("delete signs out and says when data goes", after["tok"] == "" and not after["page"] and "8 gün" in after["note"] and "7 gün" in after["note"], str(after)[:120])
     errs = [e for e in errs if "access control checks" not in e]   # real nakata.app from a localhost page
     check("no page errors", not errs, "; ".join(errs[:3]))

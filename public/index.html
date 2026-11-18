@@ -4007,7 +4007,7 @@ async function startVoice(){
         if (inpMood !== "curious") setVoiceMood(inpMood, 600);
       }
       else if (ev.type === "session.delegation.created" && v.id) {
-        // Thinking is delegated to the client: ask nakata.app (Evren Gemma 4), GPT-Live speaks the answer.
+        // Thinking is delegated to the client: ask nakata.app (Evren brain + live tools/Mac relay), GPT-Live speaks the answer.
         clearTimeout(v.faceT);
         voiceSay("Düşünüyor…", "thinking");
         const prompt = (v.inp || "").slice(-1000); v.inp = "";
@@ -4015,6 +4015,19 @@ async function startVoice(){
           try {
             const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: prompt } });
             if (!voice || v.ending) return;
+            const toolsUsed = Array.isArray(d.j?.toolsUsed) ? d.j.toolsUsed : [];
+            const dispatched = Array.isArray(d.j?.dispatchedTasks) ? d.j.dispatchedTasks : [];
+            if (dispatched.length && activeAgentPairId) {
+              agentTaskAccount = agentAcct();
+              agentTaskPair = activeAgentPairId;
+              for (const task of dispatched) {
+                if (task?.id) agentPendingIds.add(task.id);
+              }
+              void refreshAgentTasks();
+              voiceSay(tx("Mac’e görev gönderildi"), "excited");
+            } else if (toolsUsed.some((t) => t === "web_search" || t === "get_weather" || t === "fetch_url")) {
+              voiceSay(tx("Bilgi bulundu"), "happy");
+            }
             if (d.ok && d.j.answer) {
               const ansMood = voiceFaceFrom(d.j.answer, "happy");
               if (ansMood !== "happy") setVoiceMood(ansMood, 0);
@@ -4048,12 +4061,20 @@ async function startVoice(){
       style: pf?.style || undefined,
       activeChat: activeChat || undefined,
     };
+    const localBotObj = !galleryBot && activeBot ? (allBots()[activeBot] || BOT_TEMPLATES.find((t) => t.name === activeBot)) : null;
+    const customBot = !galleryBot && activeBot && localBotObj ? {
+      name: activeBot,
+      persona: localBotObj.persona || "",
+      lessons: activeBotLessons(localBotObj).map((l) => l.text.trim()),
+    } : undefined;
     const r = await api("/voice/session", {
       method: "POST",
       body: {
         sdp: pc.localDescription.sdp,
         voice: selectedVoice(),
         bot: galleryBot?.id || undefined,
+        customBot,
+        pairId: activeAgentPairId || undefined,
         memory: memOn,
         profile: voiceProfile,
       },
