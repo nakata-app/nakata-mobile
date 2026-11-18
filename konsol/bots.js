@@ -301,6 +301,12 @@ export function saveBotInDir(payload, dir = defaultBotsDir()) {
 	if (typeof payload.face === "string" && FACE_RE.test(payload.face.trim())) {
 		nextDoc.face = payload.face.trim();
 	}
+	if (typeof payload.cwd === "string") {
+		const cleanCwd = payload.cwd.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+		if (cleanCwd.length > 512) return { ok: false, status: 400, error: "çalışma klasörü yolu çok uzun" };
+		if (cleanCwd) nextDoc.cwd = cleanCwd;
+		else delete nextDoc.cwd;
+	}
 
 	writePrivateAtomic(jsonPath, `${JSON.stringify(nextDoc, null, 2)}\n`);
 	// Clean legacy `.md` counterpart if this bot migrated to `.json`.
@@ -382,6 +388,48 @@ export function teachBotInDir(name, text, dir = defaultBotsDir(), source = "kons
 	doc.lessons = lessons.slice(-MAX_LESSONS);
 	writePrivateAtomic(jsonPath, `${JSON.stringify(doc, null, 2)}\n`);
 	return { ok: true, added: !dup, bot: parseBotJson(stem, JSON.stringify(doc)) };
+}
+
+/** Deactivate a learned rule/lesson on an existing Desktop JSON bot by 1-based index or text match. */
+export function forgetBotLessonInDir(name, query, dir = defaultBotsDir()) {
+	if (!isValidBotName(name)) return { ok: false, status: 400, error: "ad geçersiz" };
+	const needle = typeof query === "number" ? String(query) : typeof query === "string" ? query.trim() : "";
+	if (!needle) return { ok: false, status: 400, error: "silinecek kural belirtilmedi" };
+	const stem = name.trim();
+	const jsonPath = join(dir, `${stem}.json`);
+	const raw = readRegularBounded(jsonPath);
+	if (raw === null) return { ok: false, status: 404, error: "bot yok" };
+	let doc;
+	try {
+		doc = JSON.parse(raw);
+	} catch {
+		return { ok: false, status: 400, error: "bot dosyası okunamadı" };
+	}
+	if (!doc || typeof doc !== "object" || doc.name !== stem || typeof doc.role !== "string") {
+		return { ok: false, status: 404, error: "bot yok" };
+	}
+	const lessons = Array.isArray(doc.lessons) ? doc.lessons.filter((l) => l && typeof l.text === "string") : [];
+	const activeIndices = [];
+	for (let i = 0; i < lessons.length; i++) {
+		if (lessons[i].active !== false && lessons[i].text.trim()) activeIndices.push(i);
+	}
+	let matchIdx = -1;
+	if (/^\d+$/.test(needle)) {
+		const oneBased = Number.parseInt(needle, 10);
+		if (oneBased >= 1 && oneBased <= activeIndices.length) matchIdx = activeIndices[oneBased - 1];
+	} else {
+		const low = needle.toLowerCase();
+		matchIdx = activeIndices.find((idx) => lessons[idx].text.trim().toLowerCase() === low) ?? -1;
+		if (matchIdx === -1) {
+			matchIdx = activeIndices.find((idx) => lessons[idx].text.trim().toLowerCase().includes(low)) ?? -1;
+		}
+	}
+	if (matchIdx === -1) return { ok: false, status: 404, error: "eşleşen kural yok" };
+	const forgotten = lessons[matchIdx].text.trim();
+	lessons[matchIdx] = { ...lessons[matchIdx], active: false };
+	doc.lessons = lessons.slice(-MAX_LESSONS);
+	writePrivateAtomic(jsonPath, `${JSON.stringify(doc, null, 2)}\n`);
+	return { ok: true, forgotten, bot: parseBotJson(stem, JSON.stringify(doc)) };
 }
 
 /** Compose the bot system prompt matching Desktop (`persona` + active `lessons` + safety notes). */

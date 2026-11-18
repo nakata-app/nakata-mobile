@@ -237,6 +237,11 @@ textarea.field{resize:vertical;min-height:150px;line-height:1.45}
 .primary{margin-top:20px;background:var(--accent);color:var(--on-accent);border-radius:14px;padding:15px;font-weight:600}
 .danger{margin-top:24px;border:1px solid var(--err);color:var(--err);border-radius:14px;padding:13px}
 .danger[hidden]{display:none}
+.lessons-box{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.lesson-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--raised);font-size:13.5px;line-height:1.35}
+.lesson-row span{flex:1;min-width:0;overflow-wrap:anywhere}
+.lesson-del{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.lesson-del:active{background:#ffffff1c;color:var(--err)}
 .muted{color:var(--muted)}
 
 /* model chip (like the desktop composer's model menu), templates, welcome */
@@ -558,6 +563,10 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
     <textarea id="bf-persona" class="field" rows="7" placeholder="Bu bot kim, nasıl cevap versin?"></textarea>
     <label for="bf-starters">Başlangıç örnekleri <span class="muted">(satır başı 1 öneri, en fazla 4)</span></label>
     <textarea id="bf-starters" class="field" rows="3" style="min-height:86px" placeholder="Önemli noktaları özetle&#10;Adım adım plan çıkar"></textarea>
+    <div id="bf-lessons-wrap" hidden>
+      <label>Öğrenilen kurallar</label>
+      <div id="bf-lessons" class="lessons-box"></div>
+    </div>
     <div id="bf-publish" style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <b style="font-size:15px">Galeride yayınla</b>
@@ -1519,6 +1528,65 @@ function useTemplate(t){
 }
 function allBots(){ return LS.get("nakata_byok_bots", {}); }
 function saveBots(b){ LS.set("nakata_byok_bots", b); }
+function activeBotLessons(bot){
+  if (!bot || bot.learn === false || !Array.isArray(bot.lessons)) return [];
+  return bot.lessons.filter((l) => l && l.active !== false && typeof l.text === "string" && l.text.trim()).slice(-8);
+}
+function findLocalOrTemplateBotName(raw){
+  if (!raw) return null;
+  const low = String(raw).trim().toLowerCase();
+  const saved = Object.keys(allBots()).find((n) => n.toLowerCase() === low);
+  if (saved) return saved;
+  const tpl = BOT_TEMPLATES.find((t) => t.name.toLowerCase() === low);
+  return tpl ? tpl.name : null;
+}
+function ensureEditableBot(name){
+  const bots = allBots();
+  if (bots[name]) return { bots, key: name, bot: bots[name] };
+  const tpl = BOT_TEMPLATES.find((t) => t.name === name);
+  if (!tpl) return null;
+  bots[tpl.name] = { persona: tpl.persona, description: tpl.desc, starters: Array.isArray(tpl.starters) ? tpl.starters.slice(0, 4) : [] };
+  saveBots(bots);
+  return { bots, key: tpl.name, bot: bots[tpl.name] };
+}
+function teachMobileBot(name, text){
+  const clean = String(text || "").replace(/[\r\n]+/g, " ").trim().slice(0, 280);
+  if (clean.length < 3) return { ok: false, error: tx("Kural en az 3 karakter olmalı.") };
+  const found = ensureEditableBot(name);
+  if (!found) return { ok: false, error: tx("Bot bulunamadı.") };
+  const { bots, key, bot } = found;
+  const list = Array.isArray(bot.lessons) ? bot.lessons.filter((l) => l && typeof l.text === "string") : [];
+  const dup = list.find((l) => l.active !== false && l.text.trim().toLowerCase() === clean.toLowerCase());
+  if (!dup) list.push({ text: clean, source: "mobile", wins: 0, losses: 0, createdAt: new Date().toISOString().slice(0, 10), active: true });
+  bots[key] = { ...bot, lessons: list.slice(-30) };
+  saveBots(bots);
+  paintHero();
+  return { ok: true, added: !dup, key, text: clean };
+}
+function forgetMobileBotLesson(name, query){
+  const needle = String(query ?? "").trim();
+  const bots = allBots(), bot = bots[name];
+  if (!bot || !needle) return { ok: false, error: tx("Eşleşen kural bulunamadı.") };
+  const list = Array.isArray(bot.lessons) ? bot.lessons.filter((l) => l && typeof l.text === "string") : [];
+  const activeIdx = [];
+  for (let i = 0; i < list.length; i++) if (list[i].active !== false && list[i].text.trim()) activeIdx.push(i);
+  let match = -1;
+  if (/^\d+$/.test(needle)) {
+    const n = parseInt(needle, 10);
+    if (n >= 1 && n <= activeIdx.length) match = activeIdx[n - 1];
+  } else {
+    const low = needle.toLowerCase();
+    match = activeIdx.find((i) => list[i].text.trim().toLowerCase() === low) ?? -1;
+    if (match === -1) match = activeIdx.find((i) => list[i].text.trim().toLowerCase().includes(low)) ?? -1;
+  }
+  if (match === -1) return { ok: false, error: tx("Eşleşen kural bulunamadı.") };
+  const forgotten = list[match].text.trim();
+  list[match] = { ...list[match], active: false };
+  bots[name] = { ...bot, lessons: list.slice(-30) };
+  saveBots(bots);
+  paintHero();
+  return { ok: true, key: name, forgotten };
+}
 let activeBot = null;
 let galleryBot = null;   // a published bot opened from Keşfet: { id, name, persona, mascot }
 let payBots = false;     // agreed this session to pay credits for gallery-bot messages past the free quota
@@ -1535,7 +1603,9 @@ function paintHero(){
     return;
   }
   const name = gb ? gb.name : activeBot;
-  const desc = gb ? (gb.tagline || gb.description || "") : (bot?.description || bot?.tagline || tpl?.desc || "");
+  const lessonCount = !gb ? activeBotLessons(bot).length : 0;
+  const rawDesc = gb ? (gb.tagline || gb.description || "") : (bot?.description || bot?.tagline || tpl?.desc || "");
+  const desc = [rawDesc, lessonCount ? `${lessonCount} ${tx("kural")}` : ""].filter(Boolean).join(" · ");
   const starters = (gb ? gb.starters : (bot?.starters?.length ? bot.starters : tpl?.starters)) || [];
   titleEl.textContent = name;
   descEl.textContent = desc; descEl.hidden = !desc;
@@ -1543,7 +1613,7 @@ function paintHero(){
   for (const s of starters.slice(0, 4)) {
     const b = el("button", "hero-starter", s);
     b.type = "button";
-    b.addEventListener("click", () => { void send(s); });
+    b.addEventListener("click", () => { void submitMobilePrompt(s); });
     stEl.append(b);
   }
   stEl.hidden = stEl.children.length === 0;
@@ -1573,7 +1643,11 @@ function openBotSheet(){
     return row;
   };
   list.append(mk("Nakata", "Varsayılan", !activeBot, false));
-  for (const [name, bot] of Object.entries(allBots())) list.append(mk(name, bot.description || bot.model || "", activeBot === name, true));
+  for (const [name, bot] of Object.entries(allBots())) {
+    const rules = activeBotLessons(bot).length;
+    const sub = [bot.description || bot.model || "", rules ? `${rules} ${tx("kural")}` : ""].filter(Boolean).join(" · ");
+    list.append(mk(name, sub, activeBot === name, true));
+  }
   const missing = BOT_TEMPLATES.filter((t) => !allBots()[t.name]);
   if (missing.length) {
     list.append(el("div", "sheet-sec", "Örnek botlar"));
@@ -1596,6 +1670,28 @@ function setPubStatus(status){
   dot.hidden = false; dot.className = "statusdot " + status; dot.textContent = statusLabel(status);
   $("#bf-pub").textContent = status === "rejected" ? "Tekrar gönder" : "Güncelle ve yayınla";
 }
+function paintMobileBotLessons(name){
+  const wrap = $("#bf-lessons-wrap"), box = $("#bf-lessons");
+  if (!wrap || !box) return;
+  box.replaceChildren();
+  const bot = name ? allBots()[name] : null;
+  const lessons = activeBotLessons(bot);
+  if (!name || !lessons.length) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  lessons.forEach((l, idx) => {
+    const row = el("div", "lesson-row");
+    row.append(el("span", "", `${idx + 1}. ${l.text.trim()}`));
+    const rm = el("button", "lesson-del", "×");
+    rm.type = "button";
+    rm.setAttribute("aria-label", `Kuralı sil: ${l.text.trim()}`);
+    rm.addEventListener("click", () => {
+      forgetMobileBotLesson(name, l.text);
+      paintMobileBotLessons(name);
+    });
+    row.append(rm);
+    box.append(row);
+  });
+}
 function openBotForm(name){
   const bot = name ? allBots()[name] : null;
   editingBot = name || null;
@@ -1606,6 +1702,7 @@ function openBotForm(name){
   $("#bf-category").value = bot?.category || "Diğer";
   $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
   if ($("#bf-starters")) $("#bf-starters").value = (bot?.starters || []).join("\n");
+  paintMobileBotLessons(name);
   $("#bf-del").hidden = !bot;
   showErr("#bf-puberr", ""); setPubStatus(bot?.publishedStatus || "");
   closeSheet(); showPage("#f-botform");
@@ -2416,7 +2513,11 @@ async function send(text, opts = {}){
   const messages = [];
   if (!gb) {
     const prof = profileText();
-    let system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), prof].filter(Boolean).join("\n\n");
+    const learned = activeBotLessons(bot);
+    const lessonBlock = learned.length
+      ? `Lessons learned from this user's feedback (follow them):\n${learned.map((l) => `- ${l.text.trim()}`).join("\n")}`
+      : "";
+    let system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), lessonBlock, prof].filter(Boolean).join("\n\n");
     if (travelAssistant) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (system) messages.push({ role: "system", content: system });
   }
@@ -2622,6 +2723,49 @@ $("#chatFile").addEventListener("change", async (e) => {
   }
   renderAttachBar(); updateSendBtn();
 });
+function handleMobileRuleCommand(kind, rawArg){
+  showHero(false);
+  if (galleryBot) { addNote(tx("Galeri botları düzenlenemez; önce kendi botuna kaydet veya yeni bot oluştur.")); return; }
+  let targetName = activeBot;
+  let arg = String(rawArg || "").trim();
+  const tagged = arg.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+  if (tagged) {
+    const resolved = findLocalOrTemplateBotName(tagged[1]);
+    if (!resolved) { addNote(`${tx("Bot bulunamadı")}: @${tagged[1]}`); return; }
+    if (!allBots()[resolved]) ensureEditableBot(resolved);
+    targetName = resolved; activeBot = resolved; setModelLabel();
+    arg = tagged[2].trim();
+  }
+  if (!targetName) {
+    addNote(kind === "teach" ? tx("Kural eklemek için önce bir bot seçin ya da `/teach @BotAdı kural` yazın.") : tx("Kural silmek için önce bir bot seçin ya da `/forget @BotAdı kural` yazın."));
+    return;
+  }
+  if (kind === "teach") {
+    const r = teachMobileBot(targetName, arg);
+    addNote(r.ok ? (r.added ? `✓ ${r.key} yeni kural öğrendi: ${r.text}` : `${r.key} bu kuralı zaten biliyor.`) : r.error, !r.ok);
+  } else {
+    const r = forgetMobileBotLesson(targetName, arg);
+    addNote(r.ok ? `✓ ${r.key} kuralı unuttu: ${r.forgotten}` : r.error, !r.ok);
+  }
+}
+async function submitMobilePrompt(rawText, opts = {}){
+  let text = String(rawText || "");
+  if (text && !galleryBot) {
+    const mention = text.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+    if (mention) {
+      const resolved = findLocalOrTemplateBotName(mention[1]);
+      if (resolved) {
+        if (!allBots()[resolved]) ensureEditableBot(resolved);
+        activeBot = resolved; setModelLabel(); text = mention[2].trim();
+      }
+    }
+    const teach = text.match(/^\/(teach|öğret|ogret)\s+([\s\S]+)$/i);
+    if (teach) { handleMobileRuleCommand("teach", teach[2]); return; }
+    const forget = text.match(/^\/(forget|unut)\s+([\s\S]+)$/i);
+    if (forget) { handleMobileRuleCommand("forget", forget[2]); return; }
+  }
+  await send(text, opts);
+}
 $("#composer").addEventListener("submit", (e) => {
   e.preventDefault();
   if (controller) { controller.abort(); return; }
@@ -2630,7 +2774,7 @@ $("#composer").addEventListener("submit", (e) => {
   const docFiles = pendingAttachments.filter((x) => x.kind === "file").map(({ name, size, text: ft }) => ({ name, size, text: ft }));
   if (!text && !imgs.length && !docFiles.length) return;
   $("#prompt").value = ""; pendingAttachments = []; renderAttachBar(); grow(); setBusy(false);
-  send(text, { images: imgs, files: docFiles });
+  void submitMobilePrompt(text, { images: imgs, files: docFiles });
 });
 function grow(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = `${Math.min(Math.max(t.scrollHeight, 26), 150)}px`; }
 $("#prompt").addEventListener("input", () => { grow(); updateSendBtn(); });
@@ -2897,6 +3041,12 @@ function renderAgentBotStarters(bot){
   }
   box.hidden = starters.length === 0;
 }
+function syncAgentBotStartersFromPrompt(){
+  const val = String($("#agentCommandPrompt")?.value || "");
+  const m = val.match(/^@([A-Za-z0-9_-]{1,40})(?:\s|$)/);
+  const matched = m ? agentPairedBots.find((b) => b.name.toLowerCase() === m[1].toLowerCase()) : null;
+  renderAgentBotStarters(matched || null);
+}
 function renderAgentBotChips(bots){
   agentPairedBots = Array.isArray(bots) ? bots.filter((b) => b && typeof b.name === "string" && b.name.trim()) : [];
   const host = $("#agentBotChips"); if (!host) return;
@@ -2923,7 +3073,7 @@ function renderAgentBotChips(bots){
     btn.textContent = prefix.trim();
     host.append(btn);
   }
-  renderAgentBotStarters(null);
+  syncAgentBotStartersFromPrompt();
 }
 const agentAcct = () => (token() && account?.name) ? String(account.name).trim().toLowerCase() : (token() ? "_signed_in" : "");
 const agentPairKey = () => "nk_agent_pair:" + agentAcct();
@@ -3129,6 +3279,7 @@ $("#agentBotChips")?.addEventListener("click", (e) => {
   box.focus();
   haptic();
 });
+$("#agentCommandPrompt")?.addEventListener("input", syncAgentBotStartersFromPrompt);
 $("#agentRetryResult")?.addEventListener("click", () => {
   if (!lastSelectedAgentPrompt) return;
   const box = $("#agentCommandPrompt");

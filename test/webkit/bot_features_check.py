@@ -207,6 +207,45 @@ def test_mobile(p):
             str(MobileHandler.chat_posts[-1]["body"].get("model")),
         )
 
+        # Teach + verify mobile system prompt injection + form remove + /forget
+        pg.fill("#prompt", "/teach Yanitlari en fazla 3 madde yaz")
+        pg.dispatch_event("#prompt", "input")
+        pg.click("#sendBtn")
+        pg.wait_for_function("document.getElementById('thread').innerText.includes('yeni kural öğrendi')", timeout=4000)
+        posts_before = len(MobileHandler.chat_posts)
+        pg.click("#newBtn")
+        pg.wait_for_timeout(150)
+        pg.click("#modelBtn")
+        pg.wait_for_timeout(150)
+        pg.locator("#botList .botmain", has_text="Nakata").click()
+        pg.wait_for_timeout(150)
+        pg.fill("#prompt", "@HizliKod Hata neden oluyor?")
+        pg.dispatch_event("#prompt", "input")
+        pg.click("#sendBtn")
+        pg.wait_for_function(f"window.fetch !== undefined", timeout=2000)
+        pg.wait_for_timeout(500)
+        check(
+            "mobile @Bot mention switches bot and injects active lessons into system prompt",
+            len(MobileHandler.chat_posts) > posts_before and "Yanitlari en fazla 3 madde yaz" in str(MobileHandler.chat_posts[-1]["body"]["messages"][0]),
+            str(MobileHandler.chat_posts[-1]["body"]["messages"][0]),
+        )
+        pg.click("#modelBtn")
+        pg.wait_for_timeout(150)
+        pg.locator("#botList .botopt", has_text="HizliKod").locator(".edit").click()
+        pg.wait_for_timeout(200)
+        check(
+            "mobile bot edit form displays active learned lessons and allows forgetting",
+            pg.locator("#bf-lessons .lesson-row").count() == 1 and "Yanitlari en fazla 3 madde yaz" in pg.inner_text("#bf-lessons"),
+        )
+        pg.locator("#bf-lessons .lesson-del").first.click()
+        pg.wait_for_timeout(150)
+        check(
+            "mobile bot form delete removes lesson immediately",
+            pg.locator("#bf-lessons .lesson-row").count() == 0,
+        )
+        pg.click("#f-botform .fclose")
+        pg.wait_for_timeout(150)
+
         # Mac Agent synced bots + starters + prefix cleanup + Retry button
         pg.click("#menuBtn")
         pg.wait_for_timeout(250)
@@ -240,6 +279,13 @@ def test_mobile(p):
             "Retry restores @Scout prompt into input for editing or re-sending",
             pg.input_value("#agentCommandPrompt") == "@Scout Audit latest commit",
             pg.input_value("#agentCommandPrompt"),
+        )
+        pg.fill("#agentCommandPrompt", "@Lex analyze contract")
+        pg.dispatch_event("#agentCommandPrompt", "input")
+        pg.wait_for_timeout(150)
+        check(
+            "typing @Lex in Mac Agent input dynamically shows Lex starters",
+            pg.locator("#agentBotStarters .chip", has_text="Check NDA risks").count() == 1,
         )
         check("mobile browser checks had zero uncaught page errors", len(page_errs) == 0, str(page_errs))
     finally:
@@ -347,6 +393,37 @@ await Bun.write({json.dumps(port_file)}, String(srv.port));
                 "Konsol /teach @Bot works even when no bot was pre-selected",
                 any(l.get("text") == "Yanıtta madde numarası ver" for l in lex_after.get("lessons", [])),
                 str(lex_after.get("lessons")),
+            )
+
+            # Edit Scout in Konsol form: check tool permissions, lessons UI, and delete rule via button + /forget
+            pg.click("#modelBtn")
+            pg.wait_for_timeout(200)
+            pg.locator("#botList .botopt", has_text="Scout").locator(".edit").click()
+            pg.wait_for_timeout(250)
+            check(
+                "Konsol edit form displays Desktop permissions and active learned lessons",
+                "Yasak: WebSearch" in pg.inner_text("#bf-rules") and pg.locator("#bf-lessons .lesson-row").count() == 2,
+                f"rules={pg.inner_text('#bf-rules')} count={pg.locator('#bf-lessons .lesson-row').count()}",
+            )
+            pg.locator("#bf-lessons .lesson-del").first.click()
+            pg.wait_for_timeout(250)
+            scout_after_btn = json.load(open(os.path.join(bdir, "Scout.json")))
+            check(
+                "Konsol lesson delete button deactivates rule cleanly in Desktop Scout.json",
+                sum(1 for l in scout_after_btn.get("lessons", []) if l.get("active") is not False) == 1,
+                str(scout_after_btn.get("lessons")),
+            )
+            pg.click("#f-botform .fclose")
+            pg.wait_for_timeout(150)
+            pg.fill("#prompt", "/forget @Scout 1")
+            pg.dispatch_event("#prompt", "input")
+            pg.click("#sendBtn")
+            pg.wait_for_function("document.getElementById('thread').innerText.includes('kuralı unuttu')", timeout=4000)
+            scout_final = json.load(open(os.path.join(bdir, "Scout.json")))
+            check(
+                "Konsol /forget @Bot 1 deactivates remaining active rule",
+                all(l.get("active") is False for l in scout_final.get("lessons", [])),
+                str(scout_final.get("lessons")),
             )
             check("Konsol UI checks had zero uncaught page errors", len(errs) == 0, str(errs))
         finally:

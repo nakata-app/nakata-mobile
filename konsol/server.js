@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import {
   defaultBotsDir,
   deleteBotInDir,
+  forgetBotLessonInDir,
   listBotsInDir,
   loadBotFromDir,
   resolveBotChatArgs,
@@ -349,6 +350,12 @@ export function createKonsolHandler(deps = {}) {
       const body = await req.json().catch(() => null);
       const res = teachBotInDir(body?.name, body?.text, botsDir, "konsol");
       return json(res.ok ? { ok: true, added: res.added, bot: res.bot } : { error: res.error }, res.ok ? 200 : (res.status || 400));
+    }
+    if (req.method === "POST" && url.pathname === "/api/bot/forget") {
+      const body = await req.json().catch(() => null);
+      const query = body?.index ?? body?.text ?? body?.query;
+      const res = forgetBotLessonInDir(body?.name, query, botsDir);
+      return json(res.ok ? { ok: true, forgotten: res.forgotten, bot: res.bot } : { error: res.error }, res.ok ? 200 : (res.status || 400));
     }
     if (req.method === "POST" && url.pathname === "/api/bot/delete") {
       const res = deleteBotInDir((await req.json().catch(() => ({})))?.name, botsDir);

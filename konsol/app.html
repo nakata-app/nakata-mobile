@@ -54,6 +54,12 @@ header .model svg{width:16px;height:16px;opacity:.6}
 .form label{color:var(--muted);font-size:13px;margin-top:10px}
 .field{background:var(--bar);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;outline:none;width:100%;box-sizing:border-box}
 .field.area{resize:vertical;min-height:140px;line-height:1.45}
+.lessons-box{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.lesson-row{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bar);font-size:13.5px;line-height:1.35}
+.lesson-row span{flex:1;min-width:0;overflow-wrap:anywhere}
+.lesson-del{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.lesson-del:active{background:#ffffff1c;color:var(--err)}
+.rules-summary{padding:9px 11px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12.5px;line-height:1.45}
 .del{margin-top:22px;background:none;border:1px solid var(--err);color:var(--err);border-radius:12px;padding:12px;font:inherit}
 .del[hidden]{display:none}
 
@@ -190,10 +196,20 @@ iframe.full{flex:1;border:0;width:100%}
     <input id="bf-desc" class="field" placeholder="örn. Kodu inceler, hata ayıklar" autocomplete="off">
     <label>Model <span class="muted">(opsiyonel)</span></label>
     <input id="bf-model" class="field" placeholder="örn. evren/deepseek-v4-flash" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label>Çalışma klasörü <span class="muted">(opsiyonel)</span></label>
+    <input id="bf-cwd" class="field" placeholder="örn. /Users/macmini/Projects/uygulama" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label>Persona / talimat</label>
     <textarea id="bf-persona" class="field area" rows="7" placeholder="Bu bot kim? Nasıl cevap versin?"></textarea>
     <label>Başlangıç örnekleri <span class="muted">(satır başı 1 öneri, en fazla 4)</span></label>
     <textarea id="bf-starters" class="field" rows="3" placeholder="Son değişiklikleri incele&#10;Bu hatayı açıkla"></textarea>
+    <div id="bf-rules-wrap" hidden>
+      <label>Araç izinleri</label>
+      <div id="bf-rules" class="rules-summary"></div>
+    </div>
+    <div id="bf-lessons-wrap" hidden>
+      <label>Öğrenilen kurallar</label>
+      <div id="bf-lessons" class="lessons-box"></div>
+    </div>
     <button class="del" id="bf-del" hidden>Botu sil</button>
   </div></div>
 </section>
@@ -335,13 +351,48 @@ async function openBotSheet() {
 $("#modelBtn").addEventListener("click", openBotSheet);
 
 let editingBot = null;
+function paintBotRulesAndLessons(bot) {
+  const rulesWrap = $("#bf-rules-wrap"), rulesEl = $("#bf-rules");
+  const r = bot?.rules || {};
+  const parts = [];
+  if (r.do?.length) parts.push(`Otomatik: ${r.do.join(", ")}`);
+  if (r.ask?.length) parts.push(`Onaylı: ${r.ask.join(", ")}`);
+  if (r.never?.length) parts.push(`Yasak: ${r.never.join(", ")}`);
+  if (parts.length) { rulesEl.textContent = parts.join(" · "); rulesWrap.hidden = false; }
+  else { rulesEl.textContent = ""; rulesWrap.hidden = true; }
+
+  const wrap = $("#bf-lessons-wrap"), box = $("#bf-lessons");
+  box.replaceChildren();
+  const lessons = Array.isArray(bot?.lessons) ? bot.lessons : [];
+  if (!bot || !lessons.length) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  lessons.forEach((l, idx) => {
+    const row = el("div", "lesson-row");
+    row.append(el("span", "", `${idx + 1}. ${l.text}`));
+    const rm = el("button", "lesson-del", "×");
+    rm.type = "button";
+    rm.setAttribute("aria-label", `Kuralı sil: ${l.text}`);
+    rm.addEventListener("click", async () => {
+      try {
+        const res = await api("/api/bot/forget", { method: "POST", body: JSON.stringify({ name: bot.name, text: l.text }) });
+        await refreshBots();
+        paintBotRulesAndLessons(res.bot || findBot(bot.name));
+      } catch (e) { alert(e.message); }
+    });
+    row.append(rm);
+    box.append(row);
+  });
+}
 function openBotForm(bot) {
   editingBot = bot ? bot.name : null;
   $("#botFormTitle").textContent = bot ? "Botu düzenle" : "Yeni bot";
   $("#bf-name").value = bot?.name || ""; $("#bf-name").readOnly = !!bot;
   $("#bf-desc").value = bot?.description || "";
-  $("#bf-model").value = bot?.model || ""; $("#bf-persona").value = bot?.persona || "";
+  $("#bf-model").value = bot?.model || "";
+  $("#bf-cwd").value = bot?.cwd || "";
+  $("#bf-persona").value = bot?.persona || "";
   $("#bf-starters").value = (bot?.starters || []).join("\n");
+  paintBotRulesAndLessons(bot);
   $("#bf-del").hidden = !bot;
   closeSheet();
   $("#f-botform").classList.add("on");
@@ -354,6 +405,7 @@ $("#botSave").addEventListener("click", async () => {
     name: $("#bf-name").value.trim(),
     description: $("#bf-desc").value.trim(),
     model: $("#bf-model").value.trim() || undefined,
+    cwd: $("#bf-cwd").value.trim(),
     persona: $("#bf-persona").value,
     starters,
   };
@@ -493,6 +545,39 @@ async function send(text) {
   finally { runId = null; controller = null; setBusy(false); }
 }
 
+async function runBotRuleCommand(kind, rawArg) {
+  showHero(false);
+  let targetName = activeBot;
+  let arg = rawArg.trim();
+  const tagged = arg.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
+  if (tagged) {
+    if (!botCatalog.length) await refreshBots().catch(() => {});
+    const target = findBot(tagged[1]);
+    if (!target) { addNote(`Bot bulunamadı: @${tagged[1]}`); return; }
+    targetName = target.name;
+    activeBot = target.name;
+    setModelLabel();
+    arg = tagged[2].trim();
+  }
+  if (!targetName) {
+    addNote(`Kural ${kind === "teach" ? "eklemek" : "silmek"} için önce bir bot seçin ya da \`/${kind} @BotAdı kural\` yazın.`);
+    return;
+  }
+  try {
+    if (kind === "teach") {
+      const res = await api("/api/bot/teach", { method: "POST", body: JSON.stringify({ name: targetName, text: arg }) });
+      await refreshBots();
+      addNote(res.added ? `✓ ${targetName} yeni kural öğrendi: ${arg}` : `${targetName} bu kuralı zaten biliyor.`);
+    } else {
+      const res = await api("/api/bot/forget", { method: "POST", body: JSON.stringify({ name: targetName, query: arg }) });
+      await refreshBots();
+      addNote(`✓ ${targetName} kuralı unuttu: ${res.forgotten}`);
+    }
+  } catch (e) {
+    addNote(`Kural ${kind === "teach" ? "eklenemedi" : "silinemedi"}: ${e.message}`);
+  }
+}
+
 async function submitPrompt(rawText) {
   let text = rawText;
   const mention = text.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
@@ -502,31 +587,9 @@ async function submitPrompt(rawText) {
     if (target) { activeBot = target.name; setModelLabel(); text = mention[2].trim(); }
   }
   const teach = text.match(/^\/(teach|öğret|ogret)\s+([\s\S]+)$/i);
-  if (teach) {
-    showHero(false);
-    let targetName = activeBot;
-    let lessonText = teach[2].trim();
-    const taggedTeach = lessonText.match(/^@([A-Za-z0-9_-]{1,40})\s+([\s\S]+)$/);
-    if (taggedTeach) {
-      if (!botCatalog.length) await refreshBots().catch(() => {});
-      const target = findBot(taggedTeach[1]);
-      if (!target) { addNote(`Bot bulunamadı: @${taggedTeach[1]}`); return; }
-      targetName = target.name;
-      activeBot = target.name;
-      setModelLabel();
-      lessonText = taggedTeach[2].trim();
-    }
-    if (!targetName) {
-      addNote("Kural eklemek için önce bir bot seçin ya da `/teach @BotAdı kural` yazın.");
-      return;
-    }
-    try {
-      const res = await api("/api/bot/teach", { method: "POST", body: JSON.stringify({ name: targetName, text: lessonText }) });
-      await refreshBots();
-      addNote(res.added ? `✓ ${targetName} yeni kural öğrendi: ${lessonText}` : `${targetName} bu kuralı zaten biliyor.`);
-    } catch (e) { addNote(`Kural eklenemedi: ${e.message}`); }
-    return;
-  }
+  if (teach) { await runBotRuleCommand("teach", teach[2]); return; }
+  const forget = text.match(/^\/(forget|unut)\s+([\s\S]+)$/i);
+  if (forget) { await runBotRuleCommand("forget", forget[2]); return; }
   await send(text);
 }
 

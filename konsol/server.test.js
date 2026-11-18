@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
 	buildBotSystemPrompt,
 	deleteBotInDir,
+	forgetBotLessonInDir,
 	listBotsInDir,
 	loadBotFromDir,
 	parseBotJson,
@@ -159,6 +160,17 @@ describe("konsol desktop-compatible bots store", () => {
 		const migrated = loadBotFromDir("OldBot", dir);
 		expect(migrated?.format).toBe("json");
 		expect(migrated?.lessons.map((l) => l.text)).toEqual(["Use numbered steps."]);
+
+		// Lessons can be forgotten by index or substring match, preserving inactive history cleanly.
+		teachBotInDir("Lex", "Keep responses under 3 bullets.", dir);
+		const byIdx = forgetBotLessonInDir("Lex", "1", dir);
+		expect(byIdx.ok).toBe(true);
+		expect(byIdx.forgotten).toBe("Always cite article numbers.");
+		expect(loadBotFromDir("Lex", dir)?.lessons.map((l) => l.text)).toEqual(["Keep responses under 3 bullets."]);
+		const byText = forgetBotLessonInDir("Lex", "3 bullets", dir);
+		expect(byText.ok).toBe(true);
+		expect(loadBotFromDir("Lex", dir)?.lessons).toEqual([]);
+		expect(forgetBotLessonInDir("Lex", "nonexistent", dir).ok).toBe(false);
 	});
 });
 
@@ -198,6 +210,7 @@ print(json.dumps({"type": "result", "session_id": "sess-12345678"}), flush=True)
 					description: "Code audit",
 					model: "deepseek-r1",
 					persona: "Audit carefully.",
+					cwd: "/tmp/audit-work",
 					starters: ["Check races"],
 				}),
 			});
@@ -214,6 +227,7 @@ print(json.dumps({"type": "result", "session_id": "sess-12345678"}), flush=True)
 			const list = await listRes.json();
 			expect(list).toHaveLength(1);
 			expect(list[0].lessons).toHaveLength(1);
+			expect(list[0].cwd).toBe("/tmp/audit-work");
 			expect(list[0].starters).toEqual(["Check races"]);
 
 			const chatRes = await fetch(`${base}/api/chat`, {
@@ -232,6 +246,16 @@ print(json.dumps({"type": "result", "session_id": "sess-12345678"}), flush=True)
 			expect(sysIdx).toBeGreaterThan(-1);
 			expect(captured.argv[sysIdx + 1]).toContain("Always list file and line.");
 			expect(JSON.parse(captured.stdin)).toEqual({ type: "user", content: "Selam" });
+
+			const forgetRes = await fetch(`${base}/api/bot/forget`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({ name: "Scout", index: 1 }),
+			});
+			expect(forgetRes.status).toBe(200);
+			const forgetJson = await forgetRes.json();
+			expect(forgetJson.forgotten).toBe("Always list file and line.");
+			expect(forgetJson.bot.lessons).toEqual([]);
 
 			const delRes = await fetch(`${base}/api/bot/delete`, {
 				method: "POST",
