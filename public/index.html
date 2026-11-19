@@ -893,7 +893,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   </div></div>
 </section>
 
-<script src="travel-chat.js?v=20261119-v3"></script>
+<script src="travel-chat.js?v=20261119-v4"></script>
 <script src="bot-orb.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
@@ -1623,7 +1623,7 @@ const BOT_TEMPLATES = [
   { name: "Product Designer", desc: "UX flows, screens and critique", starters: ["Critique this onboarding flow", "Fix hierarchy and empty states", "Simplify this form layout"], persona: "You are a senior product designer. Critique screens and flows for clarity, hierarchy and friction, and propose concrete fixes: layout, copy, states and empty states. Prefer simple, measurable improvements. Answer in the user's language." },
   { name: "Research Analyst", desc: "Structured research and summaries", starters: ["Compare options with pros and cons", "Summarize key evidence first", "List what is verified vs unsure"], persona: "You are a careful research analyst. Break a question into sub-questions, give a structured answer with the strongest evidence first, and state clearly what is uncertain or unverified. Never invent sources or numbers. Answer in the user's language." },
   { name: "Social Media Manager", desc: "Posts, hooks and content calendars", starters: ["Write 3 viral opening hooks", "Turn this update into an X + IG post", "Plan a 5-day content schedule"], persona: "You are a social media manager. Write platform-native posts (Instagram, TikTok, X, LinkedIn) with a strong first line, a clear call to action and a posting schedule. Offer 3 hook options per idea. Answer in the user's language." },
-  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", starters: ["Plan a 3-day budget city trip", "Compare neighborhoods to stay in", "Check entry rules & airport transit"], persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Always answer in the traveller's language. Be specific, practical, visually descriptive and candid. Never give a generic list when the user asks for a trip plan.\n\nDISCOVERY: Reuse everything already in the conversation. Never stall with a questionnaire before providing value. If dates, budget, or group size are missing for a flight, hotel, or booking request, briefly note in ONE sentence that you cannot complete checkout or reservations on their behalf, and IMMEDIATELY invoke live search/research tools with sensible transparent defaults (e.g., upcoming 3 nights, 2 adults, central stay) so the first reply delivers real current hotel/flight options and price ranges; ask briefly at the end for exact dates/origin to tailor. Establish departure city, destination, exact dates/year, group size, total budget/currency and travel style without repeating already stated details. Clarify a missing year when ambiguous.\n\nRESEARCH: Use the supplied research extracts and available web tools before recommending places. Verify that every named attraction, neighbourhood, restaurant, bar, club and transport operator exists in the stated city. Prefer official attraction, transport, airport and venue pages. Cite important claims with exact source links. Check dates. If supplied research is background-only, do not describe it as live verification or use it to assert current opening hours, prices, schedules, events, availability, weather or entry rules. If no live sources are available, say so and label current details unverified. Never invent places, sources, prices or timetables.\n\nITINERARY: Give an overall recommendation and route overview, then one section for each calendar day. Use morning, lunch, afternoon, dinner and evening blocks. Group nearby stops together; provide visit duration and realistic transfer time. Explain why each stop is worth visiting. Include named food and nightlife choices, not just generic streets. Keep each day realistic with breaks, 3-5 main stops maximum, and a lighter arrival/departure day. Include indoor alternatives for winter or rain. Preserve original local place names when useful.\n\nVISUALS: Use supplied real image references to enrich the trip and retain their captions, credits and licence details. Never invent image links or claim a photo depicts a specific venue unless verified.\n\nBUDGET: Break down accommodation, intercity transport, local transit, meals, activities, connectivity, insurance and contingency. Separate checked prices from estimates, state currency, search date and assumptions. Do not present estimates as quotes. Compare transport and hotels by time, location, total cost, taxes and cancellation terms. For entry rules, verify official sources and clarify nationality and transit details when relevant. Consider solo safety, late arrivals, accessibility and dietary needs without exaggeration.\n\nOUTPUT: Quick trip read; neighbourhood route overview; detailed day-by-day schedule; food and nightlife shortlist; getting around; itemised estimated budget; reservations and practical tips; linked sources. Use local time and exact dates. Mark each detail CONFIRMED, ESTIMATED or TO VERIFY. Maintain a compact trip summary across follow-ups and update only what changed." },
+  { name: "Travel Assistant", desc: "Trip planning, budgets, itineraries and travel support", starters: ["Plan a 3-day budget city trip", "Compare neighborhoods to stay in", "Check entry rules & airport transit"], persona: "You are Nakata Travel, a premium travel researcher and itinerary designer. Always answer in the traveller's language. Be specific, practical, visually descriptive and candid. Never give a generic list when the user asks for a trip plan.\n\nDISCOVERY: Reuse everything already in the conversation. Never stall with a questionnaire before providing value. If dates, budget, or group size are missing for a flight, hotel, or booking request, briefly note in ONE sentence that you cannot complete checkout or reservations on their behalf, and IMMEDIATELY invoke live search/research tools with sensible transparent defaults (e.g., upcoming 3 nights, 2 adults, central stay) so the first reply delivers real current hotel/flight options and price ranges; ask briefly at the end for exact dates/origin to tailor. Establish departure city, destination, exact dates/year, group size, total budget/currency and travel style without repeating already stated details. Clarify a missing year when ambiguous.\n\nRESEARCH: Use the supplied research extracts and available web tools before recommending places. Verify that every named attraction, neighbourhood, restaurant, bar, club and transport operator exists in the stated city. Prefer official attraction, transport, airport and venue pages. Check dates. Do NOT append a source list, citations or bare URL dump at the end of your reply. If supplied research is background-only, do not describe it as live verification or use it to assert current opening hours, prices, schedules, events, availability, weather or entry rules. If no live sources are available, say so and label current details unverified. Never invent places, sources, prices or timetables.\n\nITINERARY: Give an overall recommendation and route overview, then one section for each calendar day. Use morning, lunch, afternoon, dinner and evening blocks. Group nearby stops together; provide visit duration and realistic transfer time. Explain why each stop is worth visiting. Include named food and nightlife choices, not just generic streets. Keep each day realistic with breaks, 3-5 main stops maximum, and a lighter arrival/departure day. Include indoor alternatives for winter or rain. Preserve original local place names when useful.\n\nVISUALS: Use supplied real image references to enrich the trip and retain their captions, credits and licence details. Never invent image links or claim a photo depicts a specific venue unless verified.\n\nBUDGET: Break down accommodation, intercity transport, local transit, meals, activities, connectivity, insurance and contingency. Separate checked prices from estimates, state currency, search date and assumptions. Do not present estimates as quotes. Compare transport and hotels by time, location, total cost, taxes and cancellation terms. For entry rules, verify official sources and clarify nationality and transit details when relevant. Consider solo safety, late arrivals, accessibility and dietary needs without exaggeration.\n\nOUTPUT: Quick trip read; neighbourhood route overview; detailed day-by-day schedule; food and nightlife shortlist; getting around; itemised estimated budget; reservations and practical tips. Use local time and exact dates. Mark each detail CONFIRMED, ESTIMATED or TO VERIFY. Maintain a compact trip summary across follow-ups and update only what changed." },
   { name: "Writing Editor", desc: "Sharpens text and keeps your voice", starters: ["Tighten this email cleanly", "Fix grammar while keeping my tone", "Shorten by 40% without losing meaning"], persona: "You are a meticulous editor. Fix spelling, grammar and clarity, tighten the text and keep the author's voice. Give the corrected text first, then the few most important changes as short bullets. Answer in the user's language." },
   { name: "Lex", desc: "Reads contracts & explains applicable law", starters: ["Review this contract for risky clauses", "Explain notice periods in plain words", "What clauses are missing here?"], persona: "You research legal questions and read legal documents. Reply in the user's language. You are not a lawyer: say so in one line when the user asks about their own situation, and suggest a lawyer when real money or rights are at stake. Cite exact laws, articles or official sources when known, and never invent article numbers. For a contract: list risky clauses, missing clauses and a plain-language summary." },
 ];
@@ -2217,10 +2217,16 @@ function renderSources(row, sources){
   if (!row || !Array.isArray(sources) || !sources.length) return;
   const asst = row.querySelector(".asst");
   if (!asst || asst.querySelector(".srcs")) return;
+  const clean = sources.filter((s) => {
+    const u = String(s?.url || "");
+    if (!/^https?:\/\//i.test(u)) return false;
+    if (/(?:duckduckgo\.com|bing\.com\/aclick|\/rdclks\/|search\.yahoo\.com|wttr\.in|open-meteo\.com|ad_domain=|ad_provider=)/i.test(u)) return false;
+    return true;
+  });
+  if (!clean.length) return;
   const box = el("div", "srcs");
   box.append(el("div", "srcs-h", tx("Kaynaklar")));
-  sources.slice(0, 8).forEach((s, idx) => {
-    if (!/^https?:\/\//i.test(String(s?.url || ""))) return;
+  clean.slice(0, 8).forEach((s, idx) => {
     const a = document.createElement("a"); a.href = s.url; a.target = "_blank"; a.rel = "noopener";
     let host = "";
     try { host = new URL(s.url).hostname.replace(/^www\./, ""); } catch {}
@@ -2643,7 +2649,10 @@ async function send(text, opts = {}){
   const bot = !gb && activeBot ? allBots()[activeBot] : null;
   const model = (bot && bot.model) || cfg.model;
   const travelAssistant = !gb && window.NakataTravelResearch?.isTravelAssistant({ id: activeBot === "Travel Assistant" ? "travel-assistant" : "", name: activeBot });
-  const travelResearch = travelAssistant ? await window.NakataTravelResearch.search({
+  // Hosted Nakata chats already have server-side live web_search/fetch_url/get_weather tools;
+  // only run client pre-flight travel research for BYOK mode or explicit visual requests.
+  const needPreTravelSearch = travelAssistant && (!free || window.NakataTravelResearch?.wantsImages?.(convo));
+  const travelResearch = needPreTravelSearch ? await window.NakataTravelResearch.search({
     history: convo,
     deviceId: deviceId(),
     endpoint: "https://nakata.app/api/mobile/travel-research"
@@ -2656,7 +2665,7 @@ async function send(text, opts = {}){
       ? `Lessons learned from this user's feedback (follow them):\n${learned.map((l) => `- ${l.text.trim()}`).join("\n")}`
       : "";
     let system = [bot && bot.persona ? bot.persona : (prof ? tx("Sen Nakata'sın, yardımsever bir asistan. Kullanıcının dilinde, açık ve öz cevap ver.") : ""), lessonBlock, prof].filter(Boolean).join("\n\n");
-    if (travelAssistant) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
+    if (travelResearch) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (system) messages.push({ role: "system", content: system });
   }
   for (const m of convo) if (m.role === "user" || m.role === "assistant") messages.push({ role: m.role, content: m.role === "user" ? toApiContent(m) : m.content });
@@ -2712,11 +2721,25 @@ async function send(text, opts = {}){
         return hit ? hit.id : (LS.get("nakata_free_model", "") || nakataDefaultModel);
       })()
     : model;
+  const isTransientNetErr = (err) => {
+    if (!err || err.name === "AbortError") return false;
+    const m = String(err.message || err).toLowerCase();
+    return err.name === "TypeError" || /load failed|failed to fetch|network|connection|reset|timeout|stream_interrupted/i.test(m);
+  };
+  const sleepAbortable = (ms) => new Promise((resolve) => {
+    if (controller?.signal?.aborted) { resolve(); return; }
+    const t = setTimeout(resolve, ms);
+    controller?.signal?.addEventListener("abort", () => { clearTimeout(t); resolve(); }, { once: true });
+  });
+  let streamFailed = false;
+  let lastErr = null;
   try {
     const base = cfg.base.replace(/\/+$/, "");
     const endpoint = gb ? `${base}/bots/${gb.id}/chat` : base + (free ? "/chat" : "/chat/completions");
-    const res = await fetch(endpoint, {
-      method: "POST", signal: controller.signal,
+    const reqInit = {
+      method: "POST",
+      cache: "no-store",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         ...(free ? { "X-Nakata-Device": deviceId(), ...(token() ? { "Authorization": "Bearer " + token() } : {}) } : { "Authorization": "Bearer " + cfg.key }),
@@ -2732,73 +2755,123 @@ async function send(text, opts = {}){
         ...(free && activeAgentPairId ? { pairId: activeAgentPairId } : {}),
         ...(gb && payBots ? { pay: "credits" } : {}),
       }),
-    });
-    if (!res.ok || !res.body) {
-      const j = await res.json().catch(() => ({}));
-      const code = j.error && j.error.code;
-      // Past the free quota a signed-in user may go on with a gallery bot for credits.
-      if (code === "free_limit" && gb && token() && !payBots
-          && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = turnRetry; return; }
-      if (["consent_required", "hard_floor", "provider_budget", "uncensored_closed"].includes(code)) {
-        addNote(tx(j.error?.message || FREE_ERRORS[code]), true); return;
-      }
-      if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true, ["upstream", "free_busy", "slow_down"].includes(code) ? turnRetry : null); return; }
-      throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
-    }
-    servedBy = res.headers.get("x-nakata-served-by") || "";
-    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
-    for (;;) {
-      const { value, done } = await reader.read(); if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let i;
-      while ((i = buf.indexOf("\n")) >= 0) {
-        const raw = buf.slice(0, i); buf = buf.slice(i + 1);
-        const line = raw.trim(); if (!line.startsWith("data:")) continue;
-        const payload = line.slice(5).trim(); if (!payload || payload === "[DONE]") continue;
-        let ev; try { ev = JSON.parse(payload); } catch { continue; }
-        if (ev.error) { addNote("Hata: " + (ev.error.message || ev.error), true); continue; }
-        const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
-        const tc = ev.type === "tool_call" ? { name: ev.tool, args: ev.args } : d.tool_call;
-        if (tc?.name) {
-          if (tc.name === "web_search") setPendingStatus("Web'de araştırılıyor…");
-          else if (tc.name === "fetch_url") setPendingStatus("Sayfa okunuyor…");
-          else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
-          else if (tc.name === "generate_image") setPendingStatus("Görsel hazırlanıyor…");
-          else if (tc.name === "dispatch_mac_task") setPendingStatus("Mac’e görev gönderiliyor…");
-          else if (tc.name === "check_mac_task") setPendingStatus("Mac görevi kontrol ediliyor…");
-          else setPendingStatus("Araç çalıştırılıyor…");
-          pendingOrb?.set(tc.name === "generate_image" ? "excited" : "curious");
-          window.__mascotReact?.onTool?.(tc.name, tc.args);
-        }
-        const srcs = ev.type === "tool_result" ? ev.sources : d.sources;
-        if (Array.isArray(srcs)) {
-          for (const s of srcs) {
-            if (s?.url && !seenSrc.has(s.url)) { seenSrc.add(s.url); msgSources.push({ title: String(s.title || s.url), url: String(s.url) }); }
+    };
+    const MAX_NET_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_NET_RETRIES; attempt++) {
+      try {
+        const res = await fetch(endpoint, reqInit);
+        if (!res.ok || !res.body) {
+          const j = await res.json().catch(() => ({}));
+          const code = j.error && j.error.code;
+          if (res.status >= 502 && res.status <= 504 && attempt < MAX_NET_RETRIES && !acc) {
+            setPendingStatus("Yeniden bağlanıyor…");
+            await sleepAbortable(600 * (attempt + 1));
+            if (controller?.signal?.aborted) return;
+            continue;
           }
-        }
-        const imgs = ev.type === "tool_result" ? ev.images : d.images;
-        if (Array.isArray(imgs)) {
-          for (const im of imgs) {
-            const u = String(im?.url || "");
-            if (/^https:\/\//i.test(u) && !seenImg.has(u)) { seenImg.add(u); msgImages.push({ title: String(im.title || ""), url: u }); }
+          // Past the free quota a signed-in user may go on with a gallery bot for credits.
+          if (code === "free_limit" && gb && token() && !payBots
+              && confirm("Bugünkü ücretsiz mesajların bitti. Bu botla mesaj başı 1 krediyle devam edilsin mi?")) { payBots = true; retry = turnRetry; return; }
+          if (["consent_required", "hard_floor", "provider_budget", "uncensored_closed"].includes(code)) {
+            addNote(tx(j.error?.message || FREE_ERRORS[code]), true); return;
           }
+          if (FREE_ERRORS[code]) { addNote(FREE_ERRORS[code], true, ["upstream", "free_busy", "slow_down"].includes(code) ? turnRetry : null); return; }
+          throw new Error((j.error && (j.error.message || j.error)) || `HTTP ${res.status}`);
         }
-        const act = ev.type === "tool_result" ? ev.action : d.action;
-        if (act && typeof act === "object") msgAction = act;
-        const itk = ev.type === "tool_result" ? ev.imageTask : d.imageTask;
-        if (itk && typeof itk === "object") msgImageTask = itk;
-        const dtk = ev.type === "tool_result" ? ev.dispatchedTask : d.dispatchedTask;
-        if (dtk?.id && activeAgentPairId) {
-          agentTaskAccount = agentAcct();
-          agentTaskPair = activeAgentPairId;
-          agentPendingIds.add(dtk.id);
-          void refreshAgentTasks();
+        servedBy = res.headers.get("x-nakata-served-by") || "";
+        const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
+        let retryStream = false;
+        for (;;) {
+          const { value, done } = await reader.read(); if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let i;
+          while ((i = buf.indexOf("\n")) >= 0) {
+            const raw = buf.slice(0, i); buf = buf.slice(i + 1);
+            const line = raw.trim(); if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim(); if (!payload || payload === "[DONE]") continue;
+            let ev; try { ev = JSON.parse(payload); } catch { continue; }
+            if (ev.error) {
+              if (ev.error.code === "stream_interrupted" && !acc && !msgImageTask && !msgAction && attempt < MAX_NET_RETRIES) {
+                retryStream = true;
+                break;
+              }
+              addNote("Hata: " + (ev.error.message || ev.error), true, turnRetry);
+              continue;
+            }
+            const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
+            const tc = ev.type === "tool_call" ? { name: ev.tool, args: ev.args } : d.tool_call;
+            if (tc?.name) {
+              if (tc.name === "web_search") setPendingStatus("Web'de araştırılıyor…");
+              else if (tc.name === "fetch_url") setPendingStatus("Sayfa okunuyor…");
+              else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
+              else if (tc.name === "generate_image") setPendingStatus("Görsel hazırlanıyor…");
+              else if (tc.name === "dispatch_mac_task") setPendingStatus("Mac’e görev gönderiliyor…");
+              else if (tc.name === "check_mac_task") setPendingStatus("Mac görevi kontrol ediliyor…");
+              else setPendingStatus("Araç çalıştırılıyor…");
+              pendingOrb?.set(tc.name === "generate_image" ? "excited" : "curious");
+              window.__mascotReact?.onTool?.(tc.name, tc.args);
+            }
+            const srcs = ev.type === "tool_result" ? ev.sources : d.sources;
+            if (Array.isArray(srcs)) {
+              for (const s of srcs) {
+                if (s?.url && !seenSrc.has(s.url)) { seenSrc.add(s.url); msgSources.push({ title: String(s.title || s.url), url: String(s.url) }); }
+              }
+            }
+            const imgs = ev.type === "tool_result" ? ev.images : d.images;
+            if (Array.isArray(imgs)) {
+              for (const im of imgs) {
+                const u = String(im?.url || "");
+                if (/^https:\/\//i.test(u) && !seenImg.has(u)) { seenImg.add(u); msgImages.push({ title: String(im.title || ""), url: u }); }
+              }
+            }
+            const act = ev.type === "tool_result" ? ev.action : d.action;
+            if (act && typeof act === "object") msgAction = act;
+            const itk = ev.type === "tool_result" ? ev.imageTask : d.imageTask;
+            if (itk && typeof itk === "object") msgImageTask = itk;
+            const dtk = ev.type === "tool_result" ? ev.dispatchedTask : d.dispatchedTask;
+            if (dtk?.id && activeAgentPairId) {
+              agentTaskAccount = agentAcct();
+              agentTaskPair = activeAgentPairId;
+              agentPendingIds.add(dtk.id);
+              void refreshAgentTasks();
+            }
+            if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
+            if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
+          }
+          if (retryStream) break;
         }
-        if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
-        if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
+        if (retryStream) {
+          reader.cancel().catch(() => {});
+          setPendingStatus("Yeniden bağlanıyor…");
+          await sleepAbortable(600 * (attempt + 1));
+          if (controller?.signal?.aborted) return;
+          continue;
+        }
+        lastErr = null;
+        break;
+      } catch (e) {
+        if (e.name === "AbortError" || controller?.signal?.aborted) throw e;
+        if (attempt < MAX_NET_RETRIES && !acc && !msgImageTask && !msgAction && isTransientNetErr(e)) {
+          setPendingStatus("Yeniden bağlanıyor…");
+          await sleepAbortable(600 * (attempt + 1));
+          if (controller?.signal?.aborted) return;
+          continue;
+        }
+        lastErr = e;
+        streamFailed = true;
+        break;
       }
     }
     flushPaint();
+    if (streamFailed && lastErr) {
+      if (acc) {
+        if (bubble) bubble.innerHTML = md(cleanCitations(acc));
+        addNote(tx("Bağlantı kesildi. Yanıt yarım kalmış olabilir."), true, turnRetry);
+        window.__mascotReact?.onReply?.({ error: true });
+        return;
+      }
+      throw lastErr;
+    }
     if (!acc && !reasonNode && !msgImageTask && !msgAction) addNote("Boş yanıt geldi. Modeli ve anahtarı kontrol et.", true, turnRetry);
     if (!acc && (msgImageTask || msgAction)) { if (!bubble) bubble = addAsst(); acc = " "; }
     if (acc) {
@@ -2811,7 +2884,7 @@ async function send(text, opts = {}){
       }
       if (bubble) bubble.innerHTML = md(acc);
       const row = bubble?.parentElement?.parentElement;
-      if (msgSources.length) renderSources(row, msgSources);
+      if (msgSources.length && !travelAssistant) renderSources(row, msgSources);
       scrollDown();
       window.__mascotReact?.onReply?.({
         text: acc,
@@ -2822,7 +2895,11 @@ async function send(text, opts = {}){
     }
   } catch (e) {
     flushPaint();
-    if (e.name !== "AbortError") { addNote("Bağlantı: " + e.message, true, turnRetry); window.__mascotReact?.onReply?.({ error: true }); }
+    if (e.name !== "AbortError") {
+      const msgText = isTransientNetErr(e) ? tx("Bağlantı kesildi. Tekrar dene.") : ("Bağlantı: " + e.message);
+      addNote(msgText, true, turnRetry);
+      window.__mascotReact?.onReply?.({ error: true });
+    }
   } finally {
     hidePending();
     let msg = null;

@@ -11,23 +11,30 @@
     bot?.id === "travel-assistant" ||
     /travel assistant|nakata travel/i.test(bot?.name || "");
 
-  // Proactive visuals (ChatGPT behavior): attach one photo when the latest user
-  // turn names a visual subject — a place, landmark, venue, dish, beach, museum…
-  // — and the user did not ask to stay text-only. Explicit no-image phrasing wins.
-  const IMAGE_SUBJECT = /\b(?:place|city|town|village|island|beach|coast|mountain|lake|river|museum|palace|castle|cathedral|mosque|church|temple|landmark|monument|view|skyline|old town|bazaar|market|restaurant|dish|food|hotel|resort|park|garden|waterfall|canyon)\b|(?:şehir|yer|ada|plaj|sahil|kıyı|dağ|göl|nehir|müze|saray|kale|katedral|cami|kilise|tapınak|manzara|çarşı|pazar|restoran|yemek|otel|tatil köyü|park|bahçe|şelale|kanyon|köy|kasaba|sokak|meydan)/i;
+  // Image search is opt-in: ordinary planning, facts, and weather questions stay text-only.
+  const IMAGE_WORDS = /\b(?:images?|photos?|photographs?|pictures?|visual references?)\b|(?:görsel(?:ler|ini|lerini)?|fotoğraf(?:lar|ını|larını)?|fotolar|resim(?:ler|ini|lerini)?)/i;
   const IMAGE_NEGATION = /\b(?:no|without|don't|do not|not|avoid|skip)\b.{0,24}\b(?:images?|photos?|pictures?)\b|(?:görsel|fotoğraf|resim)(?:leri|ları|leri)?\s*(?:istemiyorum|ekleme|kullanma|verme|olmasın)/i;
   function wantsImages(history) {
     const lastUser = [...(history || [])].reverse().find((message) => message.role === "user");
     const text = String(lastUser?.content || "");
-    if (IMAGE_NEGATION.test(text)) return false;
-    return IMAGE_SUBJECT.test(text);
+    return IMAGE_WORDS.test(text) && !IMAGE_NEGATION.test(text);
+  }
+
+  function buildSearchQuery(history) {
+    const userTexts = (history || [])
+      .filter((message) => message && message.role === "user")
+      .map((message) => clean(message.content, 240))
+      .filter(Boolean);
+    if (!userTexts.length) return "";
+    const latest = userTexts[userTexts.length - 1];
+    if (latest.length >= 90 || userTexts.length === 1) return latest.slice(0, 260);
+    return clean([...new Set(userTexts.slice(-3))].join(" "), 260);
   }
 
   async function search({ history, deviceId, endpoint }) {
     try {
-      const recent = (history || []).slice(-8)
-        .map((message) => (message.role === "user" ? "Traveller: " : "Context: ") + String(message.content || ""))
-        .join("\n").slice(-1800);
+      const query = buildSearchQuery(history);
+      if (query.length < 3) return null;
       const includeImages = wantsImages(history);
       const visualQuery = includeImages
         ? (history || []).filter((message) => message.role === "user").slice(-3)
@@ -36,7 +43,7 @@
       const response = await fetch(endpoint || "/api/mobile/travel-research", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Nakata-Device": deviceId },
-        body: JSON.stringify({ query: recent, includeImages, ...(includeImages ? { visualQuery } : {}) }),
+        body: JSON.stringify({ query, includeImages, ...(includeImages ? { visualQuery } : {}) }),
       });
       if (!response.ok) return null;
       const data = await response.json();
