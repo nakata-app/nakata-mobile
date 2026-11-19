@@ -1124,6 +1124,8 @@ const EN = {
   "Eğitilmiş özel ses":"Custom voice",
   "Özel ses":"Custom voice",
   "Sıcak ve çekici":"Warm & alluring",
+  "Ses hazırlanıyor…":"Preparing voice…",
+  "Özel ses şu an yanıt vermedi.":"Custom voice didn't respond right now.",
   "Özel ses sunucusuna bağlanılamadı.":"Could not reach custom voice server.",
   "Geçerli bir ses adı ve ID gir.":"Enter a valid voice name and ID.",
   "Geçerli bir http/https TTS adresi gir.":"Enter a valid http/https TTS URL.",
@@ -4158,10 +4160,21 @@ function splitSpeechSentences(text){
   for (const raw of parts) {
     const s = raw.trim();
     if (!s) continue;
-    if (merged.length && merged[merged.length - 1].length < 28 && merged[merged.length - 1].length + s.length < 180) {
+    // Keep chunk 0 short so custom TTS returns first audio fast; only merge tiny fragments after chunk 0.
+    if (merged.length >= 2 && merged[merged.length - 1].length < 24 && merged[merged.length - 1].length + s.length < 140) {
       merged[merged.length - 1] += " " + s;
     } else {
       merged.push(s);
+    }
+  }
+  // If the opening sentence itself is long (>72 chars), split at the first natural clause break for fast TTFA.
+  if (merged.length && merged[0].length > 72) {
+    const first = merged[0];
+    const m = first.slice(0, 76).match(/^(.{18,72}?(?:[,;:]|\s[—–-]))\s+(.+)$/);
+    if (m && m[2].trim().length >= 8) {
+      const head = m[1].trim();
+      const tail = (m[2] + first.slice(76)).trim();
+      if (tail) merged.splice(0, 1, head, tail);
     }
   }
   return merged.length ? merged : [clean];
@@ -4173,7 +4186,7 @@ function customEmotionForText(text){
   if (face === "angry") return "kizgin";
   return "normal";
 }
-async function fetchCustomTtsBlobUrl(text, voiceObj, { sessionId = null, signal, emotion = "" } = {}){
+async function fetchCustomTtsBlob(text, voiceObj, { sessionId = null, signal, emotion = "", format = "mp3", retries = 1 } = {}){
   const isLocal = !!(voiceObj?.local && voiceObj?.url);
   const endpoint = isLocal ? voiceObj.url : `${API}/voice/tts`;
   const headers = { "Content-Type": "application/json" };
@@ -4183,18 +4196,29 @@ async function fetchCustomTtsBlobUrl(text, voiceObj, { sessionId = null, signal,
   } else if (token()) {
     headers.Authorization = `Bearer ${token()}`;
   }
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    signal,
-    body: JSON.stringify(
-      isLocal
-        ? { model: "custom", input: text, voice: voiceObj.ttsVoice || voiceObj.id.replace(/^local:/, ""), ...(emotion ? { emotion } : {}), response_format: "wav" }
-        : { ...(sessionId ? { sessionId } : {}), voice: voiceObj.id, text, ...(emotion ? { emotion } : {}), format: "wav" },
-    ),
-  });
-  if (!res.ok) throw new Error("custom_tts_failed");
-  const blob = await res.blob();
+  const body = JSON.stringify(
+    isLocal
+      ? { model: "custom", input: text, voice: voiceObj.ttsVoice || voiceObj.id.replace(/^local:/, ""), ...(emotion ? { emotion } : {}), response_format: format }
+      : { ...(sessionId ? { sessionId } : {}), voice: voiceObj.id, text, ...(emotion ? { emotion } : {}), format },
+  );
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    try {
+      const res = await fetch(endpoint, { method: "POST", headers, signal, body });
+      if (res.ok) return await res.blob();
+      lastErr = new Error(`custom_tts_${res.status}`);
+      if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) throw lastErr;
+    } catch (err) {
+      if (signal?.aborted || err?.name === "AbortError") throw err;
+      lastErr = err;
+    }
+    if (attempt < retries) await wait(250);
+  }
+  throw lastErr || new Error("custom_tts_failed");
+}
+async function fetchCustomTtsBlobUrl(text, voiceObj, opts = {}){
+  const blob = await fetchCustomTtsBlob(text, voiceObj, { format: "wav", ...opts });
   return URL.createObjectURL(blob);
 }
 function stopCustomVoiceSpeech(v){
@@ -4202,15 +4226,68 @@ function stopCustomVoiceSpeech(v){
   try { v.ttsAbort?.abort(); } catch {}
   v.ttsAbort = null;
   v.ttsPlaySeq = (v.ttsPlaySeq || 0) + 1;
+  if (v.ttsSource) {
+    try { v.ttsSource.onended = null; v.ttsSource.stop(); } catch {}
+    v.ttsSource = null;
+  }
   if (v.customAudio) {
     try {
       v.customAudio.onended = null;
       v.customAudio.onerror = null;
       v.customAudio.pause();
       if (v.customAudioUrl) { URL.revokeObjectURL(v.customAudioUrl); v.customAudioUrl = ""; }
-      v.customAudio.removeAttribute("src");
+      // Never call removeAttribute("src") here: on iOS WKWebView it can drop the user-gesture playback unlock.
     } catch {}
   }
+}
+async function playCustomTtsBlob(v, blob, seq, signal){
+  if (!voice || voice !== v || v.ending || v.ttsPlaySeq !== seq || signal?.aborted) return;
+  // Prefer unlocked Web AudioContext on iOS WKWebView: survives async fetches without HTMLAudioElement gesture loss.
+  if (v.ttsAc && typeof v.ttsAc.decodeAudioData === "function") {
+    try {
+      if (v.ttsAc.state === "suspended") await v.ttsAc.resume().catch(() => {});
+      if (v.ttsAc.state === "running") {
+        const arrBuf = await blob.arrayBuffer();
+        if (voice !== v || v.ending || v.ttsPlaySeq !== seq || signal?.aborted) return;
+        const decoded = await v.ttsAc.decodeAudioData(arrBuf.slice(0));
+        if (voice !== v || v.ending || v.ttsPlaySeq !== seq || signal?.aborted) return;
+        await new Promise((resolve) => {
+          const src = v.ttsAc.createBufferSource();
+          src.buffer = decoded;
+          src.connect(v.ttsAc.destination);
+          v.ttsSource = src;
+          const finish = () => {
+            src.onended = null;
+            if (v.ttsSource === src) v.ttsSource = null;
+            resolve();
+          };
+          src.onended = finish;
+          try { src.start(0); } catch { finish(); }
+        });
+        return;
+      }
+    } catch {}
+  }
+  const blobUrl = URL.createObjectURL(blob);
+  if (voice !== v || v.ending || v.ttsPlaySeq !== seq || signal?.aborted) {
+    URL.revokeObjectURL(blobUrl);
+    return;
+  }
+  await new Promise((resolve) => {
+    const a = v.customAudio;
+    if (!a) { URL.revokeObjectURL(blobUrl); resolve(); return; }
+    if (v.customAudioUrl) { URL.revokeObjectURL(v.customAudioUrl); }
+    v.customAudioUrl = blobUrl;
+    a.src = blobUrl;
+    const done = () => {
+      a.onended = null; a.onerror = null;
+      if (v.customAudioUrl === blobUrl) { URL.revokeObjectURL(blobUrl); v.customAudioUrl = ""; }
+      resolve();
+    };
+    a.onended = done;
+    a.onerror = done;
+    a.play().catch(done);
+  });
 }
 async function speakCustomVoiceAnswer(v, answerText, delegationId){
   if (!voice || voice !== v || v.ending) return;
@@ -4219,6 +4296,7 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
   const ctrl = v.ttsAbort = new AbortController();
   const activeVoice = v.activeVoice || voiceMeta(selectedVoice());
   const chunks = splitSpeechSentences(answerText);
+  if (!chunks.length) return;
   const emotion = customEmotionForText(answerText);
   const vt = $("#voiceTranscript");
   if (vt) {
@@ -4226,46 +4304,47 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
     vt.textContent = v.caption;
     vt.hidden = false;
   }
-  voiceSay(tx("Konuşuyor…"), voiceFaceFrom(answerText, "happy"));
+  voiceSay(tx("Ses hazırlanıyor…"), "thinking");
   if (v.audio) v.audio.muted = true;
   if (v.dc?.readyState === "open" && delegationId) {
     // Keep GPT-Live conversation context synchronized while suppressing GPT-Live's own speaker output.
     v.suppressNextLiveAudio = true;
     v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: delegationId, content: answerText }));
   }
-  const prefetched = chunks.map((chunk) =>
-    fetchCustomTtsBlobUrl(chunk, activeVoice, { sessionId: v.id, signal: ctrl.signal, emotion })
-  );
+  const fetchChunk = (idx) => fetchCustomTtsBlob(chunks[idx], activeVoice, {
+    sessionId: v.id,
+    signal: ctrl.signal,
+    emotion,
+    format: "mp3",
+    retries: 1,
+  });
+  let pendingFetch = fetchChunk(0);
+  let playedAny = false;
   try {
-    for (let i = 0; i < prefetched.length; i++) {
-      const blobUrl = await prefetched[i];
-      if (voice !== v || v.ending || v.ttsPlaySeq !== seq || ctrl.signal.aborted) {
-        URL.revokeObjectURL(blobUrl);
-        continue;
+    for (let i = 0; i < chunks.length; i++) {
+      const blob = await pendingFetch;
+      if (voice !== v || v.ending || v.ttsPlaySeq !== seq || ctrl.signal.aborted) return;
+      // 1-ahead pipeline: start synthesizing chunk i+1 while chunk i plays so server lock never queues all chunks at once.
+      pendingFetch = (i + 1 < chunks.length) ? fetchChunk(i + 1) : null;
+      if (!playedAny) {
+        playedAny = true;
+        voiceSay(tx("Konuşuyor…"), voiceFaceFrom(answerText, "happy"));
       }
-      await new Promise((resolve) => {
-        const a = v.customAudio;
-        if (!a) { URL.revokeObjectURL(blobUrl); resolve(); return; }
-        if (v.customAudioUrl) { URL.revokeObjectURL(v.customAudioUrl); }
-        v.customAudioUrl = blobUrl;
-        a.src = blobUrl;
-        const done = () => {
-          a.onended = null; a.onerror = null;
-          if (v.customAudioUrl === blobUrl) { URL.revokeObjectURL(blobUrl); v.customAudioUrl = ""; }
-          resolve();
-        };
-        a.onended = done;
-        a.onerror = done;
-        a.play().catch(done);
-      });
+      await playCustomTtsBlob(v, blob, seq, ctrl.signal);
     }
     if (voice === v && !v.ending && v.ttsPlaySeq === seq) {
       voiceSay(tx("Dinliyorum"), "attentive");
     }
   } catch {
-    for (const p of prefetched) p.then((u) => { try { URL.revokeObjectURL(u); } catch {} }).catch(() => {});
+    if (pendingFetch) pendingFetch.catch(() => {});
     if (voice !== v || v.ending || ctrl.signal.aborted || v.ttsPlaySeq !== seq) return;
-    voiceSay(tx("Dinliyorum"), "attentive");
+    if (!playedAny) {
+      voiceSay(tx("Özel ses şu an yanıt vermedi."), "sad");
+      clearTimeout(v.faceT);
+      v.faceT = setTimeout(() => { if (voice === v && !v.ending && v.ttsPlaySeq === seq) voiceSay(tx("Dinliyorum"), "attentive"); }, 1800);
+    } else {
+      voiceSay(tx("Dinliyorum"), "attentive");
+    }
   }
 }
 
@@ -4418,7 +4497,10 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       clearTimeout(v.faceT);
       voiceSay("Düşünüyor…", "thinking");
       const prompt = (v.inp || "").slice(-1000); v.inp = "";
-      if (prompt.trim()) (async () => {
+      if (!prompt.trim()) {
+        v.ignoreLiveTranscript = false;
+        voiceSay(tx("Dinliyorum"), "attentive");
+      } else (async () => {
         try {
           const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: prompt } });
           if (!voice || voice !== v || v.ending) return;
@@ -4458,8 +4540,19 @@ function bindVoiceTransport(v, pc, dc, audioEl){
               if (v.audio) v.audio.muted = false;
               v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: ev.delegation?.id, content: d.j.answer }));
             }
+          } else {
+            // Brain failed/empty: never stay permanently muted/frozen; allow GPT-Live fallback transcript to flow.
+            v.ignoreLiveTranscript = false;
+            if (v.activeVoice?.kind !== "custom-tts" && v.audio) v.audio.muted = false;
+            voiceSay(tx("Dinliyorum"), "attentive");
           }
-        } catch {}
+        } catch {
+          if (voice === v && !v.ending) {
+            v.ignoreLiveTranscript = false;
+            if (v.activeVoice?.kind !== "custom-tts" && v.audio) v.audio.muted = false;
+            voiceSay(tx("Dinliyorum"), "attentive");
+          }
+        }
       })();
     }
   };
@@ -4730,6 +4823,17 @@ async function startVoice(){
     v.customAudio.playsInline = true; v.customAudio.hidden = true;
     document.body.append(v.customAudio);
     try { v.customAudio.src = SILENT_WAV_URI; v.customAudio.play().then(() => v.customAudio?.pause()).catch(() => {}); } catch {}
+    // Create and unlock dedicated Web AudioContext inside the tap gesture so iOS WKWebView reliably plays custom TTS after async fetches.
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        v.ttsAc = new AC();
+        v.ttsAc.resume().catch(() => {});
+        const sil = v.ttsAc.createBuffer(1, 1, 22050);
+        const s0 = v.ttsAc.createBufferSource();
+        s0.buffer = sil; s0.connect(v.ttsAc.destination); s0.start(0);
+      }
+    } catch {}
 
     const st = await api("/voice/status");
     if (st.ok && Array.isArray(st.j.voices) && st.j.voices.length) {
@@ -4840,6 +4944,7 @@ async function endVoice(note, { keepOpen = false } = {}){
   }
   if (note) addNote(note, true);
   try { void v.ac?.close?.()?.catch?.(() => {}); } catch {}
+  try { void v.ttsAc?.close?.()?.catch?.(() => {}); } catch {}
   try {
     if (v.dc?.readyState === "open") { v.dc.send(JSON.stringify({ type: "session.close" })); await Promise.race([new Promise((res) => { v.closed = res; }), wait(keepOpen ? 800 : 1200)]); }
   } catch {}
@@ -4949,6 +5054,7 @@ $("#cv-save")?.addEventListener("click", () => {
 function resumeVoiceAudio(){
   if (!voice || voice.ending) return;
   try { voice.ac?.resume?.().catch?.(() => {}); } catch {}
+  try { voice.ttsAc?.resume?.().catch?.(() => {}); } catch {}
   if (voice.audio?.srcObject && voice.audio.paused) voice.audio.play().catch(() => {});
   if (voice.customAudio?.src && voice.customAudio.paused && voice.ttsPlaySeq) voice.customAudio.play().catch(() => {});
   voice.pingNow?.(false);
