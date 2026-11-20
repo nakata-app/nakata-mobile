@@ -391,6 +391,29 @@ with sync_playwright() as p:
     except Exception: pass
     v_face = pg.evaluate("document.querySelector('#voiceOrb svg.bot-orb')?.dataset.expression")
     check("voice orb expression reacts dynamically to spoken transcript tone", v_face == "excited", str(v_face))
+    # Voice screen must show only live sentence-by-sentence caption (ChatGPT style) while full transcript lands directly in chat,
+    # and counter must be a clean minimal timer/quota without confusing "11 free ... After that 13 credits/min" prose.
+    free_txt = pg.inner_text("#voiceFree").strip()
+    check("voice counter shows clean minimal remaining timer instead of confusing dual-number billing text", (":") in free_txt and ("ücretsiz" in free_txt or "free" in free_txt) and ("Sonrası" not in free_txt) and ("After that" not in free_txt) and ("13" not in free_txt), str(free_txt))
+    pg.evaluate("""(() => {
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: ' İhtiyacın olan bir şey varsa söyle, hemen yardımcı olurum.' }) });
+    })()""")
+    pg.wait_for_timeout(80)
+    live_cap = pg.inner_text("#voiceTranscript").strip()
+    pg.evaluate("""(() => {
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.done' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'input_audio_buffer.speech_started' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'Evde rahatlamak için ne önerirsin?' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.created' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: 'Anlıyorum. Evdeyken rahatlamak için kısa bir yürüyüş ya da çay molası iyi gelir.' }) });
+    })()""")
+    pg.wait_for_timeout(80)
+    live_cap2 = pg.inner_text("#voiceTranscript").strip()
+    pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.done' }) })""")
+    pg.wait_for_timeout(80)
+    cap_hidden_after_done = pg.evaluate("document.getElementById('voiceTranscript').hidden === true")
+    thread_after_live = pg.inner_text("#thread")
+    check("voice screen shows only current live sentence while full multi-turn transcript goes directly to chat", live_cap == "İhtiyacın olan bir şey varsa söyle, hemen yardımcı olurum." and ("Harika" not in live_cap) and live_cap2 == "Evdeyken rahatlamak için kısa bir yürüyüş ya da çay molası iyi gelir." and ("Anlıyorum" not in live_cap2) and cap_hidden_after_done and ("Harika, hoş geldin Atakan!" in thread_after_live) and ("Evde rahatlamak için ne önerirsin?" in thread_after_live) and ("kısa bir yürüyüş ya da çay molası" in thread_after_live), str((live_cap, live_cap2, cap_hidden_after_done)))
     pg.evaluate("""(() => {
       let h = true;
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
@@ -494,6 +517,7 @@ with sync_playwright() as p:
     pg.click("#f-agent .fclose"); pg.wait_for_timeout(250)
     pg.evaluate("window.__voiceDcSent = []")
     del_before = len(voice_calls["delegations"])
+    sent_before = pg.inner_text("#thread").count("Mac'e gönderdim")
     pg.click("#micBtn")
     pg.wait_for_function("document.getElementById('f-voice').classList.contains('on') && document.getElementById('voiceState').textContent !== 'Bağlanıyor…'", timeout=5000)
     v_custom = voice_calls["sessions"][-1]
@@ -507,9 +531,16 @@ with sync_playwright() as p:
     dc_sent = pg.evaluate("window.__voiceDcSent")
     commentary = next((m for m in dc_sent if m.get("type") == "session.commentary.append" and m.get("delegation_id") == "del_1"), {})
     check("voice delegation sends transcript, forwards commentary answer, and queues Mac poll", len(voice_calls["delegations"]) == del_before + 1 and voice_calls["delegations"][-1].get("text") == "Testleri Scout ile çalıştır" and commentary.get("delegation_id") == "del_1" and "Mac'e gönderdim" in commentary.get("content", ""), str((voice_calls["delegations"], commentary)))
+    pg.evaluate("""(() => {
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.created' }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: "Mac'e gönderdim, şimdi başlıyor." }) });
+      window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.done' }) });
+    })()""")
+    pg.wait_for_timeout(80)
     pg.click("#voiceEnd"); pg.wait_for_timeout(250)
     src_href = pg.evaluate("document.querySelector('#thread .srcs a')?.href || ''")
-    check("voice turn and web sources persist into active chat thread after call", "Testleri Scout ile çalıştır" in pg.inner_text("#thread") and src_href == "https://github.com/nakata/runs", str(src_href))
+    scout_thread = pg.inner_text("#thread")
+    check("voice turn and web sources persist into active chat thread after call without duplicating delegated reply", "Testleri Scout ile çalıştır" in scout_thread and scout_thread.count("Mac'e gönderdim") == sent_before + 1 and src_href == "https://github.com/nakata/runs", str((src_href, sent_before, scout_thread.count("Mac'e gönderdim"))))
     agent_state["status"] = "completed"
     pg.wait_for_selector("#agentTaskNotice:not([hidden])", timeout=8000)
     pg.click("#agentTaskNotice")
