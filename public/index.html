@@ -88,34 +88,47 @@ button.title:active{opacity:.6}
 .row.user{align-items:flex-end}
 .bubble{max-width:86%;background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:10px 15px;white-space:pre-wrap;overflow-wrap:anywhere}
 .asst{display:block}
-.md{min-width:0;flex:1;overflow-wrap:anywhere}
+.md{min-width:0;flex:1;overflow-wrap:anywhere;font-size:15.5px;line-height:1.68}
 .md>:first-child{margin-top:0}
 .md>:last-child{margin-bottom:0}
-.md p{margin:0 0 .7em}
-.md h3,.md h4{margin:1.1em 0 .4em;font-size:17px;line-height:1.3}
+.md p{margin:0 0 1.05em}
+.md h3,.md h4{margin:1.38em 0 .52em;font-size:17px;line-height:1.32}
 .md h4{font-size:16px}
-.md ul,.md ol{margin:0 0 .7em;padding-left:1.3em}
-.md li{margin:.2em 0}
+.md ul,.md ol{margin:.3em 0 1.05em;padding-left:1.4em}
+.md li{margin:.42em 0;line-height:1.65}
 .md code{font:14px/1.4 var(--mono);background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
-.md pre{margin:0 0 .8em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;overflow:hidden;color:#f5f4ee}
+.md pre{margin:0 0 1em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;overflow:hidden;color:#f5f4ee}
 .md pre .ph{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #ffffff16;font:11px/1.2 var(--mono);color:#a7a49c;letter-spacing:.04em;text-transform:uppercase}
 .md pre .ph button{font:inherit;text-transform:none;letter-spacing:0;color:#d6d4cc;padding:2px 8px;border-radius:6px;background:transparent;border:0}
 .md pre .ph button:active{background:#ffffff18}
 .md pre code{display:block;padding:12px 14px;background:none;border:0;border-radius:0;overflow-x:auto;white-space:pre;font-size:13.5px;line-height:1.5;color:#f5f4ee}
-.md blockquote{margin:0 0 .8em;padding:2px 0 2px 12px;border-left:2px solid var(--line);color:var(--muted)}
-.md hr{border:0;border-top:1px solid var(--line);margin:14px 0}
-.md table{border-collapse:collapse;margin:0;width:100%;font-size:14px}
-.md th,.md td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:7px 11px;text-align:left}
+.md blockquote{margin:0 0 1em;padding:2px 0 2px 12px;border-left:2px solid var(--line);color:var(--muted)}
+.md hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.md table{border-collapse:collapse;margin:0;width:max-content;min-width:100%;font-size:13.5px;line-height:1.48;table-layout:auto}
+.md th,.md td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:9px 13px;text-align:left;vertical-align:top;overflow-wrap:normal;word-break:normal}
 .md th:last-child,.md td:last-child{border-right:0}
 .md tbody tr:last-child td{border-bottom:0}
-.md th{background:var(--raised);font-weight:600}
-.md-table-card{margin:0 0 .85em;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--raised)}
+.md th{background:var(--raised);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none}
+.md td{min-width:108px;max-width:250px;overflow-wrap:break-word}
+.md-table-card thead th[data-sort-dir="asc"]::after,#tableModalBody thead th[data-sort-dir="asc"]::after{content:" ▲";font-size:10px;color:var(--accent)}
+.md-table-card thead th[data-sort-dir="desc"]::after,#tableModalBody thead th[data-sort-dir="desc"]::after{content:" ▼";font-size:10px;color:var(--accent)}
+.md-table-card{margin:0 0 1.05em;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--raised)}
 .md-table-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px;border-bottom:1px solid var(--line);background:var(--side)}
-.md-table-badge{font:700 10px/1 var(--mono);letter-spacing:.12em;color:var(--accent)}
-.md-table-acts{display:flex;align-items:center;gap:5px}
-.md-table-btn{font-size:11.5px;color:var(--muted);padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:transparent}
+.md-table-badge{font:700 10px/1 var(--mono);letter-spacing:.12em;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md-table-acts{display:flex;align-items:center;gap:5px;flex:none}
+.md-table-btn{font-size:11.5px;color:var(--muted);padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:transparent;white-space:nowrap}
 .md-table-btn:active{background:#ffffff14;color:var(--ink)}
-.md-table-scroll{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch}
+.md-table-scroll{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.table-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 12px) 10px calc(env(safe-area-inset-bottom) + 12px);background:rgba(0,0,0,.84);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.table-modal[hidden]{display:none}
+.table-modal-panel{width:100%;max-width:960px;max-height:88dvh;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg);box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.table-modal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--side)}
+.table-modal-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.table-modal-body table{border-collapse:collapse;width:max-content;min-width:100%;font-size:14px;line-height:1.5}
+.table-modal-body th,.table-modal-body td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px 14px;text-align:left;vertical-align:top;overflow-wrap:normal;word-break:normal}
+.table-modal-body th{background:var(--raised);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:1}
+.table-modal-body td{min-width:112px;max-width:300px;overflow-wrap:break-word}
+.table-modal-close{width:32px;height:32px;border-radius:8px;color:var(--muted);font-size:22px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
 .chat-gen-shimmer{width:100%;aspect-ratio:3/4;max-height:300px;background:linear-gradient(110deg,var(--raised) 25%,var(--line) 45%,var(--raised) 65%);background-size:200% 100%;animation:gen-shimmer 1.6s linear infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;text-align:center}
 @keyframes gen-shimmer{0%{background-position:180% 0}100%{background-position:-20% 0}}
 .chat-gen-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:7px 10px;border-top:1px solid var(--line);background:var(--side)}
@@ -148,7 +161,10 @@ button.title:active{opacity:.6}
 .small-orb .orb-shadow{display:none}
 .nk-mascot{display:flex;justify-content:center}
 .nk-mascot .bot-orb{filter:drop-shadow(0 16px 28px rgba(91,140,255,.28))}
-.pending{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.pending{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:13.5px}
+.pending-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 7px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink);font-size:12.5px;font-weight:500}
+.pending-pill .srcs-stack .src-mono{width:16px;height:16px;font-size:9px}
+.pending-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:voice-dot 1.4s ease-in-out infinite;flex:none}
 .msg-actions{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px}
 .msg-actions .copy{height:30px;padding:0 9px;border-radius:8px;color:var(--muted);display:flex;align-items:center;gap:5px;font-size:12.5px}
 .msg-actions .copy svg{width:14px;height:14px}
@@ -407,12 +423,23 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .art-frame{width:100%;height:300px;border:0;display:block;background:#fff}
 .art-svg{height:auto;max-height:340px;padding:10px;box-sizing:border-box;object-fit:contain;cursor:zoom-in}
 .art-source{margin:0;border:0!important;border-radius:0!important;max-height:300px;overflow:auto}
-.srcs{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.srcs{margin-top:10px;border-top:1px solid var(--line);padding-top:9px;display:flex;flex-direction:column;gap:5px}
+.srcs-bar{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.srcs-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px 5px 7px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font-size:12.5px;font-weight:500}
+.srcs-pill:active{border-color:var(--accent);color:var(--accent)}
+.srcs-stack{display:inline-flex;align-items:center}
+.srcs-stack .src-mono{margin-left:-5px;border:1.5px solid var(--bg)}
+.srcs-stack .src-mono:first-child{margin-left:0}
+.src-mono{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:700 10px/1 var(--font);font-style:normal;color:#fff;flex:0 0 auto}
 .srcs-h{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-.srcs a{display:flex;gap:7px;align-items:baseline;font-size:12.5px;color:var(--ink);text-decoration:none;overflow:hidden}
-.srcs a span{flex:0 0 auto;min-width:16px;height:16px;padding:0 4px;border-radius:5px;background:var(--raised);border:1px solid var(--line);color:var(--muted);font-size:10px;display:flex;align-items:center;justify-content:center}
+.srcs a{display:flex;gap:7px;align-items:center;padding:5px 8px;border-radius:9px;border:1px solid var(--line);background:var(--raised);font-size:12.5px;color:var(--ink);text-decoration:none;overflow:hidden}
+.srcs a span{flex:0 0 auto;min-width:16px;height:16px;padding:0 4px;border-radius:5px;background:var(--side);border:1px solid var(--line);color:var(--muted);font-size:10px;display:flex;align-items:center;justify-content:center}
 .srcs a em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.srcs .src-host{flex:0 0 auto;font-size:10.5px;color:var(--muted);padding:1px 6px;border-radius:999px;border:1px solid var(--line);background:var(--raised);white-space:nowrap}
+.srcs .src-host{flex:0 0 auto;font-size:10.5px;color:var(--muted);padding:1px 6px;border-radius:999px;border:1px solid var(--line);background:var(--side);white-space:nowrap}
+.src-sheet-item{display:flex;flex-direction:column;gap:4px;padding:10px 12px;margin-bottom:6px;border-radius:12px;border:1px solid var(--line);background:var(--raised);text-decoration:none;color:var(--ink)}
+.src-sheet-top{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.src-sheet-title{font-size:14px;font-weight:500;line-height:1.35;color:var(--ink)}
+.src-sheet-url{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .md-task-item{list-style:none;display:flex;align-items:flex-start;gap:7px;margin-left:-16px}
 .md-task-item input[type="checkbox"]{margin-top:4px;accent-color:var(--accent)}
 .msg-shots{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
@@ -584,6 +611,26 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   <h2>Asistan sesi</h2>
   <div class="sheet-list" id="voiceList"></div>
   <button type="button" class="botnew" id="voiceCustomAdd"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Özel ses ekle</button>
+</div>
+
+<div class="sheet" id="sourcesSheet">
+  <div class="grip"></div>
+  <h2 id="sourcesSheetTitle">Kaynaklar</h2>
+  <div class="sheet-list" id="sourcesSheetList"></div>
+</div>
+
+<div class="table-modal" id="tableModal" role="dialog" aria-modal="true" aria-label="Tablo" hidden>
+  <div class="table-modal-panel">
+    <div class="table-modal-head">
+      <span class="md-table-badge" id="tableModalBadge">TABLO</span>
+      <div class="md-table-acts">
+        <button type="button" class="md-table-btn" id="tableModalCopy">Kopyala</button>
+        <button type="button" class="md-table-btn" id="tableModalCsv">CSV</button>
+        <button type="button" class="table-modal-close" id="tableModalClose" aria-label="Kapat">×</button>
+      </div>
+    </div>
+    <div class="table-modal-body" id="tableModalBody"></div>
+  </div>
 </div>
 
 <section class="page" id="f-voice">
@@ -1200,7 +1247,11 @@ const EN = {
   "Karşılaştırma tablosu hazırla":"Prepare a comparison table",
   "Testlerini yaz":"Write tests for this",
   "Kenar durumları açıkla":"Explain edge cases",
-  "Büyüt":"Zoom",
+  "Büyüt":"Expand",
+  "Genişlet":"Expand",
+  "Tablo":"Table",
+  "Düşünüyor…":"Thinking…",
+  "Web'de aranıyor…":"Searching the web…",
   "Prompt":"Prompt",
   "Prompt kopyalandı":"Prompt copied",
 };
@@ -1230,7 +1281,12 @@ function tx(text){
   return text;
 }
 const I18N_ATTRS = ["placeholder", "aria-label", "title"];
+function isI18nExempt(node){
+  const elNode = node?.nodeType === 1 ? node : node?.parentElement;
+  return !!(elNode && elNode.closest && elNode.closest("[data-no-i18n], #thread .md, #thread .bubble, #thread .followups, #thread .pending-pill, #thread .srcs-pill"));
+}
 function i18nNode(n){
+  if (isI18nExempt(n)) return;
   if (n.nodeType === 3) { n.__o ??= n.nodeValue; const v = LANG === "en" ? tx(n.__o) : n.__o; if (n.nodeValue !== v) n.nodeValue = v; return; }
   if (n.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(n.tagName)) return;
   for (const a of I18N_ATTRS) if (n.hasAttribute(a)) { n.__oa ??= {}; n.__oa[a] ??= n.getAttribute(a); const v = LANG === "en" ? tx(n.__oa[a]) : n.__oa[a]; if (n.getAttribute(a) !== v) n.setAttribute(a, v); }
@@ -1242,6 +1298,7 @@ function i18nApply(root = document.body){ i18nNode(root); i18nObs?.takeRecords()
 // and nothing loops; unchanged values are never rewritten.
 i18nObs = new MutationObserver((muts) => {
   for (const m of muts) {
+    if (isI18nExempt(m.target)) continue;
     if (m.type === "characterData") { m.target.__o = m.target.nodeValue; if (LANG === "en") { const v = tx(m.target.__o); if (v !== m.target.nodeValue) m.target.nodeValue = v; } }
     else if (m.type === "attributes") { const n = m.target, a = m.attributeName; n.__oa ??= {}; n.__oa[a] = n.getAttribute(a); if (LANG === "en") { const v = tx(n.__oa[a]); if (v !== n.getAttribute(a)) n.setAttribute(a, v); } }
     else for (const n of m.addedNodes) i18nNode(n);
@@ -1263,8 +1320,112 @@ applyTheme(LS.get("nakata_theme", "dark"));
 
 /* ---- markdown (escaped first; only http(s) links) ---- */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+function stripEmDashes(raw){
+  const urls = [];
+  let s = String(raw ?? "").replace(/https?:\/\/(?:[^\s()]+|\([^\s()]*\))+/g, (u) => {
+    urls.push(u);
+    return "\u0000U" + (urls.length - 1) + "\u0000";
+  });
+  s = s
+    .replace(/(\*\*[^*\n]+\*\*)\s*[—–]\s*/g, "$1: ")
+    .replace(/(\d)\s*[—–]\s*(\d)/g, "$1-$2")
+    .replace(/([,;:!?])\s*—\s*/g, "$1 ")
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s+–\s+/g, ", ")
+    .replace(/,\s*,/g, ",")
+    .replace(/:\s*,/g, ":");
+  return s.replace(/\u0000U(\d+)\u0000/g, (_m, idx) => urls[+idx] || "");
+}
 function cleanCitations(s){
   return String(s ?? "").replace(/\[(\d{1,2})\](?=\s|$|[.,;:!?])/g, "").replace(/\s+([.,;:!?])/g, "$1");
+}
+function detectConvLang(userText = "", replyText = ""){
+  const sample = (String(userText || "") + " " + String(replyText || "")).trim();
+  if (!sample) return LANG;
+  if (/[çğıöşüÇĞİÖŞÜ]/.test(sample)) return "tr";
+  const trHits = (sample.match(/\b(?:nedir|nasil|neden|hangi|icin|ile|bir|veya|olarak|karsilastir|ozetle|anlat|oner|fiyat|kac|nerede|yap|yaz|ver|degil|ama|gibi|daha|cok|iyi|var|yok|ben|sen|bana|bunu|sunu|hakkinda|merhaba|selam|tamam|evet|hayir|tesekkur|lutfen|tablo|secenek)\b/gi) || []).length;
+  const enHits = (sample.match(/\b(?:the|and|for|with|that|this|from|what|which|how|compare|summary|price|best|option|table|explain|write|please|hello|thanks|should|would|between)\b/gi) || []).length;
+  if (trHits >= 2 && trHits >= enHits) return "tr";
+  if (enHits >= 2 && enHits > trHits) return "en";
+  return LANG;
+}
+function stripMarkdownForSpeech(raw){
+  return stripEmDashes(String(raw ?? ""))
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/^\s*\|?\s*:?-{1,}:?(?:\s*\|\s*:?-{1,}:?)+\s*\|?\s*$/gm, " ")
+    .replace(/\|/g, ", ")
+    .replace(/\$\$[\s\S]*?\$\$/g, " ")
+    .replace(/\$([^$\n]+)\$/g, "$1")
+    .replace(/[#*_`>~]/g, " ")
+    .replace(/\s*(?:\[\d+\]|\(\d+\))(?=[.,\s]|$)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function srcMonogram(host){
+  const h = String(host || "").toLowerCase().replace(/^www\./, "");
+  let hash = 0;
+  for (let i = 0; i < h.length; i++) hash = (hash * 31 + h.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  const ch = (h.match(/[a-z0-9]/i)?.[0] || "W").toUpperCase();
+  return { ch, bg: `hsl(${hue},52%,36%)` };
+}
+function parseSortableNumber(raw){
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  const m = s.match(/^[^\d+-]*([+-]?\d[\d.,]*)(?:\s*(?:%|tl|try|usd|eur|gbp|gb|tb|mb|kb|ghz|mhz|ms|sn|s|w|hz|gb\/s|km|m|kg|₺|\$|€|£))?$/i);
+  if (!m) return null;
+  let num = m[1];
+  if (/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(num)) num = num.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(num)) num = num.replace(/,/g, "");
+  else if (/^\d+,\d+$/.test(num)) num = num.replace(",", ".");
+  const parsed = Number(num);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function compareTableCells(a, b){
+  const na = parseSortableNumber(a), nb = parseSortableNumber(b);
+  if (na !== null && nb !== null) return na - nb;
+  return String(a || "").localeCompare(String(b || ""), undefined, { numeric: true, sensitivity: "base" });
+}
+function sortTableByColumn(tbl, colIdx){
+  if (!tbl || colIdx < 0) return null;
+  const tbody = tbl.querySelector("tbody");
+  const ths = Array.from(tbl.querySelectorAll("thead th"));
+  if (!tbody || !ths[colIdx]) return null;
+  const nextDir = ths[colIdx].getAttribute("data-sort-dir") === "asc" ? "desc" : "asc";
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  rows.sort((ra, rb) => {
+    const ca = ra.querySelectorAll("td")[colIdx]?.textContent || "";
+    const cb = rb.querySelectorAll("td")[colIdx]?.textContent || "";
+    const cmp = compareTableCells(ca, cb);
+    return nextDir === "asc" ? cmp : -cmp;
+  });
+  for (const r of rows) tbody.append(r);
+  ths.forEach((th, idx) => {
+    if (idx === colIdx) { th.setAttribute("data-sort-dir", nextDir); th.setAttribute("aria-sort", nextDir === "asc" ? "ascending" : "descending"); }
+    else { th.removeAttribute("data-sort-dir"); th.setAttribute("aria-sort", "none"); }
+  });
+  return nextDir;
+}
+function tableToText(tbl, format){
+  return Array.from(tbl.querySelectorAll("tr")).map((tr) => Array.from(tr.querySelectorAll("th,td")).map((c) => {
+    const v = String(c.textContent || "").replace(/\s+/g, " ").trim();
+    if (format === "csv") return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    return v;
+  }).join(format === "csv" ? "," : "\t")).join("\n");
+}
+function downloadTableCsv(tbl, badgeText, ord = ""){
+  const csv = tableToText(tbl, "csv");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const slug = String(badgeText || "tablo")
+    .replace(/[çÇ]/g, "c").replace(/[ğĞ]/g, "g").replace(/[ıİ]/g, "i").replace(/[öÖ]/g, "o").replace(/[şŞ]/g, "s").replace(/[üÜ]/g, "u")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "tablo";
+  const a = document.createElement("a"); a.href = url; a.download = "nakata-" + slug + ord + ".csv";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 function sanitizeSvg(raw){
   let s = raw.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
@@ -1292,7 +1453,7 @@ function texToHtml(raw){
 function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
     ? "<code>" + esc(part.slice(1, -1)) + "</code>"
-    : esc(part)
+    : esc(stripEmDashes(part))
         .replace(/!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g, '<img alt="$1" src="$2" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'" class="md-chat-image" style="display:block;width:auto;max-width:min(100%,420px);max-height:280px;height:auto;object-fit:contain;border-radius:12px;margin:10px 0;cursor:zoom-in">')
         .replace(/(\$(?!\s)([^$\n]{1,120}?)(?<!\s)\$)/g, (m, _all, inner) => (/[A-Za-z\\^_+=<>*/]/.test(inner) && !/^\d[\d.,]*$/.test(inner)) ? `<span class="math-inline">${texToHtml(inner)}</span>` : m)
         .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
@@ -1313,7 +1474,17 @@ function artHtml(badge, srcdoc, raw, sandbox){
 function md(src, { streaming = false } = {}){
   const out = [], lines = String(src ?? "").replace(/\r/g, "").split("\n");
   let para = [], list = null, quote = [];
-  const endPara = () => { if (para.length) { out.push("<p>" + para.map(inline).join("<br>") + "</p>"); para = []; } };
+  const endPara = () => {
+    if (!para.length) return;
+    const chunks = [[]];
+    for (const ln of para) {
+      const isBoldLead = /^\s*\*\*[^*\n]{2,80}(?:[:：]\*\*|\*\*\s*[:：-])/.test(ln);
+      if (isBoldLead && chunks[chunks.length - 1].length) chunks.push([ln]);
+      else chunks[chunks.length - 1].push(ln);
+    }
+    for (const ch of chunks) out.push("<p>" + ch.map(inline).join("<br>") + "</p>");
+    para = [];
+  };
   const endList = () => { if (list) { out.push(`</${list}>`); list = null; } };
   const endQuote = () => { if (quote.length) { out.push("<blockquote><p>" + quote.map(inline).join("<br>") + "</p></blockquote>"); quote = []; } };
   const parseCells = (row) => {
@@ -1385,7 +1556,7 @@ function md(src, { streaming = false } = {}){
       i--;
       const isDecision = head.some((h) => /(?:kriter|seçenek|öneri|karar|soru|avantaj|dezavantaj|fiyat|plan|özellik|option|criteria|pros|cons|price|choice|recommendation)/i.test(h));
       const badge = esc(tx(isDecision ? "KARŞILAŞTIRMA & KARAR TABLOSU" : "TABLO"));
-      let tbl = `<div class="md-table-card"><div class="md-table-head"><span class="md-table-badge">${badge}</span><div class="md-table-acts"><button type="button" class="md-table-btn" data-copy-table>${esc(tx("Kopyala"))}</button><button type="button" class="md-table-btn" data-csv-table>CSV</button></div></div><div class="md-table-scroll"><table><thead><tr>` + head.map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead>";
+      let tbl = `<div class="md-table-card"><div class="md-table-head"><span class="md-table-badge">${badge}</span><div class="md-table-acts"><button type="button" class="md-table-btn" data-copy-table>${esc(tx("Kopyala"))}</button><button type="button" class="md-table-btn" data-csv-table>CSV</button><button type="button" class="md-table-btn" data-expand-table>${esc(tx("Büyüt"))}</button></div></div><div class="md-table-scroll"><table><thead><tr>` + head.map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead>";
       if (rows.length) tbl += "<tbody>" + rows.map((r) => "<tr>" + head.map((_, k) => `<td>${inline(r[k] || "")}</td>`).join("") + "</tr>").join("") + "</tbody>";
       out.push(tbl + "</table></div></div>");
       continue;
@@ -2177,39 +2348,76 @@ document.addEventListener("click", async (event) => {
   if (cpTbl) {
     const tbl = cpTbl.closest(".md-table-card")?.querySelector("table");
     if (tbl) {
-      const tsv = Array.from(tbl.querySelectorAll("tr")).map((tr) => Array.from(tr.querySelectorAll("th,td")).map((c) => String(c.textContent || "").replace(/\s+/g, " ").trim()).join("\t")).join("\n");
+      const tsv = tableToText(tbl, "tsv");
       try { await navigator.clipboard.writeText(tsv); haptic(); cpTbl.textContent = tx("Kopyalandı"); setTimeout(() => { cpTbl.textContent = tx("Kopyala"); }, 1400); } catch {}
     }
     return;
   }
   const csvTbl = event.target.closest?.("[data-csv-table]");
   if (csvTbl) {
-    const tbl = csvTbl.closest(".md-table-card")?.querySelector("table");
+    const card = csvTbl.closest(".md-table-card");
+    const tbl = card?.querySelector("table");
     if (tbl) {
-      const csv = Array.from(tbl.querySelectorAll("tr")).map((tr) => Array.from(tr.querySelectorAll("th,td")).map((c) => {
-        const v = String(c.textContent || "").replace(/\s+/g, " ").trim();
-        return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-      }).join(",")).join("\n");
       try {
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const group = csvTbl.closest(".md-table-card")?.parentElement?.querySelectorAll(".md-table-card") || [];
-        const slug = String(csvTbl.closest(".md-table-card")?.querySelector(".md-table-badge")?.textContent || "tablo")
-          .replace(/[çÇ]/g, "c").replace(/[ğĞ]/g, "g").replace(/[ıİ]/g, "i").replace(/[öÖ]/g, "o").replace(/[şŞ]/g, "s").replace(/[üÜ]/g, "u")
-          .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "tablo";
-        const ord = group.length > 1 ? "-" + (Array.from(group).indexOf(csvTbl.closest(".md-table-card")) + 1) : "";
-        const a = document.createElement("a"); a.href = url; a.download = "nakata-" + slug + ord + ".csv";
-        document.body.append(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        const group = card?.parentElement?.querySelectorAll(".md-table-card") || [];
+        const ord = group.length > 1 ? "-" + (Array.from(group).indexOf(card) + 1) : "";
+        downloadTableCsv(tbl, card?.querySelector(".md-table-badge")?.textContent || "tablo", ord);
         haptic();
         csvTbl.textContent = tx("CSV indi");
-        setTimeout(() => { csvTbl.textContent = tx("CSV"); }, 1400);
+        setTimeout(() => { csvTbl.textContent = "CSV"; }, 1400);
       } catch {}
     }
+    return;
+  }
+  const expTbl = event.target.closest?.("[data-expand-table]");
+  if (expTbl) {
+    const card = expTbl.closest(".md-table-card");
+    const tbl = card?.querySelector("table");
+    const modal = $("#tableModal"), body = $("#tableModalBody"), badge = $("#tableModalBadge");
+    if (tbl && modal && body) {
+      if (badge) badge.textContent = card.querySelector(".md-table-badge")?.textContent || tx("TABLO");
+      body.replaceChildren(tbl.cloneNode(true));
+      modal.hidden = false;
+      haptic();
+    }
+    return;
+  }
+  const sortTh = event.target.closest?.(".md-table-card thead th, #tableModalBody thead th");
+  if (sortTh) {
+    const tbl = sortTh.closest("table");
+    const tr = sortTh.parentElement;
+    if (tbl && tr) {
+      const colIdx = Array.from(tr.children).indexOf(sortTh);
+      sortTableByColumn(tbl, colIdx);
+      haptic();
+    }
+    return;
+  }
+  const openSrc = event.target.closest?.("[data-open-sources]");
+  if (openSrc) {
+    const srcsEl = openSrc.closest(".srcs");
+    if (srcsEl?.__sources?.length) openSourcesSheet(srcsEl.__sources);
+    return;
   }
 });
+$("#tableModalClose")?.addEventListener("click", () => { $("#tableModal").hidden = true; });
+$("#tableModal")?.addEventListener("click", (e) => { if (e.target === $("#tableModal")) $("#tableModal").hidden = true; });
+$("#tableModalCopy")?.addEventListener("click", async () => {
+  const tbl = $("#tableModalBody")?.querySelector("table"), btn = $("#tableModalCopy");
+  if (!tbl || !btn) return;
+  try { await navigator.clipboard.writeText(tableToText(tbl, "tsv")); haptic(); btn.textContent = tx("Kopyalandı"); setTimeout(() => { btn.textContent = tx("Kopyala"); }, 1400); } catch {}
+});
+$("#tableModalCsv")?.addEventListener("click", () => {
+  const tbl = $("#tableModalBody")?.querySelector("table"), btn = $("#tableModalCsv");
+  if (!tbl || !btn) return;
+  try { downloadTableCsv(tbl, $("#tableModalBadge")?.textContent || "tablo"); haptic(); btn.textContent = tx("CSV indi"); setTimeout(() => { btn.textContent = "CSV"; }, 1400); } catch {}
+});
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && chatImageLightbox && !chatImageLightbox.hidden) chatImageLightbox.hidden = true;
+  if (event.key === "Escape") {
+    if ($("#tableModal") && !$("#tableModal").hidden) { $("#tableModal").hidden = true; return; }
+    if ($("#sourcesSheet")?.classList.contains("on")) { closeSheet(); return; }
+    if (chatImageLightbox && !chatImageLightbox.hidden) chatImageLightbox.hidden = true;
+  }
 });
 
 let pendingAttachments = [];
@@ -2321,64 +2529,123 @@ function addNote(text, err, retryTurn){
   }
   if (err) { hapticError(); flashReply(/bitti|yoğun|kapalı|kredi|yetmiyor|limit/i.test(text) ? "sad" : "surprised"); }
 }
+function openSourcesSheet(sources){
+  const list = $("#sourcesSheetList"), sheet = $("#sourcesSheet"), scrim = $("#scrim"), title = $("#sourcesSheetTitle");
+  if (!list || !sheet || !scrim) return;
+  list.replaceChildren();
+  if (title) title.textContent = `${tx("Kaynaklar")} · ${sources.length}`;
+  sources.forEach((s, idx) => {
+    const a = document.createElement("a");
+    a.className = "src-sheet-item"; a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+    const m = srcMonogram(s.host);
+    const top = el("div", "src-sheet-top");
+    const mono = el("i", "src-mono", m.ch); mono.style.background = m.bg; mono.setAttribute("aria-hidden", "true");
+    top.append(mono, el("span", "", `${idx + 1}. ${s.host || s.url}`));
+    a.append(top, el("div", "src-sheet-title", s.title || s.url), el("div", "src-sheet-url", s.url));
+    list.append(a);
+  });
+  scrim.classList.add("on");
+  sheet.classList.add("on");
+  list.scrollTop = 0;
+  list.classList.toggle("scrolls", list.scrollHeight > list.clientHeight + 2);
+  haptic();
+}
+function filterCleanSources(sources){
+  const seen = new Set();
+  const out = [];
+  for (const s of Array.isArray(sources) ? sources : []) {
+    const u = String(s?.url || "");
+    if (!/^https?:\/\//i.test(u)) continue;
+    if (s?.type === "weather" || /(?:duckduckgo\.com|bing\.com\/aclick|\/rdclks\/|search\.yahoo\.com|wttr\.in|open-meteo\.com|ad_domain=|ad_provider=)/i.test(u)) continue;
+    if (seen.has(u)) continue;
+    seen.add(u);
+    let host = "";
+    try { host = new URL(u).hostname.replace(/^www\./, ""); } catch {}
+    out.push({ title: String(s.title || u), url: u, host });
+  }
+  return out;
+}
 function renderSources(row, sources){
   if (!row || !Array.isArray(sources) || !sources.length) return;
   const asst = row.querySelector(".asst");
   if (!asst || asst.querySelector(".srcs")) return;
-  const clean = sources.filter((s) => {
-    const u = String(s?.url || "");
-    if (!/^https?:\/\//i.test(u)) return false;
-    if (/(?:duckduckgo\.com|bing\.com\/aclick|\/rdclks\/|search\.yahoo\.com|wttr\.in|open-meteo\.com|ad_domain=|ad_provider=)/i.test(u)) return false;
-    return true;
-  });
+  const clean = filterCleanSources(sources);
   if (!clean.length) return;
   const box = el("div", "srcs");
-  box.append(el("div", "srcs-h", tx("Kaynaklar")));
+  box.__sources = clean;
+  const bar = el("div", "srcs-bar");
+  const pill = document.createElement("button");
+  pill.type = "button"; pill.className = "srcs-pill"; pill.dataset.openSources = "1"; pill.dataset.noI18n = "1";
+  const stack = el("span", "srcs-stack");
+  clean.slice(0, 4).forEach((s) => {
+    const m = srcMonogram(s.host);
+    const mono = el("i", "src-mono", m.ch); mono.style.background = m.bg; mono.setAttribute("aria-hidden", "true");
+    stack.append(mono);
+  });
+  const lastUser = convo.filter((m) => m.role === "user").at(-1)?.content || "";
+  const convIsTr = detectConvLang(lastUser, "") === "tr";
+  const pillLabel = convIsTr ? `${clean.length} site incelendi` : `Searched ${clean.length} ${clean.length === 1 ? "site" : "sites"}`;
+  pill.append(stack, el("strong", "", pillLabel));
+  bar.append(pill);
+  box.append(bar);
   clean.slice(0, 8).forEach((s, idx) => {
     const a = document.createElement("a"); a.href = s.url; a.target = "_blank"; a.rel = "noopener";
-    let host = "";
-    try { host = new URL(s.url).hostname.replace(/^www\./, ""); } catch {}
-    if (host) {
-      const fav = document.createElement("img");
-      fav.className = "src-fav";
-      fav.alt = "";
-      fav.loading = "lazy";
-      fav.decoding = "async";
-      fav.referrerPolicy = "no-referrer";
-      fav.src = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host) + "&sz=64";
-      fav.addEventListener("error", () => fav.remove());
-      a.append(fav);
-    }
-    a.append(el("span", "", String(idx + 1)), el("em", "", s.title || s.url));
-    if (host) a.append(el("small", "src-host", host));
+    const m = srcMonogram(s.host);
+    const mono = el("i", "src-mono", m.ch); mono.style.background = m.bg; mono.setAttribute("aria-hidden", "true");
+    a.append(mono, el("span", "", String(idx + 1)), el("em", "", s.title || s.url));
+    if (s.host) a.append(el("small", "src-host", s.host));
     box.append(a);
   });
   if (box.children.length > 1) asst.append(box);
 }
 
-// Desktop: the orb thinks along while the run is live, with the elapsed time.
-let pendingRow = null, pendingOrb = null, pendingTick = 0, pendingStatus = "", pendingTimeEl = null, pendingStart = 0;
+// ChatGPT-style live activity indicator: calm status text + live searched-sites badge (never a bare "15 sn" timer).
+let pendingRow = null, pendingOrb = null, pendingStatusEl = null, pendingPillEl = null, pendingConvTr = true;
 function setPendingStatus(status){
-  pendingStatus = status ? tx(status) : "";
-  if (pendingTimeEl) {
-    const secs = Math.max(0, Math.round((Date.now() - pendingStart) / 1000));
-    pendingTimeEl.textContent = pendingStatus ? `${pendingStatus} · ${secs} sn` : `${secs} sn`;
-  }
+  if (!pendingStatusEl) return;
+  const label = status ? (pendingConvTr ? status : tx(status)) : (pendingConvTr ? "Düşünüyor…" : "Thinking…");
+  pendingStatusEl.textContent = label;
 }
-function showPending(){
+function updatePendingSearch(sources, statusText = ""){
+  if (!pendingRow) return;
+  const clean = filterCleanSources(sources);
+  if (statusText) setPendingStatus(statusText);
+  else if (clean.length && pendingStatusEl) pendingStatusEl.textContent = "";
+  if (!clean.length) return;
+  if (!pendingPillEl) {
+    pendingPillEl = el("span", "pending-pill");
+    pendingPillEl.dataset.noI18n = "1";
+    pendingRow.append(pendingPillEl);
+  }
+  pendingPillEl.replaceChildren();
+  const stack = el("span", "srcs-stack");
+  const seenHosts = [];
+  for (const s of clean) {
+    if (s.host && !seenHosts.includes(s.host)) seenHosts.push(s.host);
+  }
+  seenHosts.slice(0, 4).forEach((h) => {
+    const m = srcMonogram(h);
+    const mono = el("i", "src-mono", m.ch); mono.style.background = m.bg; mono.setAttribute("aria-hidden", "true");
+    stack.append(mono);
+  });
+  const countTxt = pendingConvTr
+    ? `${clean.length} site incelendi`
+    : `Searched ${clean.length} ${clean.length === 1 ? "site" : "sites"}`;
+  pendingPillEl.append(stack, el("span", "", countTxt));
+  scrollDown();
+}
+function showPending(userText = ""){
   pendingOrb ??= orb({ size: 22, color: orbColor(), expression: "thinking" });
   pendingOrb.setColor(orbColor()); pendingOrb.set("thinking"); pendingOrb.el.classList.add("small-orb");
-  pendingStart = Date.now(); pendingStatus = "";
-  pendingTimeEl = el("span", "");
+  pendingConvTr = detectConvLang(userText, "") === "tr";
+  pendingStatusEl = el("span", "");
+  pendingStatusEl.dataset.noI18n = "1";
+  pendingPillEl = null;
   setPendingStatus("");
-  pendingRow = el("div", "pending"); pendingRow.append(pendingOrb.el, pendingTimeEl);
+  pendingRow = el("div", "pending"); pendingRow.append(pendingOrb.el, pendingStatusEl);
   $("#thread").append(pendingRow); scrollDown();
-  pendingTick = setInterval(() => {
-    const secs = Math.max(0, Math.round((Date.now() - pendingStart) / 1000));
-    if (pendingTimeEl) pendingTimeEl.textContent = pendingStatus ? `${pendingStatus} · ${secs} sn` : `${secs} sn`;
-  }, 1000);
 }
-function hidePending(){ clearInterval(pendingTick); pendingRow?.remove(); pendingRow = null; pendingTimeEl = null; pendingStatus = ""; }
+function hidePending(){ pendingRow?.remove(); pendingRow = null; pendingStatusEl = null; pendingPillEl = null; }
 
 // Desktop turnFace: the last answer carries the mascot, its face reading the turn.
 let replyOrb = null;
@@ -2521,22 +2788,23 @@ function markLastReply(){
   redo.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg><span>' + esc(tx("Yeniden dene")) + '</span>';
   redo.addEventListener("click", retryLastTurn);
   const bar = el("div", "msg-actions"); bar.append(replyOrb.el, copy, redo);
-  const canCustomSpeak = voiceMeta(selectedVoice())?.kind === "custom-tts";
-  if ((canCustomSpeak || ("speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined")) && text.trim()) {
+  const canServerSpeak = !!token() || voiceMeta(selectedVoice())?.kind === "custom-tts";
+  if ((canServerSpeak || ("speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined")) && text.trim()) {
     const spk = el("button", "speak", tx("Oku")); spk.type = "button";
     spk.addEventListener("click", async () => {
       if (activeUtterance || activeSpeakAudio || activeSpeakAbort) { stopSpeak(); return; }
-      const plainText = text.replace(/```[\s\S]*?```/g, " ").replace(/[#*_`>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 4000);
+      const plainText = stripMarkdownForSpeech(text).slice(0, 4000);
       if (!plainText) return;
       const vm = voiceMeta(selectedVoice());
-      if (vm?.kind === "custom-tts") {
+      const useServerTts = vm?.kind === "custom-tts" || !!token();
+      if (useServerTts) {
         const ctrl = activeSpeakAbort = new AbortController();
         const audio = activeSpeakAudio = document.createElement("audio");
         audio.playsInline = true; audio.hidden = true; document.body.append(audio);
         spk.textContent = tx("Dur");
         haptic();
         try {
-          const blobUrl = await fetchCustomTtsBlobUrl(plainText.slice(0, 1400), vm, { signal: ctrl.signal });
+          const blobUrl = await fetchCustomTtsBlobUrl(plainText.slice(0, 1450), vm, { format: "mp3", signal: ctrl.signal });
           if (activeSpeakAudio !== audio || ctrl.signal.aborted) { URL.revokeObjectURL(blobUrl); return; }
           audio.src = blobUrl;
           audio.onended = audio.onerror = () => {
@@ -2550,8 +2818,16 @@ function markLastReply(){
           if (ctrl.signal.aborted || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
         }
       }
+      const speechLang = detectConvLang(lastUserMsg?.content || "", plainText) === "tr" ? "tr-TR" : "en-US";
       const u = new SpeechSynthesisUtterance(plainText);
-      u.lang = /[çğıöşüİ]/i.test(plainText) ? "tr-TR" : (LANG === "tr" ? "tr-TR" : "en-US");
+      u.lang = speechLang;
+      try {
+        const voices = window.speechSynthesis.getVoices?.() || [];
+        const prefix = speechLang.slice(0, 2).toLowerCase();
+        const matching = voices.filter((v) => String(v.lang || "").toLowerCase().startsWith(prefix));
+        const preferred = matching.find((v) => /enhanced|premium|siri|yelda|cem|samantha|ava/i.test(v.name || "")) || matching[0];
+        if (preferred) u.voice = preferred;
+      } catch {}
       u.onend = u.onerror = () => { if (activeUtterance === u) stopSpeak(); };
       activeUtterance = u;
       spk.textContent = tx("Dur");
@@ -2565,16 +2841,24 @@ function markLastReply(){
   if (lastMsg?.servedBy) last.append(el("div", "servedby", tx("Yedek: " + modelDisplayName(lastMsg.servedBy))));
   if (text.trim().length >= 180 && !lastMsg?.cta && !lastMsg?.generatedImages?.length && !galleryBot) {
     const fup = el("div", "followups");
-    const hasTable = /\|[^\n]+\|\n\s*\|?\s*:?-{3,}/.test(text);
+    fup.dataset.noI18n = "1";
+    const convIsTr = detectConvLang(lastUserMsg?.content || "", text) === "tr";
+    const hasTable = /\|[^\n]+\|\n\s*\|?\s*:?-{2,}/.test(text);
     const hasCode = /```[a-z0-9_+-]+/i.test(text);
     const followLabels = hasTable
-      ? ["Tablodaki en iyi F/P seçeneği hangisi?", "Artı/eksi karar matrisini çıkar", "Tek bir öneri seç"]
+      ? (convIsTr
+          ? ["Tablodaki en iyi F/P seçeneği hangisi?", "Artı/eksi karar matrisini çıkar", "Tek bir öneri seç"]
+          : ["Which option in the table is the best value?", "Build a pros & cons decision matrix", "Pick a single recommendation"])
       : hasCode
-        ? ["Test ve örnek kullanım yaz", "Adım adım tablo ile özetle", "Edge-case hatalarını incele"]
-        : ["Karşılaştırma tablosu hazırla", "Daha detaylı anlat", "Örnekle açıkla"];
+        ? (convIsTr
+            ? ["Test ve örnek kullanım yaz", "Adım adım tablo ile özetle", "Edge-case hatalarını incele"]
+            : ["Write tests and usage examples", "Summarize step by step in a table", "Explain edge cases"])
+        : (convIsTr
+            ? ["Karşılaştırma tablosu hazırla", "Daha detaylı anlat", "Örnekle açıkla"]
+            : ["Prepare a comparison table", "Explain in detail", "Show an example"]);
     for (const label of followLabels) {
-      const chip = el("button", "followup-chip", tx(label)); chip.type = "button";
-      chip.addEventListener("click", () => { if (!controller) send(tx(label)); });
+      const chip = el("button", "followup-chip", label); chip.type = "button"; chip.dataset.noI18n = "1";
+      chip.addEventListener("click", () => { if (!controller) send(label); });
       fup.append(chip);
     }
     last.append(fup);
@@ -2791,7 +3075,7 @@ async function send(text, opts = {}){
   stopSpeak();
   for (const oldFup of document.querySelectorAll("#thread .followups, #thread .edit-msg")) oldFup.remove();
   autoFollow = true;
-  haptic(); showHero(false); addUser(text, images, files); bubble = null; reasonNode = null; setBusy(true); showPending(); scrollDown(true);
+  haptic(); showHero(false); addUser(text, images, files); bubble = null; reasonNode = null; setBusy(true); showPending(text); scrollDown(true);
   const userTurn = { role: "user", content: text };
   if (images.length) userTurn.images = images;
   if (files.length) userTurn.files = files;
@@ -2810,7 +3094,7 @@ async function send(text, opts = {}){
   }) : null;
   let byokWebResearch = null;
   if (mobileWebModeOn && !free && !gb && !travelResearch && (text || "").trim().length >= 2) {
-    setPendingStatus("Web'de araştırılıyor…");
+    setPendingStatus("Web'de aranıyor…");
     try {
       const wr = await fetch("https://nakata.app/api/mobile/websearch", {
         method: "POST",
@@ -2822,8 +3106,9 @@ async function send(text, opts = {}){
       });
       if (wr.ok) byokWebResearch = await wr.json();
     } catch {}
+    if (byokWebResearch?.sources?.length) updatePendingSearch(byokWebResearch.sources, "");
   } else if (mobileWebModeOn && free) {
-    setPendingStatus("Web'de araştırılıyor…");
+    setPendingStatus("Web'de aranıyor…");
   }
   const messages = [];
   if (!gb) {
@@ -2832,7 +3117,7 @@ async function send(text, opts = {}){
     const lessonBlock = learned.length
       ? `Lessons learned from this user's feedback (follow them):\n${learned.map((l) => `- ${l.text.trim()}`).join("\n")}`
       : "";
-    const baseSystem = "You are Nakata, the assistant in the Nakata app. Talk like a sharp, warm, deeply knowledgeable partner, never like a stiff customer-support bot. Reply in the language the user writes in. In Turkish be natural and informal (sen), never stiff or translated-sounding. Calibrate length and depth to the user's intent. Start with the answer. When comparing options, products, plans, technologies, hotels, prices, pros/cons or trade-offs, or when preparing a decision/question matrix, build a clean, scannable Markdown table with concrete metrics and a clear recommendation. Use live tools proactively (web_search, fetch_url, get_weather, generate_image). Never write citation or footnote numbers like [1] or (1) in your text.";
+    const baseSystem = "You are Nakata, the assistant in the Nakata app. Talk like a sharp, warm, deeply knowledgeable partner, never like a stiff customer-support bot. Reply in the language the user writes in. In Turkish be natural and informal (sen), never stiff or translated-sounding. Calibrate length and depth to the user's intent. Start with the answer. When comparing options, products, plans, technologies, hotels, prices, pros/cons or trade-offs, or when preparing a decision/question matrix, build a clean, scannable Markdown table with concrete numbers, prices, specs, or dates (never vague labels like 'standard' or 'higher' when specifics are known) and a clear winner per user profile. Never use em-dashes (—) or en-dashes (–) in prose; use commas, colons, periods, or parentheses instead. Give your writing clean ChatGPT-style breathing room: keep paragraphs short (2-3 sentences), always separate paragraphs, headings, lists, and tables with blank lines, and never stack dense lines back-to-back without blank lines. Use live tools proactively (web_search, fetch_url, get_weather, generate_image). Never write citation or footnote numbers like [1] or (1) in your text.";
     let system = [bot && bot.persona ? `${baseSystem}\n\nFor this conversation you play this character:\n${bot.persona}` : ((prof || lessonBlock || travelResearch || byokWebResearch) ? baseSystem : ""), lessonBlock, prof].filter(Boolean).join("\n\n");
     if (travelResearch) system += "\n\n" + window.NakataTravelResearch.context(travelResearch);
     if (byokWebResearch?.sources?.length) {
@@ -2987,8 +3272,22 @@ async function send(text, opts = {}){
             const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
             const tc = ev.type === "tool_call" ? { name: ev.tool, args: ev.args } : d.tool_call;
             if (tc?.name) {
-              if (tc.name === "web_search") setPendingStatus("Web'de araştırılıyor…");
-              else if (tc.name === "fetch_url") setPendingStatus("Sayfa okunuyor…");
+              if (tc.name === "web_search") {
+                const qHint = tc.args?.query ? String(tc.args.query).trim().slice(0, 38) : "";
+                const lbl = qHint
+                  ? (pendingConvTr ? `Web'de aranıyor: "${qHint}"…` : `Searching: "${qHint}"…`)
+                  : (pendingConvTr ? "Web'de aranıyor…" : "Searching the web…");
+                if (msgSources.length) updatePendingSearch(msgSources, lbl);
+                else setPendingStatus(lbl);
+              } else if (tc.name === "fetch_url") {
+                let host = "";
+                try { host = new URL(tc.args?.url || "").hostname.replace(/^www\./, ""); } catch {}
+                const lbl = host
+                  ? (pendingConvTr ? `${host} inceleniyor…` : `Reading ${host}…`)
+                  : (pendingConvTr ? "Sayfa okunuyor…" : "Reading page…");
+                if (msgSources.length) updatePendingSearch(msgSources, lbl);
+                else setPendingStatus(lbl);
+              }
               else if (tc.name === "get_weather") setPendingStatus("Hava durumu alınıyor…");
               else if (tc.name === "generate_image") setPendingStatus("Görsel hazırlanıyor…");
               else if (tc.name === "dispatch_mac_task") setPendingStatus("Mac’e görev gönderiliyor…");
@@ -3000,8 +3299,9 @@ async function send(text, opts = {}){
             const srcs = ev.type === "tool_result" ? ev.sources : d.sources;
             if (Array.isArray(srcs)) {
               for (const s of srcs) {
-                if (s?.url && !seenSrc.has(s.url)) { seenSrc.add(s.url); msgSources.push({ title: String(s.title || s.url), url: String(s.url) }); }
+                if (s?.url && !seenSrc.has(s.url)) { seenSrc.add(s.url); msgSources.push({ title: String(s.title || s.url), url: String(s.url), ...(s.type ? { type: s.type } : {}) }); }
               }
+              if (msgSources.length) updatePendingSearch(msgSources, "");
             }
             const imgs = ev.type === "tool_result" ? ev.images : d.images;
             if (Array.isArray(imgs)) {
@@ -4850,7 +5150,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       // Thinking is delegated to the client: ask nakata.app (Evren brain + live tools/Mac relay), selected voice speaks the answer.
       clearTimeout(v.faceT);
       voiceSay("Düşünüyor…", "thinking");
-      const prompt = (v.inp || v.pendingUserText || "").slice(-2000);
+      const prompt = (v.pendingUserText || v.inp || "").slice(-2000);
       v.inp = "";
       v.pendingUserText = "";
       if (!prompt.trim()) {
