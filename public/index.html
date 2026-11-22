@@ -3272,6 +3272,7 @@ async function send(text, opts = {}){
             const d = (ev.choices && ev.choices[0] && ev.choices[0].delta) || {};
             const tc = ev.type === "tool_call" ? { name: ev.tool, args: ev.args } : d.tool_call;
             if (tc?.name) {
+              if (!pendingRow) showPending(text);
               if (tc.name === "web_search") {
                 const qHint = tc.args?.query ? String(tc.args.query).trim().slice(0, 38) : "";
                 const lbl = qHint
@@ -3321,8 +3322,8 @@ async function send(text, opts = {}){
               agentPendingIds.add(dtk.id);
               void refreshAgentTasks();
             }
-            if (d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
-            if (d.content) { if (!bubble) bubble = addAsst(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
+            if (!free && d.reasoning) { if (!reasonNode) { reasonNode = el("div", "reason"); put(reasonNode); } reasonNode.textContent += d.reasoning; scrollDown(); }
+            if (d.content) { if (!bubble) bubble = addAsst(); if (pendingRow) hidePending(); acc += d.content; if (!frame) frame = requestAnimationFrame(paintStep); }
           }
           if (retryStream) break;
         }
