@@ -106,6 +106,20 @@ button.title:active{opacity:.6}
 .md pre.code-wrap code{white-space:pre-wrap;overflow-wrap:anywhere}
 .md a.cite-pill{display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 5px;margin:0 2px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink)!important;font-size:11.5px;font-weight:500;line-height:1.45;text-decoration:none!important;vertical-align:1px}
 .md a.cite-pill .cite-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.md-cell-badge{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap}
+.md-cell-badge.is-yes{background:rgba(79,184,121,.16);color:#6ee7a8;border:1px solid rgba(79,184,121,.35)}
+.md-cell-badge.is-no{background:rgba(224,108,101,.14);color:#f28b82;border:1px solid rgba(224,108,101,.32)}
+.md-cell-badge.is-best{background:rgba(217,154,108,.18);color:var(--accent);border:1px solid rgba(217,154,108,.45)}
+.cite-popover{position:fixed;z-index:95;width:min(310px,calc(100vw - 24px));padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--side);box-shadow:0 14px 36px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:5px;pointer-events:none}
+.cite-popover[hidden]{display:none}
+.cite-popover-top{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted)}
+.cite-popover-title{font-size:13px;font-weight:600;color:var(--ink);line-height:1.35}
+.cite-popover-snippet{font-size:12px;color:var(--muted);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.slash-menu{max-width:780px;margin:0 auto 6px;padding:6px;border-radius:14px;border:1px solid var(--line);background:var(--side);display:flex;flex-wrap:wrap;gap:6px}
+.slash-menu[hidden]{display:none}
+.slash-item{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font-size:12.5px}
+.slash-item code{font:600 11.5px var(--mono);color:var(--accent)}
+.slash-item span{color:var(--muted);font-size:12px}
 .md-question-progress{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .md-question-steps{display:flex;flex-direction:column;gap:12px}
 .md-question-step{display:flex;flex-direction:column;gap:7px;padding-top:10px;border-top:1px solid var(--line)}
@@ -619,6 +633,7 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   </div>
   <button type="button" class="scroll-down-btn" id="scrollBottomBtn" aria-label="En alta in" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>
   <div class="composer-wrap">
+    <div class="slash-menu" id="slashMenu" role="menu" hidden></div>
     <div class="attach-bar" id="attachBar" hidden></div>
     <input type="file" id="chatFile" accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.yml,.yaml,.log" multiple hidden>
     <form class="composer" id="composer">
@@ -1723,6 +1738,9 @@ function hydrateInlineCitations(rootEl, sources = []){
     a.classList.add("cite-pill");
     a.dataset.citeHydrated = "1";
     a.dataset.citeHost = hit.host;
+    a.dataset.citeTitle = hit.title;
+    a.dataset.citeSnippet = hit.snippet || "";
+    a.dataset.citeIndex = String(hit.idx);
     a.title = `[${hit.idx}] ${hit.title}` + (hit.snippet ? ` · ${hit.snippet}` : "");
     const m = srcMonogram(hit.host);
     const dot = el("i", "cite-dot"); dot.style.background = m.bg; dot.setAttribute("aria-hidden", "true");
@@ -1858,7 +1876,14 @@ function md(src, { streaming = false } = {}){
         ? `<div class="md-table-filter-bar"><input type="search" class="md-table-filter" data-filter-table placeholder="${esc(tx("Tabloda filtrele…"))}" aria-label="${esc(tx("Tabloda filtrele"))}"></div>`
         : "";
       let tbl = `<div class="md-table-card"><div class="md-table-head"><div class="md-table-title"><span class="md-table-badge">${badge}</span><span class="md-table-meta" data-table-meta>${metaTxt}</span></div><div class="md-table-acts"><button type="button" class="md-table-btn" data-copy-table>${esc(tx("Kopyala"))}</button><button type="button" class="md-table-btn" data-csv-table>CSV</button><button type="button" class="md-table-btn" data-expand-table>${esc(tx("Büyüt"))}</button></div></div>${filterBar}<div class="md-table-scroll"><table><thead><tr>` + head.map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead>";
-      if (rows.length) tbl += "<tbody>" + rows.map((r) => "<tr>" + head.map((_, k) => `<td>${inline(r[k] || "")}</td>`).join("") + "</tr>").join("") + "</tbody>";
+      const formatCell = (rawC) => {
+        const tc = String(rawC || "").trim();
+        if (/^(?:✓|✔|✅|yes|evet)$/i.test(tc)) return `<span class="md-cell-badge is-yes">${inline(tc)}</span>`;
+        if (/^(?:✗|✘|✕|❌|no|hayır)$/i.test(tc)) return `<span class="md-cell-badge is-no">${inline(tc)}</span>`;
+        if (/^(?:★.*|⭐.*|önerilen|en iyi|kazanan|recommended|best pick|winner)$/i.test(tc)) return `<span class="md-cell-badge is-best">${inline(tc)}</span>`;
+        return inline(rawC || "");
+      };
+      if (rows.length) tbl += "<tbody>" + rows.map((r) => "<tr>" + head.map((_, k) => `<td>${formatCell(r[k] || "")}</td>`).join("") + "</tr>").join("") + "</tbody>";
       out.push(tbl + "</table></div></div>");
       continue;
     }
@@ -3288,7 +3313,9 @@ function markLastReply(){
   fbUp.addEventListener("click", () => setFb("up"));
   fbDn.addEventListener("click", () => setFb("down"));
   refBtn.addEventListener("click", () => toggleRef(false));
-  bar.append(fbUp, fbDn, refBtn);
+  const expMdBtn = el("button", "refine-btn", ".md"); expMdBtn.type = "button"; expMdBtn.dataset.exportMd = "1"; expMdBtn.setAttribute("aria-label", tx("Markdown indir"));
+  expMdBtn.addEventListener("click", () => { exportMobileConvoMarkdown(); haptic(); });
+  bar.append(fbUp, fbDn, refBtn, expMdBtn);
   last.append(bar);
   addReportAction(last, text, bar);
   if (lastMsg?.servedBy) last.append(el("div", "servedby", tx("Yedek: " + modelDisplayName(lastMsg.servedBy))));
@@ -3534,6 +3561,22 @@ function toApiContent(m){
   return parts;
 }
 async function send(text, opts = {}){
+  if ($("#slashMenu")) $("#slashMenu").hidden = true;
+  const slashM = /^\/(web|ara|search|gorsel|görsel|image|tablo|table)(?:\s+([\s\S]+))?$/i.exec(String(text || "").trim());
+  if (slashM) {
+    const cmd = slashM[1].toLowerCase(), rest = String(slashM[2] || "").trim();
+    if (cmd === "web" || cmd === "ara" || cmd === "search") {
+      opts = { ...opts, forceWeb: true };
+      if (!mobileWebModeOn && $("#webChip")) { mobileWebModeOn = true; $("#webChip").setAttribute("aria-pressed", "true"); }
+      text = rest;
+    } else if (cmd === "gorsel" || cmd === "görsel" || cmd === "image") {
+      opts = { ...opts, forceImage: true };
+      if (!mobileImageModeOn && $("#imgChip")) { mobileImageModeOn = true; $("#imgChip").setAttribute("aria-pressed", "true"); }
+      text = rest;
+    } else if (cmd === "tablo" || cmd === "table") {
+      text = rest ? ((LANG === "en" ? "Build a comparison table for: " : "Karşılaştırma tablosu hazırla: ") + rest) : "";
+    }
+  }
   const images = (opts.images || []).slice(0, 2);
   const files = opts.files || [];
   if (!text && !images.length && !files.length) return;
@@ -3920,6 +3963,76 @@ $("#imgChip")?.addEventListener("click", () => {
   $("#imgChip").setAttribute("aria-pressed", mobileImageModeOn ? "true" : "false");
   haptic();
 });
+function syncMobileSlashMenu(){
+  const menu = $("#slashMenu"); if (!menu) return;
+  const val = $("#prompt")?.value || "";
+  if (!/^\/[a-zA-Zçğıöşü]*$/.test(val)) { menu.hidden = true; return; }
+  const q = val.toLowerCase();
+  const cmds = [
+    { cmd: "/web", desc: LANG === "en" ? "Search the live web" : "Canlı web araması" },
+    { cmd: LANG === "en" ? "/image" : "/gorsel", desc: LANG === "en" ? "Enable image generation" : "Görsel üretim modu" },
+    { cmd: LANG === "en" ? "/table" : "/tablo", desc: LANG === "en" ? "Comparison table" : "Karşılaştırma tablosu" },
+  ].filter((c) => c.cmd.toLowerCase().startsWith(q));
+  if (!cmds.length) { menu.hidden = true; return; }
+  menu.replaceChildren();
+  for (const c of cmds) {
+    const b = el("button", "slash-item"); b.type = "button"; b.dataset.slashCmd = c.cmd; b.dataset.noI18n = "1";
+    b.append(el("code", "", c.cmd), el("span", "", c.desc));
+    b.addEventListener("click", () => {
+      const box = $("#prompt");
+      if (c.cmd === "/web") { if (!mobileWebModeOn && $("#webChip")) { mobileWebModeOn = true; $("#webChip").setAttribute("aria-pressed", "true"); } box.value = ""; }
+      else if (c.cmd === "/gorsel" || c.cmd === "/image") { if (!mobileImageModeOn && $("#imgChip")) { mobileImageModeOn = true; $("#imgChip").setAttribute("aria-pressed", "true"); } box.value = ""; }
+      else { box.value = LANG === "en" ? "Build a comparison table for: " : "Karşılaştırma tablosu hazırla: "; }
+      menu.hidden = true; grow(); updateSendBtn(); box.focus(); haptic();
+    });
+    menu.append(b);
+  }
+  menu.hidden = false;
+}
+$("#prompt")?.addEventListener("input", syncMobileSlashMenu);
+function exportMobileConvoMarkdown(){
+  if (!convo.length) return;
+  const title = (convo.find((m) => m.role === "user")?.content || "Nakata Chat").split("\n")[0].slice(0, 60);
+  const parts = ["# " + title];
+  for (const m of convo) {
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    const body = String(m.content || "").trim();
+    const srcs = Array.isArray(m.sources) ? m.sources.filter((s) => s?.url) : [];
+    if (!body && !srcs.length) continue;
+    let sec = `## ${m.role === "user" ? (LANG === "en" ? "You" : "Sen") : "Nakata"}\n\n${body}`;
+    if (srcs.length) sec += `\n\n### ${LANG === "en" ? "Sources" : "Kaynaklar"}\n` + srcs.map((s) => `- [${String(s.title || s.url).replace(/[\[\]]/g, "")}](${s.url})`).join("\n");
+    parts.push(sec.trim());
+  }
+  const mdText = parts.join("\n\n---\n\n") + "\n";
+  const slug = title.replace(/[çÇ]/g, "c").replace(/[ğĞ]/g, "g").replace(/[ıİ]/g, "i").replace(/[öÖ]/g, "o").replace(/[şŞ]/g, "s").replace(/[üÜ]/g, "u").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 44) || "nakata-chat";
+  const blob = new Blob([mdText], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = slug + ".md";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+const mobileCitePopover = el("div", "cite-popover");
+mobileCitePopover.id = "citePopover"; mobileCitePopover.setAttribute("role", "tooltip"); mobileCitePopover.hidden = true;
+document.body.append(mobileCitePopover);
+function hideMobileCitePop(){ mobileCitePopover.hidden = true; }
+function showMobileCitePop(anchor){
+  const host = anchor?.dataset?.citeHost || "", title = anchor?.dataset?.citeTitle || host, snippet = anchor?.dataset?.citeSnippet || "", idx = anchor?.dataset?.citeIndex || "";
+  if (!host && !title) return;
+  const m = srcMonogram(host);
+  mobileCitePopover.replaceChildren();
+  const top = el("div", "cite-popover-top");
+  const mono = el("i", "src-mono", m.ch); mono.style.background = m.bg; mono.setAttribute("aria-hidden", "true");
+  top.append(mono, el("span", "", (idx ? `[${idx}] ` : "") + host));
+  mobileCitePopover.append(top, el("div", "cite-popover-title", title));
+  if (snippet) mobileCitePopover.append(el("div", "cite-popover-snippet", snippet));
+  mobileCitePopover.hidden = false;
+  const r = anchor.getBoundingClientRect(), pw = mobileCitePopover.offsetWidth || 280, ph = mobileCitePopover.offsetHeight || 86;
+  mobileCitePopover.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - pw - 12, r.left))) + "px";
+  mobileCitePopover.style.top = Math.round(r.top > ph + 16 ? (r.top - ph - 8) : (r.bottom + 8)) + "px";
+}
+$("#thread")?.addEventListener("mouseover", (e) => { const p = e.target.closest?.("a.cite-pill"); if (p) showMobileCitePop(p); });
+$("#thread")?.addEventListener("mouseout", (e) => { const p = e.target.closest?.("a.cite-pill"); if (p && !p.contains(e.relatedTarget)) hideMobileCitePop(); });
+$("#chatScroll")?.addEventListener("scroll", hideMobileCitePop, { passive: true });
 $("#attachBtn").addEventListener("click", () => $("#chatFile").click());
 $("#chatFile").addEventListener("change", async (e) => {
   const picked = Array.from(e.target.files || []);
