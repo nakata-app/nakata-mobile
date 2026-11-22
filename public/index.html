@@ -98,10 +98,26 @@ button.title:active{opacity:.6}
 .md li{margin:.42em 0;line-height:1.65}
 .md code{font:14px/1.4 var(--mono);background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
 .md pre{margin:0 0 1em;background:#0d0d0c;border:1px solid var(--line);border-radius:12px;overflow:hidden;color:#f5f4ee}
-.md pre .ph{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #ffffff16;font:11px/1.2 var(--mono);color:#a7a49c;letter-spacing:.04em;text-transform:uppercase}
+.md pre .ph{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border-bottom:1px solid #ffffff16;font:11px/1.2 var(--mono);color:#a7a49c;letter-spacing:.04em;text-transform:uppercase}
+.md pre .ph-acts{display:inline-flex;align-items:center;gap:4px}
 .md pre .ph button{font:inherit;text-transform:none;letter-spacing:0;color:#d6d4cc;padding:2px 8px;border-radius:6px;background:transparent;border:0}
-.md pre .ph button:active{background:#ffffff18}
+.md pre .ph button:active,.md pre .ph button[aria-pressed="true"]{background:#ffffff18;color:#fff}
 .md pre code{display:block;padding:12px 14px;background:none;border:0;border-radius:0;overflow-x:auto;white-space:pre;font-size:13.5px;line-height:1.5;color:#f5f4ee}
+.md pre.code-wrap code{white-space:pre-wrap;overflow-wrap:anywhere}
+.md a.cite-pill{display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 5px;margin:0 2px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink)!important;font-size:11.5px;font-weight:500;line-height:1.45;text-decoration:none!important;vertical-align:1px}
+.md a.cite-pill .cite-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.md-question-progress{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.md-question-steps{display:flex;flex-direction:column;gap:12px}
+.md-question-step{display:flex;flex-direction:column;gap:7px;padding-top:10px;border-top:1px solid var(--line)}
+.md-question-step:first-child{padding-top:0;border-top:0}
+.md-question-step-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.md-question-step-idx{font:600 10.5px/1 var(--mono);color:var(--accent);padding:2px 6px;border-radius:999px;background:#d977571f}
+.refine-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.refine-chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--side-ink);font-size:12px}
+.refine-chip:active{border-color:var(--accent);color:var(--ink)}
+.msg-actions .fb-btn{height:30px;padding:0 8px;border-radius:8px;color:var(--muted);font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.msg-actions .fb-btn.on{color:var(--accent);background:#d977571f}
+.msg-actions .refine-btn{height:30px;padding:0 9px;border-radius:8px;color:var(--muted);font-size:12.5px;display:inline-flex;align-items:center;gap:4px}
 .md pre code .tok-kw{color:#d99a6c;font-weight:500}
 .md pre code .tok-str{color:#98c379}
 .md pre code .tok-num{color:#7cc5f8}
@@ -1315,6 +1331,16 @@ const EN = {
   "Uyarı":"Warning",
   "Dikkat":"Caution",
   "Aranan":"Searched",
+  "Kaydır":"Wrap",
+  "İndir":"Download",
+  "İyileştir ▾":"Refine ▾",
+  "Daha kısa":"Shorter",
+  "Tabloya çevir":"Turn into table",
+  "Web'de doğrula":"Verify on web",
+  "SORU TABLOSU":"QUESTIONS",
+  "Tüm Yanıtları Gönder":"Submit All Answers",
+  "Özel yanıt (isteğe bağlı)…":"Custom answer (optional)…",
+  "Çoklu":"Multi",
 };
 // Texts with numbers or names in them.
 const EN_RE = [
@@ -1624,19 +1650,86 @@ function highlightCodeHtml(code, lang){
   if (last < raw.length) out += esc(raw.slice(last));
   return out;
 }
+const CODE_EXT_MAP = {
+  js:"js",javascript:"js",mjs:"mjs",cjs:"cjs",jsx:"jsx",ts:"ts",typescript:"ts",tsx:"tsx",
+  py:"py",python:"py",rs:"rs",rust:"rs",go:"go",sh:"sh",bash:"sh",zsh:"sh",shell:"sh",
+  json:"json",yaml:"yml",yml:"yml",toml:"toml",sql:"sql",html:"html",htm:"html",css:"css",
+  md:"md",markdown:"md",xml:"xml",svg:"svg",c:"c",cpp:"cpp",java:"java",kt:"kt",swift:"swift",rb:"rb",php:"php",
+};
+function codeFileExt(lang){ return CODE_EXT_MAP[String(lang || "").trim().toLowerCase()] || "txt"; }
+function normalizeQOpts(raw){
+  return (Array.isArray(raw) ? raw : [])
+    .map((o) => typeof o === "string" ? { label: o.trim(), description: "" } : (o && typeof o.label === "string" ? { label: o.label.trim(), description: String(o.description || "").trim() } : null))
+    .filter((o) => o && o.label).slice(0, 10);
+}
 function renderQuestionCardHtml(raw){
   let spec;
   try { spec = JSON.parse(String(raw || "").trim()); } catch { return null; }
   if (!spec || typeof spec !== "object") return null;
-  const opts = (Array.isArray(spec.options) ? spec.options : [])
-    .map((o) => typeof o === "string" ? { label: o.trim(), description: "" } : (o && typeof o.label === "string" ? { label: o.label.trim(), description: String(o.description || "").trim() } : null))
-    .filter((o) => o && o.label).slice(0, 10);
+  if (Array.isArray(spec.questions) && spec.questions.length) {
+    const steps = spec.questions
+      .map((q) => {
+        if (!q || typeof q !== "object") return null;
+        const options = normalizeQOpts(q.options);
+        if (!options.length) return null;
+        return {
+          header: String(q.header || q.title || "").trim(),
+          question: String(q.question || q.title || q.header || "").trim(),
+          multi: q.multi === true || q.multiSelect === true,
+          placeholder: String(q.placeholder || tx("Özel yanıt (isteğe bağlı)…")),
+          options,
+        };
+      })
+      .filter(Boolean).slice(0, 6);
+    if (!steps.length) return null;
+    const badge = esc(String(spec.title || tx("SORU TABLOSU")).toUpperCase());
+    const prog = esc(LANG === "en" ? `0/${steps.length} answered` : `0/${steps.length} yanıtlandı`);
+    return `<div class="md-question-card md-question-wizard" data-question-card data-question-wizard="1" data-total-steps="${steps.length}" data-question="${esc(String(spec.title || ""))}"><div class="md-question-head"><span class="md-question-badge">${badge}</span><span class="md-question-progress" data-question-progress>${prog}</span></div><div class="md-question-steps">${steps.map((st, sIdx) => `<div class="md-question-step" data-question-step="${sIdx}" data-step-multi="${st.multi ? "1" : "0"}" data-step-title="${esc(st.header || st.question)}"><div class="md-question-step-head"><span class="md-question-step-idx">${sIdx + 1}/${steps.length}</span><span class="md-question-prompt">${esc(st.question)}</span>${st.multi ? `<span class="md-question-hint">${esc(tx("Çoklu"))}</span>` : ""}</div><div class="md-question-opts">${st.options.map((opt, idx) => `<button type="button" class="md-question-opt" data-question-opt="${idx}" data-opt-label="${esc(opt.label)}" aria-pressed="false"><span class="md-question-opt-num">${idx + 1}</span><span class="md-question-opt-body"><strong>${esc(opt.label)}</strong>${opt.description ? `<small>${esc(opt.description)}</small>` : ""}</span></button>`).join("")}</div><input type="text" class="md-question-custom" placeholder="${esc(st.placeholder)}" aria-label="${esc(st.placeholder)}"></div>`).join("")}</div><div class="md-question-foot"><button type="button" class="md-question-submit" data-question-submit>${esc(tx("Tüm Yanıtları Gönder"))}</button></div></div>`;
+  }
+  const opts = normalizeQOpts(spec.options);
   if (!opts.length) return null;
   const q = String(spec.question || spec.title || "").trim();
   const multi = spec.multi === true || spec.multiSelect === true;
   const badge = esc(String(spec.title || tx("SORU & SEÇİM")).toUpperCase());
   const ph = esc(String(spec.placeholder || tx("Kendi yanıtını yaz (isteğe bağlı)…")));
   return `<div class="md-question-card" data-question-card data-multi="${multi ? "1" : "0"}" data-question="${esc(q)}"><div class="md-question-head"><span class="md-question-badge">${badge}</span>${multi ? `<span class="md-question-hint">${esc(tx("Çoklu seçim"))}</span>` : ""}</div>${q ? `<div class="md-question-prompt">${esc(q)}</div>` : ""}<div class="md-question-opts">${opts.map((opt, idx) => `<button type="button" class="md-question-opt" data-question-opt="${idx}" data-opt-label="${esc(opt.label)}" aria-pressed="false"><span class="md-question-opt-num">${idx + 1}</span><span class="md-question-opt-body"><strong>${esc(opt.label)}</strong>${opt.description ? `<small>${esc(opt.description)}</small>` : ""}</span></button>`).join("")}</div><div class="md-question-foot"><input type="text" class="md-question-custom" placeholder="${ph}" aria-label="${ph}"><button type="button" class="md-question-submit" data-question-submit>${esc(tx("Seçimi Gönder"))}</button></div></div>`;
+}
+function normalizeCiteUrl(raw){
+  try {
+    const u = new URL(String(raw || "").trim());
+    if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+    for (const k of [...u.searchParams.keys()]) if (/^(?:utm_.+|fbclid|gclid|dclid|mc_cid|mc_eid|igshid)$/i.test(k)) u.searchParams.delete(k);
+    u.hash = "";
+    return { href: u.href.replace(/\/+$/, ""), host: u.hostname.toLowerCase().replace(/^www\./, "") };
+  } catch { return null; }
+}
+function hydrateInlineCitations(rootEl, sources = []){
+  if (!rootEl || !Array.isArray(sources) || !sources.length) return 0;
+  const byUrl = new Map(), byHost = new Map();
+  sources.forEach((s, idx) => {
+    const norm = normalizeCiteUrl(s?.url); if (!norm) return;
+    const entry = { idx: idx + 1, title: String(s.title || norm.host), host: s.host || norm.host, snippet: String(s.snippet || "").trim() };
+    if (!byUrl.has(norm.href)) byUrl.set(norm.href, entry);
+    if (!byHost.has(norm.host)) byHost.set(norm.host, entry);
+  });
+  if (!byUrl.size) return 0;
+  let count = 0;
+  for (const a of Array.from(rootEl.querySelectorAll("a[href]"))) {
+    if (a.dataset.citeHydrated === "1" || a.closest(".srcs, .art, .chat-gen-card, .chat-cta, pre, code")) continue;
+    const norm = normalizeCiteUrl(a.getAttribute("href") || a.href); if (!norm) continue;
+    const lbl = String(a.textContent || "").trim().toLowerCase().replace(/^www\./, "");
+    const hit = byUrl.get(norm.href) || (lbl === norm.host ? byHost.get(norm.host) : null);
+    if (!hit) continue;
+    a.classList.add("cite-pill");
+    a.dataset.citeHydrated = "1";
+    a.dataset.citeHost = hit.host;
+    a.title = `[${hit.idx}] ${hit.title}` + (hit.snippet ? ` · ${hit.snippet}` : "");
+    const m = srcMonogram(hit.host);
+    const dot = el("i", "cite-dot"); dot.style.background = m.bg; dot.setAttribute("aria-hidden", "true");
+    a.replaceChildren(dot, el("span", "", hit.host));
+    count++;
+  }
+  return count;
 }
 function inline(s){
   return s.split(/(`[^`\n]+`)/g).map((part, k) => k % 2
@@ -1731,7 +1824,7 @@ function md(src, { streaming = false } = {}){
         const qCard = renderQuestionCardHtml(raw);
         if (qCard) { out.push(qCard); continue; }
       }
-      out.push(`<pre><div class="ph"><span>${esc(lang || "text")}</span><button type="button" data-copy-code>${esc(tx("Kopyala"))}</button></div><code>${highlightCodeHtml(raw, lang)}</code></pre>`);
+      out.push(`<pre><div class="ph"><span>${esc(lang || "text")}</span><div class="ph-acts"><button type="button" data-wrap-code aria-pressed="false">${esc(tx("Kaydır"))}</button><button type="button" data-dl-code data-code-ext="${esc(codeFileExt(lang))}">${esc(tx("İndir"))}</button><button type="button" data-copy-code>${esc(tx("Kopyala"))}</button></div></div><code>${highlightCodeHtml(raw, lang)}</code></pre>`);
       continue;
     }
     if (/^\s*\$\$\s*$/.test(ln)) {
@@ -2607,15 +2700,47 @@ document.addEventListener("click", async (event) => {
     }
     return;
   }
+  const wrapCode = event.target.closest?.("[data-wrap-code]");
+  if (wrapCode) {
+    const pre = wrapCode.closest("pre");
+    if (pre) {
+      const wrapped = pre.classList.toggle("code-wrap");
+      wrapCode.setAttribute("aria-pressed", wrapped ? "true" : "false");
+      haptic();
+    }
+    return;
+  }
+  const dlCode = event.target.closest?.("[data-dl-code]");
+  if (dlCode) {
+    const code = dlCode.closest("pre")?.querySelector("code")?.textContent || "";
+    if (code) {
+      const ext = dlCode.getAttribute("data-code-ext") || "txt";
+      const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "nakata-snippet." + ext;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      haptic();
+    }
+    return;
+  }
   const qOpt = event.target.closest?.("[data-question-opt]");
   if (qOpt) {
     const card = qOpt.closest("[data-question-card]");
     if (!card || card.classList.contains("submitted")) return;
-    const multi = card.getAttribute("data-multi") === "1";
+    const step = qOpt.closest("[data-question-step]");
+    const scope = step || card;
+    const multi = (step ? step.getAttribute("data-step-multi") : card.getAttribute("data-multi")) === "1";
     if (multi) {
       qOpt.setAttribute("aria-pressed", qOpt.getAttribute("aria-pressed") === "true" ? "false" : "true");
     } else {
-      card.querySelectorAll("[data-question-opt]").forEach((b) => b.setAttribute("aria-pressed", b === qOpt ? "true" : "false"));
+      scope.querySelectorAll("[data-question-opt]").forEach((b) => b.setAttribute("aria-pressed", b === qOpt ? "true" : "false"));
+    }
+    if (card.getAttribute("data-question-wizard") === "1") {
+      const steps = Array.from(card.querySelectorAll("[data-question-step]"));
+      const answered = steps.filter((st) => st.querySelector('[data-question-opt][aria-pressed="true"]') || String(st.querySelector(".md-question-custom")?.value || "").trim()).length;
+      const prog = card.querySelector("[data-question-progress]");
+      if (prog) prog.textContent = LANG === "en" ? `${answered}/${steps.length} answered` : `${answered}/${steps.length} yanıtlandı`;
     }
     haptic();
     return;
@@ -2624,6 +2749,21 @@ document.addEventListener("click", async (event) => {
   if (qSub) {
     const card = qSub.closest("[data-question-card]");
     if (!card || card.classList.contains("submitted") || controller) return;
+    if (card.getAttribute("data-question-wizard") === "1") {
+      const lines = [];
+      for (const st of card.querySelectorAll("[data-question-step]")) {
+        const picked = Array.from(st.querySelectorAll('[data-question-opt][aria-pressed="true"]')).map((b) => b.getAttribute("data-opt-label")).filter(Boolean);
+        const custom = String(st.querySelector(".md-question-custom")?.value || "").trim();
+        if (custom) picked.push(custom);
+        if (picked.length) lines.push(`- ${st.getAttribute("data-step-title") || ""}: ${picked.join(", ")}`);
+      }
+      if (!lines.length) return;
+      const title = card.getAttribute("data-question") || "";
+      card.classList.add("submitted");
+      qSub.disabled = true;
+      send((title ? title + "\n" : "") + lines.join("\n"));
+      return;
+    }
     const picked = Array.from(card.querySelectorAll('[data-question-opt][aria-pressed="true"]'))
       .map((b) => b.getAttribute("data-opt-label"))
       .filter(Boolean);
@@ -3035,7 +3175,7 @@ function markLastReply(){
       oldBar.replaceWith(wrap);
     } else oldBar.remove();
   }
-  for (const x of document.querySelectorAll("#thread .followups, #thread .edit-msg, #thread .servedby, #thread .report-picker")) x.remove();
+  for (const x of document.querySelectorAll("#thread .followups, #thread .edit-msg, #thread .servedby, #thread .report-picker, #thread .refine-bar")) x.remove();
   const userRows = document.querySelectorAll("#thread .row.user");
   const lastUserRow = userRows[userRows.length - 1];
   const lastUserMsg = convo.filter((m) => m.role === "user").at(-1);
@@ -3107,6 +3247,48 @@ function markLastReply(){
     });
     bar.append(spk);
   }
+  const fbUp = el("button", "fb-btn", "👍"); fbUp.type = "button"; fbUp.dataset.feedback = "up"; fbUp.setAttribute("aria-pressed", "false");
+  const fbDn = el("button", "fb-btn", "👎"); fbDn.type = "button"; fbDn.dataset.feedback = "down"; fbDn.setAttribute("aria-pressed", "false");
+  const refBtn = el("button", "refine-btn", tx("İyileştir ▾")); refBtn.type = "button"; refBtn.dataset.refineToggle = "1"; refBtn.setAttribute("aria-expanded", "false");
+  const toggleRef = (forceOpen) => {
+    const existing = last.querySelector(".refine-bar");
+    if (existing && !forceOpen) { existing.remove(); refBtn.setAttribute("aria-expanded", "false"); return; }
+    if (existing) return;
+    const isTrConv = detectConvLang(lastUserMsg?.content || "", text) === "tr";
+    const opts = isTrConv
+      ? [
+          { id: "shorter", label: "Daha kısa", prompt: "Bir önceki yanıtını yarı uzunlukta, en kritik maddelerle özetle." },
+          { id: "deeper", label: "Daha detaylı", prompt: "Bir önceki yanıtını daha derin, somut örnekler ve sayılarla genişlet." },
+          { id: "table", label: "Tabloya çevir", prompt: "Bir önceki yanıtındaki bilgileri temiz bir karşılaştırma tablosuna dönüştür." },
+          { id: "verify", label: "Web'de doğrula", prompt: "Bir önceki yanıtındaki güncel bilgileri canlı web aramasıyla doğrula ve eksikleri güncelle." },
+        ]
+      : [
+          { id: "shorter", label: "Shorter", prompt: "Condense your previous answer to half the length with only the key takeaways." },
+          { id: "deeper", label: "More detailed", prompt: "Expand your previous answer with deeper analysis, concrete examples, and numbers." },
+          { id: "table", label: "Turn into table", prompt: "Turn the key points from your previous answer into a clean comparison table." },
+          { id: "verify", label: "Verify on web", prompt: "Verify the latest facts from your previous answer via live web search and update anything outdated." },
+        ];
+    const rbar = el("div", "refine-bar"); rbar.dataset.noI18n = "1";
+    for (const item of opts) {
+      const chip = el("button", "refine-chip", item.label); chip.type = "button"; chip.dataset.refineAction = item.id; chip.dataset.noI18n = "1";
+      chip.addEventListener("click", () => { if (!controller) send(item.prompt, { forceWeb: item.id === "verify" }); });
+      rbar.append(chip);
+    }
+    bar.after(rbar);
+    refBtn.setAttribute("aria-expanded", "true");
+  };
+  const setFb = (which) => {
+    const upOn = which === "up" && fbUp.getAttribute("aria-pressed") !== "true";
+    const dnOn = which === "down" && fbDn.getAttribute("aria-pressed") !== "true";
+    fbUp.setAttribute("aria-pressed", upOn ? "true" : "false"); fbUp.classList.toggle("on", upOn);
+    fbDn.setAttribute("aria-pressed", dnOn ? "true" : "false"); fbDn.classList.toggle("on", dnOn);
+    haptic();
+    if (dnOn) toggleRef(true);
+  };
+  fbUp.addEventListener("click", () => setFb("up"));
+  fbDn.addEventListener("click", () => setFb("down"));
+  refBtn.addEventListener("click", () => toggleRef(false));
+  bar.append(fbUp, fbDn, refBtn);
   last.append(bar);
   addReportAction(last, text, bar);
   if (lastMsg?.servedBy) last.append(el("div", "servedby", tx("Yedek: " + modelDisplayName(lastMsg.servedBy))));
@@ -3295,6 +3477,7 @@ function renderConvo(){
     else if (m.role === "assistant" && (m.content?.trim() || m.generatedImages?.length || m.cta || m.sources?.length)) {
       const node = addAsst();
       if (m.content?.trim()) node.innerHTML = md(m.content);
+      if (m.sources?.length) hydrateInlineCitations(node, m.sources);
       const row = node.parentElement?.parentElement;
       renderSources(row, m.sources, m.searchQueries);
       renderChatGeneratedImages(row, m.generatedImages, m.generatedImagePrompt || "");
@@ -3421,6 +3604,7 @@ async function send(text, opts = {}){
   controller = new AbortController();
   let acc = "", shownLen = 0, frame = 0, retry = null, servedBy = "", msgAction = null, msgImageTask = null;
   const msgSources = [], seenSrc = new Set(), msgImages = [], seenImg = new Set(), msgQueries = [];
+  const explicitWeb = Boolean(opts?.forceWeb || mobileWebModeOn);
   const explicitImage = Boolean(opts?.forceImage || mobileImageModeOn);
   if (byokWebResearch?.query) msgQueries.push(String(byokWebResearch.query).trim());
   if (byokWebResearch?.sources?.length) {
@@ -3516,7 +3700,7 @@ async function send(text, opts = {}){
         stream: true,
         messages,
         ...((free || gb) ? { conversationId: curId, memory: isMemoryEnabled() } : {}),
-        ...(free && mobileWebModeOn ? { webSearch: true } : {}),
+        ...(free && explicitWeb ? { webSearch: true } : {}),
         ...(free && explicitImage ? { imageMode: true } : {}),
         ...(free && activeAgentPairId ? { pairId: activeAgentPairId } : {}),
         ...(gb && payBots ? { pay: "credits" } : {}),
@@ -3673,6 +3857,7 @@ async function send(text, opts = {}){
         if (pics) acc += "\n\n" + pics;
       }
       if (bubble) bubble.innerHTML = md(acc);
+      if (bubble && msgSources.length) hydrateInlineCitations(bubble, msgSources);
       const row = bubble?.parentElement?.parentElement;
       if (msgSources.length && !travelAssistant) renderSources(row, msgSources, msgQueries);
       scrollDown();
