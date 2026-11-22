@@ -598,8 +598,6 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
 .voice-pulse .nk-mascot .bot-orb{transition:transform .12s ease}
 .vcontext{max-width:320px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:#ffffff0a;color:var(--side-ink);font-size:12px}
 :root[data-theme="light"] .vcontext{background:#00000006}
-.vtranscript{max-width:320px;min-height:42px;max-height:46px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:15px;line-height:1.45;color:var(--side-ink);padding:0 16px;text-wrap:balance}
-.vtranscript[hidden]{display:none}
 
 </style>
 </head>
@@ -716,7 +714,6 @@ img.mascot-img{border-radius:50%;object-fit:cover;background:#0000;pointer-event
   <div class="vcontext" id="voiceContext" hidden></div>
   <div class="vstate" id="voiceState"></div>
   <div class="vcounter"><span class="vtimer" id="voiceTimer"></span><span class="vfree" id="voiceFree" hidden></span></div>
-  <div class="vtranscript" id="voiceTranscript" hidden></div>
   <button type="button" class="vvoice" id="voicePick" aria-label="Asistan sesi">Ses: Marin ▾</button>
   <button class="vend" id="voiceEnd">Görüşmeyi bitir</button>
 </section>
@@ -5410,20 +5407,13 @@ function latestVoiceSentence(text){
   }
   return cur;
 }
-function showVoiceCaption(v, text){
-  const line = latestVoiceSentence(text);
-  if (v) v.caption = line;
-  const vt = $("#voiceTranscript");
-  if (!vt) return;
-  vt.textContent = line;
-  vt.hidden = !line;
+function setVoiceSpeechLine(v, text){
+  // Track the active spoken sentence purely in memory (for mascot mood reactivity
+  // and barge-in detection); transcripts render only inside the chat thread (#thread).
+  if (v) v.caption = latestVoiceSentence(text);
 }
-function clearVoiceCaption(v){
+function clearVoiceSpeechLine(v){
   if (v) v.caption = "";
-  const vt = $("#voiceTranscript");
-  if (!vt) return;
-  vt.textContent = "";
-  vt.hidden = true;
 }
 function syncVoiceQuota(v, freeLeftSec, creditsPerMin){
   if (!v) return;
@@ -5468,7 +5458,7 @@ function commitVoiceUserToChat(v, rawText){
   ensureVoiceChatThread();
   addUser(qText);
   convo.push({ role: "user", content: qText });
-  v.turns = [...(v.turns || []), { role: "user", content: qText.slice(0, 300) }].slice(-8);
+  v.turns = [...(v.turns || []), { role: "user", content: qText.slice(0, 300) }].slice(-14);
   v.lastTurnUserPersisted = qText;
   v.userPersistedForTurn = true;
   persist();
@@ -5494,7 +5484,7 @@ function finalizeVoiceAssistantToChat(v, rawText, sources = []){
   target.innerHTML = md(ans);
   if (sources.length) renderSources(target.parentElement?.parentElement, sources);
   convo.push({ role: "assistant", content: ans, ...(sources.length ? { sources } : {}) });
-  v.turns = [...(v.turns || []), { role: "assistant", content: ans.slice(0, 300) }].slice(-8);
+  v.turns = [...(v.turns || []), { role: "assistant", content: ans.slice(0, 300) }].slice(-14);
   v.liveAsstEl = null;
   v.liveAsstBuf = "";
   persist();
@@ -5510,7 +5500,7 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
   const chunks = splitSpeechSentences(answerText);
   if (!chunks.length) return;
   const emotion = customEmotionForText(answerText);
-  showVoiceCaption(v, chunks[0]);
+  setVoiceSpeechLine(v, chunks[0]);
   voiceSay(tx("Ses hazırlanıyor…"), "thinking");
   if (v.audio) v.audio.muted = true;
   if (v.dc?.readyState === "open" && delegationId) {
@@ -5533,7 +5523,7 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
       if (voice !== v || v.ending || v.ttsPlaySeq !== seq || ctrl.signal.aborted) return;
       // 1-ahead pipeline: start synthesizing chunk i+1 while chunk i plays so server lock never queues all chunks at once.
       pendingFetch = (i + 1 < chunks.length) ? fetchChunk(i + 1) : null;
-      showVoiceCaption(v, chunks[i]);
+      setVoiceSpeechLine(v, chunks[i]);
       if (!playedAny) {
         playedAny = true;
         voiceSay(tx("Konuşuyor…"), voiceFaceFrom(chunks[i], "happy"));
@@ -5541,13 +5531,13 @@ async function speakCustomVoiceAnswer(v, answerText, delegationId){
       await playCustomTtsBlob(v, blob, seq, ctrl.signal);
     }
     if (voice === v && !v.ending && v.ttsPlaySeq === seq) {
-      clearVoiceCaption(v);
+      clearVoiceSpeechLine(v);
       voiceSay(tx("Dinliyorum"), "attentive");
     }
   } catch {
     if (pendingFetch) pendingFetch.catch(() => {});
     if (voice !== v || v.ending || ctrl.signal.aborted || v.ttsPlaySeq !== seq) return;
-    clearVoiceCaption(v);
+    clearVoiceSpeechLine(v);
     if (!playedAny) {
       voiceSay(tx("Özel ses şu an yanıt vermedi."), "sad");
       clearTimeout(v.faceT);
@@ -5563,6 +5553,11 @@ function abortPendingDelegation(v){
   v.delegationSeq = (v.delegationSeq || 0) + 1;
   try { v.delegationAbort?.abort(); } catch {}
   v.delegationAbort = null;
+  if (typeof v.inputDoneResolve === "function") {
+    const fn = v.inputDoneResolve;
+    v.inputDoneResolve = null;
+    try { fn(); } catch {}
+  }
 }
 function unmuteLiveAudio(v){
   if (!v) return;
@@ -5649,13 +5644,14 @@ function bindVoiceTransport(v, pc, dc, audioEl){
     v.liveAsstCommitted = false;
     v.skipLiveChatPersist = false;
     v.assistantSpeaking = false;
-    clearVoiceCaption(v);
+    clearVoiceSpeechLine(v);
     v.directCustomBuf = "";
     v.ignoreLiveTranscript = false;
     if (wasSpeaking && v.audio && v.activeVoice?.kind !== "custom-tts") {
       v.audio.muted = true;
       v.bargeInMuted = true;
       armBargeInUnmuteFailsafe();
+      try { if (v.dc?.readyState === "open") v.dc.send(JSON.stringify({ type: "response.cancel" })); } catch {}
     }
     if (!keepInput) {
       v.inp = "";
@@ -5674,7 +5670,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       if (v.liveAsstBuf && !v.liveAsstCommitted && !v.skipLiveChatPersist) flushLiveAssistant();
       v.liveAsstCommitted = false;
       v.skipLiveChatPersist = false;
-      clearVoiceCaption(v);
+      clearVoiceSpeechLine(v);
       voiceSay(tx("Dinliyorum"), "attentive");
     }, 1400);
   };
@@ -5726,7 +5722,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       v.liveAsstBuf = "";
       v.liveAsstEl = null;
       v.liveAsstCommitted = false;
-      clearVoiceCaption(v);
+      clearVoiceSpeechLine(v);
       if (v.activeVoice?.kind === "custom-tts") {
         if (v.audio) v.audio.muted = true;
         if (v.suppressNextLiveAudio) {
@@ -5749,7 +5745,8 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       if (v.activeVoice?.kind === "custom-tts") {
         if (!v.ignoreLiveTranscript && ev.delta) {
           v.directCustomBuf = (v.directCustomBuf || "") + ev.delta;
-          showVoiceCaption(v, v.directCustomBuf);
+          setVoiceSpeechLine(v, v.directCustomBuf);
+          if (!v.skipLiveChatPersist) streamVoiceAssistantToChat(v, v.directCustomBuf);
           voiceSay(tx("Konuşuyor…"));
           setVoiceMood(voiceFaceFrom(v.caption || v.directCustomBuf, "happy"), 650);
         }
@@ -5757,7 +5754,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       }
       if (ev.delta) {
         if (v.bargeInMuted) {
-          if (Date.now() - (v.lastUserSpeechAt || 0) < 280) return;
+          if (Date.now() - (v.lastUserSpeechAt || 0) < 180) return;
           unmuteLiveAudio(v);
         }
         if (v.inp?.trim() && !v.userPersistedForTurn && !v.ignoreLiveTranscript) {
@@ -5775,7 +5772,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
           v.assistantSpeakStartAt = Date.now();
         }
         v.liveAsstBuf = (v.liveAsstBuf || "") + ev.delta;
-        showVoiceCaption(v, v.liveAsstBuf);
+        setVoiceSpeechLine(v, v.liveAsstBuf);
         streamVoiceAssistantToChat(v, v.liveAsstBuf);
         voiceSay(tx("Konuşuyor…"));
         setVoiceMood(voiceFaceFrom(v.caption || v.liveAsstBuf, "happy"), 650);
@@ -5787,7 +5784,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       clearTimeout(v.asstIdleT);
       v.assistantSpeaking = false;
       const doneText = String(ev.transcript || ev.text || v.liveAsstBuf || "").trim();
-      if (doneText) showVoiceCaption(v, doneText);
+      if (doneText) setVoiceSpeechLine(v, doneText);
       flushLiveAssistant(doneText);
     }
     else if (ev.type === "response.done") {
@@ -5805,7 +5802,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
           void speakCustomVoiceAnswer(v, directTxt, null);
         } else {
           v.skipLiveChatPersist = false;
-          clearVoiceCaption(v);
+          clearVoiceSpeechLine(v);
         }
         return;
       }
@@ -5815,7 +5812,7 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       v.skipLiveChatPersist = false;
       v.userPersistedForTurn = false;
       v.pendingUserText = "";
-      clearVoiceCaption(v);
+      clearVoiceSpeechLine(v);
       voiceSay(tx("Dinliyorum"));
       if (finalMood !== "attentive") {
         setVoiceMood(finalMood, 0);
@@ -5848,6 +5845,11 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       if (spoken) {
         v.pendingUserText = commitVoiceUserToChat(v, spoken);
       }
+      if (typeof v.inputDoneResolve === "function") {
+        const fn = v.inputDoneResolve;
+        v.inputDoneResolve = null;
+        try { fn(); } catch {}
+      }
     }
     else if (ev.type === "session.delegation.created" && v.id) {
       abortPendingDelegation(v);
@@ -5856,65 +5858,85 @@ function bindVoiceTransport(v, pc, dc, audioEl){
       // Selective backend delegation (live web search/weather/URLs or paired Mac tasks).
       clearTimeout(v.faceT);
       voiceSay("Düşünüyor…", "thinking");
-      const prompt = (v.pendingUserText || v.inp || "").slice(-2000);
-      v.inp = "";
-      v.pendingUserText = "";
-      if (!prompt.trim()) {
-        v.ignoreLiveTranscript = false;
-        voiceSay(tx("Dinliyorum"), "attentive");
-      } else {
-        const qText = commitVoiceUserToChat(v, prompt);
-        const mySeq = ++v.delegationSeq;
-        const delCtrl = v.delegationAbort = new AbortController();
-        (async () => {
-          try {
-            const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: qText || prompt }, signal: delCtrl.signal });
-            if (!voice || voice !== v || v.ending || v.delegationSeq !== mySeq || delCtrl.signal.aborted || d.aborted) return;
-            if (v.delegationAbort === delCtrl) v.delegationAbort = null;
-            const toolsUsed = Array.isArray(d.j?.toolsUsed) ? d.j.toolsUsed : [];
-            const dispatched = Array.isArray(d.j?.dispatchedTasks) ? d.j.dispatchedTasks : [];
-            if (dispatched.length && activeAgentPairId) {
-              agentTaskAccount = agentAcct();
-              agentTaskPair = activeAgentPairId;
-              for (const task of dispatched) {
-                if (task?.id) agentPendingIds.add(task.id);
-              }
-              void refreshAgentTasks();
-              voiceSay(tx("Mac’e görev gönderildi"), "excited");
-            } else if (toolsUsed.some((t) => t === "web_search" || t === "get_weather" || t === "fetch_url")) {
-              voiceSay(tx("Bilgi bulundu"), "happy");
-            }
-            if (d.ok && d.j.answer) {
-              const vSources = Array.isArray(d.j.sources) ? d.j.sources : [];
-              finalizeVoiceAssistantToChat(v, d.j.answer, vSources);
-              v.userPersistedForTurn = false;
-              const ansMood = voiceFaceFrom(d.j.answer, "happy");
-              if (ansMood !== "happy") setVoiceMood(ansMood, 0);
-              if (v.activeVoice?.kind === "custom-tts") {
-                v.skipLiveChatPersist = true;
-                void speakCustomVoiceAnswer(v, d.j.answer, ev.delegation?.id);
-              } else if (v.dc?.readyState === "open") {
-                v.skipLiveChatPersist = true;
-                unmuteLiveAudio(v);
-                v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: ev.delegation?.id, content: d.j.answer }));
-              }
-            } else {
-              // Brain failed/empty: never stay permanently muted/frozen; allow GPT-Live fallback transcript to flow.
-              v.ignoreLiveTranscript = false;
-              if (v.activeVoice?.kind !== "custom-tts") unmuteLiveAudio(v);
-              voiceSay(tx("Dinliyorum"), "attentive");
-            }
-          } catch (err) {
-            if (v.delegationAbort === delCtrl) v.delegationAbort = null;
-            if (err?.name === "AbortError" || v.delegationSeq !== mySeq) return;
-            if (voice === v && !v.ending) {
-              v.ignoreLiveTranscript = false;
-              if (v.activeVoice?.kind !== "custom-tts") unmuteLiveAudio(v);
-              voiceSay(tx("Dinliyorum"), "attentive");
-            }
+      const delegationId = ev.delegation?.id || ev.delegation_id || null;
+      const evPrompt = String(ev.delegation?.prompt || ev.delegation?.transcript || ev.delegation?.text || ev.transcript || "").trim();
+      const mySeq = ++v.delegationSeq;
+      const delCtrl = v.delegationAbort = new AbortController();
+      (async () => {
+        try {
+          // Wait briefly for input_transcript.done when delegation fires mid-delta so trailing syllables aren't clipped.
+          if (!evPrompt && !v.pendingUserText && v.inp?.trim()) {
+            await new Promise((resolve) => {
+              const t = setTimeout(() => {
+                if (v.inputDoneResolve === done) v.inputDoneResolve = null;
+                resolve();
+              }, 300);
+              const done = () => {
+                clearTimeout(t);
+                resolve();
+              };
+              v.inputDoneResolve = done;
+              delCtrl.signal.addEventListener("abort", done, { once: true });
+            });
+            if (!voice || voice !== v || v.ending || v.delegationSeq !== mySeq || delCtrl.signal.aborted) return;
           }
-        })();
-      }
+          const prompt = (evPrompt || v.pendingUserText || v.inp || "").slice(-2000).trim();
+          v.inp = "";
+          v.pendingUserText = "";
+          if (!prompt) {
+            if (v.delegationAbort === delCtrl) v.delegationAbort = null;
+            v.ignoreLiveTranscript = false;
+            voiceSay(tx("Dinliyorum"), "attentive");
+            return;
+          }
+          const recentHistory = Array.isArray(v.turns) ? v.turns.slice(-10) : [];
+          const qText = commitVoiceUserToChat(v, prompt);
+          const d = await api("/voice/delegation", { method: "POST", body: { sessionId: v.id, text: qText || prompt, history: recentHistory }, signal: delCtrl.signal });
+          if (!voice || voice !== v || v.ending || v.delegationSeq !== mySeq || delCtrl.signal.aborted || d.aborted) return;
+          if (v.delegationAbort === delCtrl) v.delegationAbort = null;
+          const toolsUsed = Array.isArray(d.j?.toolsUsed) ? d.j.toolsUsed : [];
+          const dispatched = Array.isArray(d.j?.dispatchedTasks) ? d.j.dispatchedTasks : [];
+          if (dispatched.length && activeAgentPairId) {
+            agentTaskAccount = agentAcct();
+            agentTaskPair = activeAgentPairId;
+            for (const task of dispatched) {
+              if (task?.id) agentPendingIds.add(task.id);
+            }
+            void refreshAgentTasks();
+            voiceSay(tx("Mac’e görev gönderildi"), "excited");
+          } else if (toolsUsed.some((t) => t === "web_search" || t === "get_weather" || t === "fetch_url")) {
+            voiceSay(tx("Bilgi bulundu"), "happy");
+          }
+          if (d.ok && d.j.answer) {
+            const vSources = Array.isArray(d.j.sources) ? d.j.sources : [];
+            finalizeVoiceAssistantToChat(v, d.j.answer, vSources);
+            v.userPersistedForTurn = false;
+            const ansMood = voiceFaceFrom(d.j.answer, "happy");
+            if (ansMood !== "happy") setVoiceMood(ansMood, 0);
+            if (v.activeVoice?.kind === "custom-tts") {
+              v.skipLiveChatPersist = true;
+              void speakCustomVoiceAnswer(v, d.j.answer, delegationId);
+            } else if (v.dc?.readyState === "open") {
+              v.skipLiveChatPersist = true;
+              unmuteLiveAudio(v);
+              v.dc.send(JSON.stringify({ type: "session.commentary.append", delegation_id: delegationId, content: d.j.answer }));
+            }
+          } else {
+            // Brain failed/empty: never stay permanently muted/frozen; allow GPT-Live fallback transcript to flow.
+            v.ignoreLiveTranscript = false;
+            if (v.activeVoice?.kind !== "custom-tts") unmuteLiveAudio(v);
+            voiceSay(tx("Dinliyorum"), "attentive");
+          }
+        } catch (err) {
+          if (v.delegationAbort === delCtrl) v.delegationAbort = null;
+          if (err?.name === "AbortError" || v.delegationSeq !== mySeq) return;
+          if (voice === v && !v.ending) {
+            v.ignoreLiveTranscript = false;
+            if (v.activeVoice?.kind !== "custom-tts") unmuteLiveAudio(v);
+            voiceSay(tx("Dinliyorum"), "attentive");
+          }
+        }
+      })();
     }
   };
 }
@@ -6116,8 +6138,8 @@ function startOrbPulseLoop(v){
     let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i];
     const amp = Math.min(1, (sum / (data.length || 1)) / 90);
     voiceOrb.el.style.transform = `scale(${(1 + amp * 0.14).toFixed(3)})`;
-    // Local AEC-cleaned mic barge-in: cut residual buffered speaker audio in <180ms when user speaks over assistant.
-    if (v.assistantSpeaking && !v.bargeInMuted && Date.now() - (v.assistantSpeakStartAt || 0) > 350) {
+    // Local AEC-cleaned mic barge-in: cut residual buffered speaker audio in <90ms when user speaks over assistant.
+    if (v.assistantSpeaking && !v.bargeInMuted && Date.now() - (v.assistantSpeakStartAt || 0) > 180) {
       v.analyser.getByteTimeDomainData(wave);
       let sq = 0;
       for (let i = 0; i < wave.length; i++) {
@@ -6125,9 +6147,9 @@ function startOrbPulseLoop(v){
         sq += n * n;
       }
       const rms = Math.sqrt(sq / (wave.length || 1));
-      if (rms >= 0.085) {
+      if (rms >= 0.062) {
         v.bargeSpeechFrames = (v.bargeSpeechFrames || 0) + 1;
-        if (v.bargeSpeechFrames >= 10) {
+        if (v.bargeSpeechFrames >= 5) {
           v.interruptAssistantOutput?.({ keepInput: true });
         }
       } else {
@@ -6170,7 +6192,7 @@ async function startVoice(){
   paintVoiceControls();
   voiceOrb.setColor(orbColor()); $("#voiceTimer").textContent = "";
   const vfInit = $("#voiceFree"); if (vfInit) { vfInit.textContent = ""; vfInit.hidden = true; }
-  clearVoiceCaption(null);
+  clearVoiceSpeechLine(null);
   const vctx = $("#voiceContext"); if (vctx) { vctx.textContent = ""; vctx.hidden = true; }
   const localBotPreview = !galleryBot && activeBot ? (allBots()[activeBot] || BOT_TEMPLATES.find((t) => t.name === activeBot)) : null;
   const ctxEl = $("#voiceContext");
@@ -6324,7 +6346,7 @@ async function endVoice(note, { keepOpen = false } = {}){
   if ($("#voiceSheet")?.classList.contains("on")) closeSheet();
   voiceOrb.el.style.transform = "";
   voiceOrb.set("neutral");
-  clearVoiceCaption(v);
+  clearVoiceSpeechLine(v);
   const vfEnd = $("#voiceFree"); if (vfEnd) { vfEnd.textContent = ""; vfEnd.hidden = true; }
   const vctx = $("#voiceContext"); if (vctx) { vctx.textContent = ""; vctx.hidden = true; }
   for (const t of v.stream?.getTracks?.() || []) { try { t.stop(); } catch {} }

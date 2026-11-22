@@ -389,7 +389,7 @@ with sync_playwright() as p:
     except Exception: pass
     v_face = pg.evaluate("document.querySelector('#voiceOrb svg.bot-orb')?.dataset.expression")
     check("voice orb expression reacts dynamically to spoken transcript tone", v_face == "excited", str(v_face))
-    # Voice screen must show only live sentence-by-sentence caption (ChatGPT style) while full transcript lands directly in chat,
+    # Voice screen must NOT render transcript text under the mascot — transcripts go ONLY to the chat thread (ChatGPT style),
     # and counter must be a clean minimal timer/quota without confusing "11 free ... After that 13 credits/min" prose.
     free_txt = pg.inner_text("#voiceFree").strip()
     check("voice counter shows clean minimal remaining timer instead of confusing dual-number billing text", (":") in free_txt and ("ücretsiz" in free_txt or "free" in free_txt) and ("Sonrası" not in free_txt) and ("After that" not in free_txt) and ("13" not in free_txt), str(free_txt))
@@ -397,7 +397,8 @@ with sync_playwright() as p:
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: ' İhtiyacın olan bir şey varsa söyle, hemen yardımcı olurum.' }) });
     })()""")
     pg.wait_for_timeout(80)
-    live_cap = pg.inner_text("#voiceTranscript").strip()
+    voice_page_txt1 = pg.inner_text("#f-voice")
+    has_vtranscript_el = pg.evaluate("document.getElementById('voiceTranscript') !== null")
     pg.evaluate("""(() => {
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.done' }) });
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'input_audio_buffer.speech_started' }) });
@@ -406,12 +407,11 @@ with sync_playwright() as p:
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.audio_transcript.delta', delta: 'Anlıyorum. Evdeyken rahatlamak için kısa bir yürüyüş ya da çay molası iyi gelir.' }) });
     })()""")
     pg.wait_for_timeout(80)
-    live_cap2 = pg.inner_text("#voiceTranscript").strip()
+    voice_page_txt2 = pg.inner_text("#f-voice")
     pg.evaluate("""window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.done' }) })""")
     pg.wait_for_timeout(80)
-    cap_hidden_after_done = pg.evaluate("document.getElementById('voiceTranscript').hidden === true")
     thread_after_live = pg.inner_text("#thread")
-    check("voice screen shows only current live sentence while full multi-turn transcript goes directly to chat", live_cap == "İhtiyacın olan bir şey varsa söyle, hemen yardımcı olurum." and ("Harika" not in live_cap) and live_cap2 == "Evdeyken rahatlamak için kısa bir yürüyüş ya da çay molası iyi gelir." and ("Anlıyorum" not in live_cap2) and cap_hidden_after_done and ("Harika, hoş geldin Atakan!" in thread_after_live) and ("Evde rahatlamak için ne önerirsin?" in thread_after_live) and ("kısa bir yürüyüş ya da çay molası" in thread_after_live), str((live_cap, live_cap2, cap_hidden_after_done)))
+    check("voice transcript renders only in chat thread and never under the mascot", (not has_vtranscript_el) and ("Harika" not in voice_page_txt1) and ("İhtiyacın" not in voice_page_txt1) and ("Anlıyorum" not in voice_page_txt2) and ("yürüyüş" not in voice_page_txt2) and ("Harika, hoş geldin Atakan!" in thread_after_live) and ("İhtiyacın olan bir şey varsa söyle" in thread_after_live) and ("Evde rahatlamak için ne önerirsin?" in thread_after_live) and ("kısa bir yürüyüş ya da çay molası" in thread_after_live), str((has_vtranscript_el, voice_page_txt1, voice_page_txt2)))
     pg.evaluate("""(() => {
       let h = true;
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
@@ -460,13 +460,13 @@ with sync_playwright() as p:
       const beforeState = document.getElementById('voiceState').textContent;
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'session.input_transcript.delta', delta: 'Dur bekle' }) });
       const afterState = document.getElementById('voiceState').textContent;
-      const capHidden = document.getElementById('voiceTranscript').hidden === true;
+      const noMascotTranscript = document.getElementById('voiceTranscript') === null && !document.getElementById('f-voice').innerText.includes('Uzun bir cevap');
       const mutedOnBarge = Array.from(document.querySelectorAll('audio')).some((a) => a.muted === true);
       window.__voiceDc?.onmessage?.({ data: JSON.stringify({ type: 'response.created' }) });
       const unmutedAfterNew = Array.from(document.querySelectorAll('audio')).every((a) => a.muted === false);
-      return { beforeState, afterState, capHidden, mutedOnBarge, unmutedAfterNew };
+      return { beforeState, afterState, noMascotTranscript, mutedOnBarge, unmutedAfterNew };
     })()""")
-    check("voice sheet has 9 clean voices without Sonji and barge-in immediately silences/resets assistant speech", sheet_check.get("opts") == 9 and sheet_check.get("secs") == 0 and (not sheet_check.get("hasSonji")) and sheet_check.get("hasMarin") and barge_result.get("beforeState") == "Konuşuyor…" and barge_result.get("afterState") == "Dinliyorum" and barge_result.get("capHidden") and barge_result.get("mutedOnBarge") and barge_result.get("unmutedAfterNew"), str((sheet_check, barge_result)))
+    check("voice sheet has 9 clean voices without Sonji and barge-in immediately silences/resets assistant speech", sheet_check.get("opts") == 9 and sheet_check.get("secs") == 0 and (not sheet_check.get("hasSonji")) and sheet_check.get("hasMarin") and barge_result.get("beforeState") == "Konuşuyor…" and barge_result.get("afterState") == "Dinliyorum" and barge_result.get("noMascotTranscript") and barge_result.get("mutedOnBarge") and barge_result.get("unmutedAfterNew"), str((sheet_check, barge_result)))
 
     # Ending from minimized mini-bar properly terminates call and native audio
     pg.click("#voiceClose"); pg.wait_for_timeout(150)
