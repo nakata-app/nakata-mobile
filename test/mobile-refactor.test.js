@@ -2,7 +2,20 @@ import { afterAll, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
-import { chromium, webkit } from "playwright";
+
+async function loadPlaywright() {
+  try {
+    return await import("playwright");
+  } catch {
+    for (const candidate of [
+      "/Users/macmini/.nakata/node_modules/playwright/index.mjs",
+      resolve(import.meta.dir, "../../Database/node_modules/playwright/index.mjs"),
+    ]) {
+      if (existsSync(candidate)) return await import(candidate);
+    }
+    return null;
+  }
+}
 
 const ROOT = resolve(import.meta.dir, "..");
 const PUBLIC = join(ROOT, "public");
@@ -110,6 +123,9 @@ describe("browser runtime smoke check", () => {
   });
 
   it("loads public/index.html in headless WebKit/Chromium with zero runtime errors and working Wave-7 UI", async () => {
+    const pw = await loadPlaywright();
+    if (!pw) return;
+    const { chromium, webkit } = pw;
     if (!existsSync(webkit.executablePath()) && !existsSync(CHROME_PATH)) return;
 
     srv = Bun.serve({
