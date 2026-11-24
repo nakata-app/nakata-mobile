@@ -334,6 +334,20 @@ export function deleteBotInDir(name, dir = defaultBotsDir()) {
 	return { ok: true };
 }
 
+function parseEditableBotDoc(raw, stem) {
+	let doc;
+	try {
+		doc = JSON.parse(raw);
+	} catch {
+		return { ok: false, status: 400, error: "bot dosyası okunamadı" };
+	}
+	if (!doc || typeof doc !== "object" || doc.name !== stem || typeof doc.role !== "string") {
+		return { ok: false, status: 404, error: "bot yok" };
+	}
+	const lessons = Array.isArray(doc.lessons) ? doc.lessons.filter((l) => l && typeof l.text === "string") : [];
+	return { ok: true, doc, lessons };
+}
+
 /** Persist a new learned rule/lesson onto an existing Desktop JSON bot. */
 export function teachBotInDir(name, text, dir = defaultBotsDir(), source = "konsol") {
 	if (!isValidBotName(name)) return { ok: false, status: 400, error: "ad geçersiz" };
@@ -364,16 +378,9 @@ export function teachBotInDir(name, text, dir = defaultBotsDir(), source = "kons
 		}
 		if (raw === null) return { ok: false, status: 404, error: "bot yok" };
 	}
-	let doc;
-	try {
-		doc = JSON.parse(raw);
-	} catch {
-		return { ok: false, status: 400, error: "bot dosyası okunamadı" };
-	}
-	if (!doc || typeof doc !== "object" || doc.name !== stem || typeof doc.role !== "string") {
-		return { ok: false, status: 404, error: "bot yok" };
-	}
-	const lessons = Array.isArray(doc.lessons) ? doc.lessons.filter((l) => l && typeof l.text === "string") : [];
+	const parsed = parseEditableBotDoc(raw, stem);
+	if (!parsed.ok) return parsed;
+	const { doc, lessons } = parsed;
 	const dup = lessons.find((l) => l.active !== false && l.text.trim().toLowerCase() === clean.toLowerCase());
 	if (!dup) {
 		lessons.push({
@@ -399,16 +406,9 @@ export function forgetBotLessonInDir(name, query, dir = defaultBotsDir()) {
 	const jsonPath = join(dir, `${stem}.json`);
 	const raw = readRegularBounded(jsonPath);
 	if (raw === null) return { ok: false, status: 404, error: "bot yok" };
-	let doc;
-	try {
-		doc = JSON.parse(raw);
-	} catch {
-		return { ok: false, status: 400, error: "bot dosyası okunamadı" };
-	}
-	if (!doc || typeof doc !== "object" || doc.name !== stem || typeof doc.role !== "string") {
-		return { ok: false, status: 404, error: "bot yok" };
-	}
-	const lessons = Array.isArray(doc.lessons) ? doc.lessons.filter((l) => l && typeof l.text === "string") : [];
+	const parsed = parseEditableBotDoc(raw, stem);
+	if (!parsed.ok) return parsed;
+	const { doc, lessons } = parsed;
 	const activeIndices = [];
 	for (let i = 0; i < lessons.length; i++) {
 		if (lessons[i].active !== false && lessons[i].text.trim()) activeIndices.push(i);
